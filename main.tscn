@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://o6wgamwxxlx4"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AppLayout" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Sidebar" type="PanelContainer" parent="AppLayout"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AppLayout/Sidebar"]
+layout_mode = 2
+
+[node name="BtnProjects" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Projects"
+
+[node name="BtnEngine" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Engine"
+
+[node name="BtnTools" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Tools"
+
+[node name="BtnSettings" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Settings"
+
+[node name="Content" type="MarginContainer" parent="AppLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
