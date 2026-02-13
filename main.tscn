@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://o6wgamwxxlx4"]
+[gd_scene load_steps=2 format=3 uid="uid://o6wgamwxxlx4"]
+
+[ext_resource type="Script" path="res://main.gd" id="1_vvehl"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -7,6 +9,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_vvehl")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1
@@ -51,3 +54,31 @@ text = "Settings"
 [node name="Content" type="MarginContainer" parent="AppLayout"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="PageProjects" type="VBoxContainer" parent="AppLayout/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Projects Page"
+
+[node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="AppLayout/Content/PageEngine"]
+layout_mode = 2
+text = "Engine Manager"
+
+[node name="PageTools" type="VBoxContainer" parent="AppLayout/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="AppLayout/Content/PageTools"]
+layout_mode = 2
+text = "Tools Manager"
+
+[node name="PageSettings" type="VBoxContainer" parent="AppLayout/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+text = "Settings"
