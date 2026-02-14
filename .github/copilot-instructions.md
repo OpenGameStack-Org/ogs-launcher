@@ -1,0 +1,28 @@
+## **Project Mission: Open Game Stack (OGS)**
+
+**Vision:** "Sovereignty Over Subscription." OGS is a portable, pre-configured development environment that bundles open-source tools into version-controlled **"Frozen Stacks."**
+
+### **1. Core Architectural Rules**
+
+* **Version Control Everything:** The environment is the artifact. Tools are bundled and version-controlled.
+* **Air-Gap First:** All features must function in a strictly offline, air-gapped environment. No external network sockets or "phone home" telemetry.
+* **MOSA & RMF Compliance:** Follow Modular Open Systems Approach (MOSA) objectives. Code should be modular, portable, and meet defense simulation standards.
+* **Zero Dependencies:** Avoid external installers, registry keys, or `%APPDATA%` usage. Everything must run from a single, portable folder.
+
+### **2. Tech Stack & Syntax Preferences**
+
+* **Primary Engine:** **Godot 4.3 (Stable)**. Strictly use Godot 4.3 GDScript syntax (e.g., use `instantiate()` instead of `instance()`, and new `@export` annotations).
+* **Frozen Stack Tools:** Target compatibility for Blender 4.2 LTS, Krita 5.2, and Audacity 3.7.
+* **Implementation Language:** Primarily GDScript for the launcher; Bash/PowerShell for tool management scripts.
+
+### **3. Coding Standards for Copilot**
+
+* **Documentation:** Every new function must include a clear docstring explaining its purpose in the context of the OGS lifecycle.
+* **Project Vision Reference:** Always refer to `design_doc.md` for the overarching architectural vision before proposing structural changes.
+* **Privacy & Security:** Do not suggest libraries that require cloud-based authentication or proprietary license validation.
+* **Modularity:** Propose modular code structures that allow for easy swapping of tools or components in the future.
+* **Testing & Validation:** Include unit tests for critical functions, especially those related to the manifest system and offline mode enforcement.
+* **Performance:** Optimize for minimal resource usage, especially in offline mode. Avoid unnecessary background processes or network calls.
+* **Error Handling:** Implement robust error handling that provides clear feedback to the user without crashing the application, especially in air-gapped environments.
+* **User Experience:** Prioritize a simple, intuitive user interface for the OGS Launcher that abstracts away complexity while providing necessary controls for both indie developers and enterprise users.
+* **Security Best Practices:** Ensure that all code adheres to security best practices, especially when handling file operations or user input, to prevent vulnerabilities in the launcher or tool management scripts.
