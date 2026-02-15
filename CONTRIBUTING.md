@@ -38,6 +38,7 @@ Every feature you add must adhere to one core rule: **It must work offline.**
     * Use `snake_case` for variables and functions.
     * Use `PascalCase` for classes and nodes.
 3.  **Test:** Ensure your changes don't break the "Sovereign Mode" (try turning off your wifi and running the launcher!).
+    * Review [docs/SECURITY_CONSIDERATIONS.md](docs/SECURITY_CONSIDERATIONS.md) for common security pitfalls.
 4.  **Commit:**
     ```bash
     git commit -m "feat: Add support for Material Maker in stack.json"
