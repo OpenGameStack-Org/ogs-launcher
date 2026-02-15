@@ -133,7 +133,20 @@ if config.is_offline():  # offline_mode OR force_offline
     disable_network_ui()
     block_external_sockets()
     inject_tool_configs()
+
 ```
+
+## Logging
+
+The launcher writes structured JSON logs to:
+
+- `user://logs/ogs_launcher.log`
+
+Rotation:
+- Size-based rotation at ~1 MB
+- Up to 3 backup files (`ogs_launcher.log.1` to `.3`)
+
+Logs are intended for operational events and avoid sensitive data such as full filesystem paths.
 
 ## Future Extensions (Phase 2+)
 
