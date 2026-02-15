@@ -9,6 +9,7 @@ extends RefCounted
 class_name ProjectsControllerSceneTests
 
 const ProjectsControllerScript = preload("res://scripts/projects/projects_controller.gd")
+const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 
 func run() -> Dictionary:
 	"""Runs all ProjectsController scene tests.
@@ -25,6 +26,7 @@ func run() -> Dictionary:
 	_test_launch_button_disabled_initially(results)
 	_test_launch_button_enabled_after_load(results)
 	_test_launch_no_selection(results)
+	_test_offline_enforcer_updates(results)
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -83,6 +85,7 @@ func _cleanup_nodes(nodes: Array) -> void:
 
 func _test_empty_path(results: Dictionary) -> void:
 	"""Verifies empty path prompts selection message."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var controller = ctx["controller"]
 	controller._load_project_from_path("")
@@ -92,6 +95,7 @@ func _test_empty_path(results: Dictionary) -> void:
 
 func _test_missing_stack(results: Dictionary) -> void:
 	"""Verifies missing stack.json shows error and clears list."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var controller = ctx["controller"]
 	controller._load_project_from_path("res://samples/does_not_exist")
@@ -105,6 +109,7 @@ func _test_missing_stack(results: Dictionary) -> void:
 
 func _test_valid_sample_project(results: Dictionary) -> void:
 	"""Verifies sample project loads and populates the tools list."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var controller = ctx["controller"]
 	controller._load_project_from_path("res://samples/sample_project")
@@ -118,6 +123,7 @@ func _test_valid_sample_project(results: Dictionary) -> void:
 
 func _test_launch_button_disabled_initially(results: Dictionary) -> void:
 	"""Verifies launch button starts disabled."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var launch_btn: Button = ctx["launch_btn"]
 	_expect(launch_btn.disabled == true, "launch button should be disabled initially", results)
@@ -125,6 +131,7 @@ func _test_launch_button_disabled_initially(results: Dictionary) -> void:
 
 func _test_launch_button_enabled_after_load(results: Dictionary) -> void:
 	"""Verifies launch button is enabled after loading valid project."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var controller = ctx["controller"]
 	var launch_btn: Button = ctx["launch_btn"]
@@ -134,10 +141,21 @@ func _test_launch_button_enabled_after_load(results: Dictionary) -> void:
 
 func _test_launch_no_selection(results: Dictionary) -> void:
 	"""Verifies launching with no tool selected shows error."""
+	OfflineEnforcer.reset()
 	var ctx = _build_controller()
 	var controller = ctx["controller"]
 	var status_label: Label = ctx["status"]
 	controller._load_project_from_path("res://samples/sample_project")
 	controller._on_launch_tool_pressed()
 	_expect(status_label.text.find("No tool selected") != -1, "launch with no selection should error", results)
+	_cleanup_nodes(ctx["nodes"])
+
+func _test_offline_enforcer_updates(results: Dictionary) -> void:
+	"""Verifies loading a project applies offline enforcement state."""
+	OfflineEnforcer.reset()
+	var ctx = _build_controller()
+	var controller = ctx["controller"]
+	controller._load_project_from_path("res://samples/sample_project")
+	_expect(not OfflineEnforcer.is_offline(), "sample project should keep offline disabled", results)
+	_expect(OfflineEnforcer.get_reason() == "disabled", "sample project should set disabled reason", results)
 	_cleanup_nodes(ctx["nodes"])

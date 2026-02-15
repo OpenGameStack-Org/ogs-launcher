@@ -23,6 +23,7 @@ func _init() -> void:
 	load("res://scripts/manifest/stack_generator.gd")
 	load("res://scripts/projects/projects_controller.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
+	load("res://scripts/network/offline_enforcer.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -49,6 +50,9 @@ func _init() -> void:
 	var tool_launcher_tests = load("res://tests/tool_launcher_tests.gd")
 	if tool_launcher_tests:
 		test_suites.append(tool_launcher_tests.new())
+	var offline_enforcer_tests = load("res://tests/offline_enforcer_tests.gd")
+	if offline_enforcer_tests:
+		test_suites.append(offline_enforcer_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

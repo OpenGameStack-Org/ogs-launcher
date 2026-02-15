@@ -50,6 +50,9 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 |------|--------|-------|-------------------|
 | Offline Mode Enforcement | **Next up** | – | Disable asset library UI, block network sockets, inject tool configs |
 
+**Notes:**
+- Launcher-level offline enforcement added (OfflineEnforcer + ProjectsController wiring). UI disabling and tool config injection still pending.
+
 #### 📋 Must-Have for MVP
 
 - [x] **Config System** — Load `ogs_config.json` (offline_mode flag, project paths)
@@ -119,6 +122,7 @@ godot --headless --script res://tests/test_runner.gd
 ```
 
 Expected output: `tests passed: 67, tests failed: 0`
+Expected output: `tests passed: 81, tests failed: 0`
 45
 ---
 

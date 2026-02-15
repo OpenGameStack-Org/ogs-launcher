@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 67
+tests passed: 81
 tests failed: 0
 ```
 
@@ -56,6 +56,12 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Tool-specific arguments built correctly (Godot, Blender, unknown)
   - Absolute paths used as-is (no project directory joining)
   - Relative paths joined with project directory
+
+- **[tests/offline_enforcer_tests.gd](tests/offline_enforcer_tests.gd)** — Validates offline enforcement state and network guard behavior.
+  - Null config resets enforcement
+  - offline_mode and force_offline enable enforcement
+  - Disabled config keeps enforcement off
+  - Guard allows when online and blocks when offline
 
 ### Scene Tests (Integration with UI)
 
