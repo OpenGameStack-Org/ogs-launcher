@@ -1,6 +1,9 @@
 extends RefCounted
 class_name ToolLauncher
 
+const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
+const ToolConfigInjector = preload("res://scripts/launcher/tool_config_injector.gd")
+
 ## Handles spawning external tools from the frozen stack with correct environment and working directory.
 ##
 ## This class is responsible for:
@@ -16,6 +19,7 @@ enum LaunchError {
 	TOOL_NOT_FOUND = 2,      ## Executable file not found at resolved path
 	INVALID_PROJECT_DIR = 3, ## Project directory is empty or invalid
 	SPAWN_FAILED = 4,        ## OS.create_process() returned error
+	OFFLINE_CONFIG_FAILED = 5 ## Offline tool configuration injection failed
 }
 
 
@@ -47,6 +51,11 @@ static func launch(tool_entry: Dictionary, project_dir: String) -> Dictionary:
 	# Build tool-specific arguments
 	var tool_id = String(tool_entry.get("id", "unknown"))
 	var args = _build_launch_arguments(tool_id, project_dir)
+	if OfflineEnforcer.is_offline():
+		var inject = ToolConfigInjector.apply(tool_id, project_dir)
+		if not inject["success"]:
+			return _error_result(LaunchError.OFFLINE_CONFIG_FAILED, inject["error_message"])
+		args.append_array(inject["args"])
 	
 	# Spawn the process
 	var pid = OS.create_process(full_tool_path, args)

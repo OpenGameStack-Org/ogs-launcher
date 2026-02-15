@@ -10,7 +10,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 
 ### Primary Goals (Phase 1: Foundation)
 1. **Manifest System** ✅ — `stack.json` loader, validator, and generator (complete)
-2. **Offline Mode Enforcement** — Strict air-gap with no external sockets
+2. **Offline Mode Enforcement** ✅ — Strict air-gap with no external sockets
 3. **Projects Page** — Browse and load projects with `stack.json` detection
 4. **Tool Launcher** — Launch tools from frozen stack with correct environment
 5. **Configuration Management** — `ogs_config.json` for offline/sovereign mode flags
@@ -26,9 +26,9 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 
 ## Phases & Progress
 
-### Phase 1: Foundation (In Progress)
+### Phase 1: Foundation (Complete)
 
-**Status:** ~85% complete
+**Status:** 100% complete
 
 #### ✅ Completed Tasks
 
@@ -41,24 +41,19 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 | Testing Documentation | Comprehensive testing guide with categories and best practices | [docs/TESTING.md](TESTING.md) |
 | Projects Page UI | Folder selection, manifest/config loading, tool list display | [scripts/projects/projects_controller.gd](../scripts/projects/projects_controller.gd) |
 | Tool Launcher | Process spawning with tool-specific arguments and environment setup | [scripts/launcher/tool_launcher.gd](../scripts/launcher/tool_launcher.gd) |
+| Offline Mode Enforcement | UI disabling, socket blocking, tool config injection, and download guardrails | [scripts/network/offline_enforcer.gd](../scripts/network/offline_enforcer.gd) |
 | Documentation | Comprehensive docstrings + schema guides (manifest + config) | [docs/MANIFEST_SCHEMA.md](MANIFEST_SCHEMA.md), [docs/CONFIG_SCHEMA.md](CONFIG_SCHEMA.md) |
 | Project Structure | Git setup, .gitignore configured, workspace file ready | [.github/](.github/) |
 
-#### 🔄 In-Progress / Backlog
-
-| Task | Status | Owner | Acceptance Criteria |
-|------|--------|-------|-------------------|
-| Offline Mode Enforcement | **Next up** | – | Disable asset library UI, block network sockets, inject tool configs |
-
 **Notes:**
-- Launcher-level offline enforcement and UI disabling are in place. Download guardrails are in place; tool config injection and socket-level blocking are still pending.
+- Launcher-level offline enforcement, UI disabling, and download guardrails are in place. Tool config injection is implemented for Godot, Blender, Krita, and Audacity (placeholder overrides). Socket-level blocking is implemented and wired through tool downloads. Offline enforcement does not alter project runtime networking.
 
 #### 📋 Must-Have for MVP
 
 - [x] **Config System** — Load `ogs_config.json` (offline_mode flag, project paths)
 - [x] **Projects Page** — Select folder → detect/load `stack.json` → display tool status
 - [x] **Tool Launch** — Click "Launch Godot" → spawn process with correct environment
-- [ ] **Offline Enforcement** — When `offline_mode=true`, disable all network UI and block sockets
+- [x] **Offline Enforcement** — When `offline_mode=true`, disable all network UI and block sockets
 
 ---
 
@@ -122,8 +117,7 @@ godot --headless --script res://tests/test_runner.gd
 ```
 
 Expected output: `tests passed: 67, tests failed: 0`
-Expected output: `tests passed: 87, tests failed: 0`
-45
+Expected output: `tests passed: 107, tests failed: 0`
 ---
 
 ## Definition of Done
@@ -142,4 +136,4 @@ A task is "complete" when:
 
 Check this file regularly. Tasks will be moved between sections as work progresses. Each section shows the latest status, expected owner, and acceptance criteria.
 
-Last updated: **February 15, 2026** (Tool Launcher complete)
+Last updated: **February 15, 2026** (Offline Enforcement complete)

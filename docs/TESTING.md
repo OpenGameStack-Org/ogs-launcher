@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 87
+tests passed: 107
 tests failed: 0
 ```
 
@@ -66,6 +66,15 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
 - **[tests/tool_downloader_tests.gd](tests/tool_downloader_tests.gd)** — Validates that download attempts are blocked in offline mode.
   - Offline attempts return OFFLINE_BLOCKED
   - Online attempts return NOT_IMPLEMENTED (stubbed)
+
+- **[tests/tool_config_injector_tests.gd](tests/tool_config_injector_tests.gd)** — Validates tool-specific offline config injection.
+  - Blender launch args include python override
+  - Godot editor settings overrides are written
+  - Krita and Audacity placeholder overrides are written
+
+- **[tests/socket_blocker_tests.gd](tests/socket_blocker_tests.gd)** — Validates socket blocking behavior.
+  - Offline blocks socket creation
+  - Online returns NOT_IMPLEMENTED (stubbed)
 
 ### Scene Tests (Integration with UI)
 

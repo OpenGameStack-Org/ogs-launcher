@@ -23,7 +23,9 @@ func _init() -> void:
 	load("res://scripts/manifest/stack_generator.gd")
 	load("res://scripts/projects/projects_controller.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
+	load("res://scripts/launcher/tool_config_injector.gd")
 	load("res://scripts/network/offline_enforcer.gd")
+	load("res://scripts/network/socket_blocker.gd")
 	load("res://scripts/network/tool_downloader.gd")
 	
 	var summary := {
@@ -57,6 +59,12 @@ func _init() -> void:
 	var tool_downloader_tests = load("res://tests/tool_downloader_tests.gd")
 	if tool_downloader_tests:
 		test_suites.append(tool_downloader_tests.new())
+	var tool_config_injector_tests = load("res://tests/tool_config_injector_tests.gd")
+	if tool_config_injector_tests:
+		test_suites.append(tool_config_injector_tests.new())
+	var socket_blocker_tests = load("res://tests/socket_blocker_tests.gd")
+	if socket_blocker_tests:
+		test_suites.append(socket_blocker_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

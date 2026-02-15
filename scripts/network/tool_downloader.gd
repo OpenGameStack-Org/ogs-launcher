@@ -8,6 +8,7 @@ extends RefCounted
 class_name ToolDownloader
 
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
+const SocketBlocker = preload("res://scripts/network/socket_blocker.gd")
 
 ## Error codes for download failures.
 enum DownloadError {
@@ -31,6 +32,15 @@ static func download_tool(tool_id: String, version: String, target_path: String)
 			"success": false,
 			"error_code": DownloadError.OFFLINE_BLOCKED,
 			"error_message": guard["error_message"]
+		}
+	# All launcher network access should go through SocketBlocker.
+	# Use connect=false while downloads are stubbed to avoid unintended sockets.
+	var socket_result = SocketBlocker.open_tcp_client("ogs-provisioning", 443, false)
+	if socket_result["error_code"] == SocketBlocker.SocketError.OFFLINE_BLOCKED:
+		return {
+			"success": false,
+			"error_code": DownloadError.OFFLINE_BLOCKED,
+			"error_message": socket_result["error_message"]
 		}
 	return {
 		"success": false,

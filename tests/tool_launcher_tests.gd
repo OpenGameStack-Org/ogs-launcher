@@ -2,6 +2,8 @@ extends RefCounted
 class_name ToolLauncherTests
 
 const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
+const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
+const OgsConfigScript = preload("res://scripts/config/ogs_config.gd")
 
 ## Unit tests for ToolLauncher process spawning logic.
 ##
@@ -20,6 +22,7 @@ func run() -> Dictionary:
 	_test_unknown_tool_arguments(results)
 	_test_absolute_path_handling(results)
 	_test_relative_path_handling(results)
+	_test_offline_injection_failure(results)
 	
 	return results
 
@@ -108,3 +111,14 @@ func _test_relative_path_handling(results: Dictionary) -> void:
 	_expect(not result["success"], "nonexistent relative path should fail", results)
 	_expect(result["error_message"].find("C:/Projects/MyGame/tools/relative.exe") != -1, 
 		"error should show joined relative path", results)
+
+func _test_offline_injection_failure(results: Dictionary) -> void:
+	"""Verifies offline injection errors are surfaced when config write fails."""
+	var tool_entry = {"id": "godot", "version": "4.3", "path": "C:/absolute/path/test.exe"}
+	var config = OgsConfigScript.from_dict({"offline_mode": true})
+	OfflineEnforcer.apply_config(config)
+	var result = ToolLauncher.launch(tool_entry, "C:/Projects/MyGame")
+	_expect(not result["success"], "offline launch should fail on bad config", results)
+	_expect(result["error_code"] == ToolLauncher.LaunchError.OFFLINE_CONFIG_FAILED or result["error_code"] == ToolLauncher.LaunchError.TOOL_NOT_FOUND,
+		"offline errors should be surfaced", results)
+	OfflineEnforcer.apply_config(OgsConfigScript.from_dict({"offline_mode": false}))

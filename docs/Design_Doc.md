@@ -46,6 +46,8 @@ When the Launcher detects this flag in `ogs_config.json`:
 1.  **UI Modification:** Hides "Asset Library," "Extension Store," and "Update Available" UI elements.
 2.  **Socket Lock:** Attempts to initialize network requests return an immediate error without contacting the OS network stack.
 
+**Scope Note:** Offline enforcement applies to the launcher and editor tooling only. It does not modify project runtime networking, so exported Godot applications can still use network features when required.
+
 ### 5.2 Tool-Specific Overrides
 Upon launching a tool, the Launcher injects or validates specific configuration overrides to ensure the child process respects the air-gap:
 
