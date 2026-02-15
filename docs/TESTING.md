@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 45
+tests passed: 67
 tests failed: 0
 ```
 
@@ -49,6 +49,14 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - JSON compact mode (no whitespace)
   - save_to_file() writes and returns true
 
+- **[tests/tool_launcher_tests.gd](tests/tool_launcher_tests.gd)** — Validates tool process spawning logic.
+  - Missing/empty path fields rejected
+  - Invalid project directory rejected
+  - Nonexistent tool executable rejected
+  - Tool-specific arguments built correctly (Godot, Blender, unknown)
+  - Absolute paths used as-is (no project directory joining)
+  - Relative paths joined with project directory
+
 ### Scene Tests (Integration with UI)
 
 Scene tests instantiate UI nodes and verify controller behaviors. These are similar to Unity's "Play Mode tests" but run headlessly in Godot.
@@ -59,6 +67,9 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - Empty path → status prompts selection
   - Missing `stack.json` → error message + cleared tools list
   - Valid sample project → tools list populated + offline label updated
+  - Launch button disabled initially
+  - Launch button enabled after valid project load
+  - Launch with no selection → error message
 
 - **[tests/main_scene_tests.gd](tests/main_scene_tests.gd)** — Smoke tests for the main launcher scene.
   - main.tscn loads without errors

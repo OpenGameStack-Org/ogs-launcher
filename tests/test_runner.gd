@@ -22,6 +22,7 @@ func _init() -> void:
 	load("res://scripts/manifest/stack_manifest.gd")
 	load("res://scripts/manifest/stack_generator.gd")
 	load("res://scripts/projects/projects_controller.gd")
+	load("res://scripts/launcher/tool_launcher.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -45,6 +46,9 @@ func _init() -> void:
 	var main_scene_tests = load("res://tests/main_scene_tests.gd")
 	if main_scene_tests:
 		test_suites.append(main_scene_tests.new())
+	var tool_launcher_tests = load("res://tests/tool_launcher_tests.gd")
+	if tool_launcher_tests:
+		test_suites.append(tool_launcher_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

@@ -95,6 +95,10 @@ text = "Offline: Unknown"
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="LaunchButton" type="Button" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Launch Selected Tool"
+
 [node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2
 

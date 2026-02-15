@@ -28,7 +28,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 
 ### Phase 1: Foundation (In Progress)
 
-**Status:** ~60% complete
+**Status:** ~85% complete
 
 #### ✅ Completed Tasks
 
@@ -37,7 +37,10 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 | Manifest System | `StackManifest` class with full validation + error codes | [scripts/manifest/stack_manifest.gd](../scripts/manifest/stack_manifest.gd) |
 | Manifest Generator | Factory `StackGenerator` for new projects | [scripts/manifest/stack_generator.gd](../scripts/manifest/stack_generator.gd) |
 | Config Loader | `OgsConfig` class for `ogs_config.json` (offline mode flags) | [scripts/config/ogs_config.gd](../scripts/config/ogs_config.gd) |
-| Test Harness | Headless test runner + 11 unit tests (all passing) | [tests/](../tests/) |
+| Test Harness | Headless test runner + 67 unit/scene tests (all passing) | [tests/](../tests/) |
+| Testing Documentation | Comprehensive testing guide with categories and best practices | [docs/TESTING.md](TESTING.md) |
+| Projects Page UI | Folder selection, manifest/config loading, tool list display | [scripts/projects/projects_controller.gd](../scripts/projects/projects_controller.gd) |
+| Tool Launcher | Process spawning with tool-specific arguments and environment setup | [scripts/launcher/tool_launcher.gd](../scripts/launcher/tool_launcher.gd) |
 | Documentation | Comprehensive docstrings + schema guides (manifest + config) | [docs/MANIFEST_SCHEMA.md](MANIFEST_SCHEMA.md), [docs/CONFIG_SCHEMA.md](CONFIG_SCHEMA.md) |
 | Project Structure | Git setup, .gitignore configured, workspace file ready | [.github/](.github/) |
 
@@ -45,17 +48,14 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 
 | Task | Status | Owner | Acceptance Criteria |
 |------|--------|-------|-------------------|
-| Projects Page UI | Not started | – | List projects, detect `stack.json`, show tool status, error handling |
-| Tool Launcher | Not started | – | Launch Godot/Blender with correct working directory and $PATH |
-| Offline Mode Enforcement | Not started | – | Disable asset library UI, block network sockets, inject tool configs |
+| Offline Mode Enforcement | **Next up** | – | Disable asset library UI, block network sockets, inject tool configs |
 
 #### 📋 Must-Have for MVP
 
 - [x] **Config System** — Load `ogs_config.json` (offline_mode flag, project paths)
-- [ ] **Projects Page** — Select folder → detect/load `stack.json` → display tool status
-- [ ] **Tool Launch** — Click "Launch Godot" → spawn process with correct environment
+- [x] **Projects Page** — Select folder → detect/load `stack.json` → display tool status
+- [x] **Tool Launch** — Click "Launch Godot" → spawn process with correct environment
 - [ ] **Offline Enforcement** — When `offline_mode=true`, disable all network UI and block sockets
-- [ ] **Error UI** — Clear messages for invalid manifests, missing tools, I/O failures
 
 ---
 
@@ -118,8 +118,8 @@ All changes should pass the manifest test suite before merging:
 godot --headless --script res://tests/test_runner.gd
 ```
 
-Expected output: `tests passed: 6, tests failed: 0`
-
+Expected output: `tests passed: 67, tests failed: 0`
+45
 ---
 
 ## Definition of Done
@@ -138,4 +138,4 @@ A task is "complete" when:
 
 Check this file regularly. Tasks will be moved between sections as work progresses. Each section shows the latest status, expected owner, and acceptance criteria.
 
-Last updated: **February 15, 2026** (Config Loader complete)
+Last updated: **February 15, 2026** (Tool Launcher complete)

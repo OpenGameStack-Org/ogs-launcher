@@ -20,6 +20,7 @@ extends Control
 @onready var lbl_project_status = $AppLayout/Content/PageProjects/ProjectsStatusLabel
 @onready var lbl_offline_status = $AppLayout/Content/PageProjects/OfflineStatusLabel
 @onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
+@onready var btn_launch_tool = $AppLayout/Content/PageProjects/LaunchButton
 @onready var project_dir_dialog = $ProjectDirDialog
 
 var projects_controller: ProjectsController
@@ -41,6 +42,7 @@ func _ready():
 		lbl_project_status,
 		lbl_offline_status,
 		tools_list,
+		btn_launch_tool,
 		project_dir_dialog
 	)
 	

@@ -1,6 +1,7 @@
 extends RefCounted
 class_name ProjectsController
 
+const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
 
 var project_path_line_edit: LineEdit
 var btn_browse_project: Button
@@ -9,9 +10,11 @@ var btn_new_project: Button
 var lbl_project_status: Label
 var lbl_offline_status: Label
 var tools_list: ItemList
+var btn_launch_tool: Button
 var project_dir_dialog: FileDialog
 
 var current_project_dir := ""
+var current_manifest: StackManifest = null
 
 func setup(
 	path_line_edit: LineEdit,
@@ -21,6 +24,7 @@ func setup(
 	status_label: Label,
 	offline_label: Label,
 	tools_list_control: ItemList,
+	launch_button: Button,
 	dir_dialog: FileDialog
 ) -> void:
 	"""Wires the Projects page controls to project loading behaviors."""
@@ -31,13 +35,18 @@ func setup(
 	lbl_project_status = status_label
 	lbl_offline_status = offline_label
 	tools_list = tools_list_control
+	btn_launch_tool = launch_button
 	project_dir_dialog = dir_dialog
 
 	btn_browse_project.pressed.connect(_on_browse_project_pressed)
 	btn_load_project.pressed.connect(_on_load_project_pressed)
 	btn_new_project.pressed.connect(_on_new_project_pressed)
+	btn_launch_tool.pressed.connect(_on_launch_tool_pressed)
 	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
+	
+	# Initially disable launch button until a project is loaded
+	btn_launch_tool.disabled = true
 
 func _on_browse_project_pressed() -> void:
 	"""Opens the folder picker for selecting a project root."""
@@ -67,6 +76,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	"""Loads and validates stack.json and ogs_config.json from a project folder."""
 	if project_dir.is_empty():
 		_update_status("Status: Please select a project folder.")
+		_disable_launch_button()
 		return
 
 	var stack_path = project_dir.path_join("stack.json")
@@ -76,6 +86,7 @@ func _load_project_from_path(project_dir: String) -> void:
 		_update_status("Status: stack.json not found in the selected folder.")
 		_update_offline_status(null)
 		tools_list.clear()
+		_disable_launch_button()
 		return
 
 	var manifest = StackManifest.load_from_file(stack_path)
@@ -83,10 +94,15 @@ func _load_project_from_path(project_dir: String) -> void:
 		_update_status("Status: stack.json is invalid. Errors: %s" % ", ".join(manifest.errors))
 		_update_offline_status(null)
 		tools_list.clear()
+		_disable_launch_button()
 		return
 
 	_update_status("Status: Manifest loaded for '%s'." % manifest.stack_name)
 	_populate_tools_list(manifest.tools)
+	
+	# Store the manifest for launching tools
+	current_manifest = manifest
+	_enable_launch_button()
 
 	var config = _load_config_if_present(config_path)
 	_update_offline_status(config)
@@ -122,3 +138,39 @@ func _update_offline_status(config: OgsConfig) -> void:
 		lbl_offline_status.text = "Offline: Enabled (offline_mode=true)"
 	else:
 		lbl_offline_status.text = "Offline: Disabled"
+
+func _on_launch_tool_pressed() -> void:
+	"""Launches the currently selected tool from the tools list."""
+	if current_manifest == null:
+		_update_status("Status: No project loaded. Cannot launch tool.")
+		return
+	
+	var selected_indices = tools_list.get_selected_items()
+	if selected_indices.is_empty():
+		_update_status("Status: No tool selected. Select a tool from the list first.")
+		return
+	
+	var selected_index = selected_indices[0]
+	if selected_index >= current_manifest.tools.size():
+		_update_status("Status: Invalid tool selection.")
+		return
+	
+	var tool_entry = current_manifest.tools[selected_index]
+	var result = ToolLauncher.launch(tool_entry, current_project_dir)
+	
+	if result["success"]:
+		var tool_id = String(tool_entry.get("id", "unknown"))
+		_update_status("Status: Launched %s (PID: %d)" % [tool_id, result["pid"]])
+	else:
+		_update_status("Status: Launch failed - %s" % result["error_message"])
+
+func _enable_launch_button() -> void:
+	"""Enables the launch button when a valid project is loaded."""
+	if btn_launch_tool:
+		btn_launch_tool.disabled = false
+
+func _disable_launch_button() -> void:
+	"""Disables the launch button when no valid project is loaded."""
+	if btn_launch_tool:
+		btn_launch_tool.disabled = true
+	current_manifest = null
