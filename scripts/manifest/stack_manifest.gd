@@ -37,6 +37,8 @@
 extends RefCounted
 class_name StackManifest
 
+const Logger = preload("res://scripts/logging/logger.gd")
+
 const CURRENT_SCHEMA_VERSION := 1
 
 var schema_version := 0
@@ -199,6 +201,7 @@ func _load_from_file(file_path: String) -> void:
 	errors.clear()
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
+		Logger.warn("manifest_read_failed", {"component": "manifest"})
 		errors.append("manifest_file_unreadable")
 		return
 	var json_text = file.get_as_text()
@@ -214,9 +217,11 @@ func _load_from_json_string(json_text: String) -> void:
 	errors.clear()
 	var data = JSON.parse_string(json_text)
 	if data == null:
+		Logger.warn("manifest_parse_failed", {"component": "manifest"})
 		errors.append("manifest_json_invalid")
 		return
 	if typeof(data) != TYPE_DICTIONARY:
+		Logger.warn("manifest_root_invalid", {"component": "manifest"})
 		errors.append("manifest_root_not_object")
 		return
 	_load_from_dict(data)
@@ -229,6 +234,8 @@ func _load_from_json_string(json_text: String) -> void:
 func _load_from_dict(data: Dictionary) -> void:
 	"""Populates fields from a dictionary after validation."""
 	errors = validate_data(data)
+	if not errors.is_empty():
+		Logger.warn("manifest_validation_failed", {"component": "manifest", "error_count": errors.size()})
 	schema_version = int(data.get("schema_version", 0))
 	stack_name = String(data.get("stack_name", ""))
 	var raw_tools = data.get("tools", [])

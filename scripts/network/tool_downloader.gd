@@ -9,6 +9,7 @@ class_name ToolDownloader
 
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const SocketBlocker = preload("res://scripts/network/socket_blocker.gd")
+const Logger = preload("res://scripts/logging/logger.gd")
 
 ## Error codes for download failures.
 enum DownloadError {
@@ -28,6 +29,7 @@ static func download_tool(tool_id: String, version: String, target_path: String)
 	"""
 	var guard = OfflineEnforcer.guard_network_call("download_tool:%s" % tool_id)
 	if not guard["allowed"]:
+		Logger.warn("download_blocked", {"component": "network", "reason": "offline", "tool": tool_id})
 		return {
 			"success": false,
 			"error_code": DownloadError.OFFLINE_BLOCKED,
@@ -37,11 +39,13 @@ static func download_tool(tool_id: String, version: String, target_path: String)
 	# Use connect=false while downloads are stubbed to avoid unintended sockets.
 	var socket_result = SocketBlocker.open_tcp_client("ogs-provisioning", 443, false)
 	if socket_result["error_code"] == SocketBlocker.SocketError.OFFLINE_BLOCKED:
+		Logger.warn("download_blocked", {"component": "network", "reason": "socket_blocked", "tool": tool_id})
 		return {
 			"success": false,
 			"error_code": DownloadError.OFFLINE_BLOCKED,
 			"error_message": socket_result["error_message"]
 		}
+	Logger.info("download_stubbed", {"component": "network", "tool": tool_id, "version": version})
 	return {
 		"success": false,
 		"error_code": DownloadError.NOT_IMPLEMENTED,

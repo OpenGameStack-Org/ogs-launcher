@@ -27,6 +27,8 @@
 extends RefCounted
 class_name OgsConfig
 
+const Logger = preload("res://scripts/logging/logger.gd")
+
 const CURRENT_SCHEMA_VERSION := 1
 
 var schema_version := 1
@@ -124,10 +126,12 @@ func _load_from_file(file_path: String) -> void:
 	errors.clear()
 	if not FileAccess.file_exists(file_path):
 		# File missing is not an error—use defaults
+		Logger.debug("config_missing", {"component": "config"})
 		return
 	
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
+		Logger.warn("config_read_failed", {"component": "config"})
 		errors.append("config_file_unreadable")
 		return
 	var json_text = file.get_as_text()
@@ -141,9 +145,11 @@ func _load_from_json_string(json_text: String) -> void:
 	errors.clear()
 	var data = JSON.parse_string(json_text)
 	if data == null:
+		Logger.warn("config_parse_failed", {"component": "config"})
 		errors.append("config_json_invalid")
 		return
 	if typeof(data) != TYPE_DICTIONARY:
+		Logger.warn("config_root_invalid", {"component": "config"})
 		errors.append("config_root_not_object")
 		return
 	_load_from_dict(data)
@@ -153,6 +159,8 @@ func _load_from_dict(data: Dictionary) -> void:
 	Parameters:
 	  data (Dictionary): Object to load from"""
 	errors = validate_data(data)
+	if not errors.is_empty():
+		Logger.warn("config_validation_failed", {"component": "config", "error_count": errors.size()})
 	
 	if data.has("schema_version"):
 		schema_version = int(data["schema_version"])
