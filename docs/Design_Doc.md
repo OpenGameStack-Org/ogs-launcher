@@ -62,6 +62,9 @@ Upon launching a tool, the Launcher injects or validates specific configuration 
     *   Writes `user://ogs_offline_overrides/<tool>.json` with a hashed `project_id` and sets `OGS_OFFLINE_TOOL_<TOOL>` environment flags
     *   Placeholder until tool-native config files are integrated
 
+### 5.3 Logging Architecture
+The launcher uses structured JSON logs written to `user://logs/ogs_launcher.log` with size-based rotation. Logs are intended for operational events (project load, tool launch, network guardrails) and must avoid sensitive data such as raw filesystem paths.
+
 ## **6. The "Seal for Delivery" Protocol**
 To enable the seamless transition from Contractor (Mode A) to Government (Mode B), the Launcher includes a **"Seal Project"** utility. This feature prepares the environment for final delivery or source control archival.
 

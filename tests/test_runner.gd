@@ -24,6 +24,7 @@ func _init() -> void:
 	load("res://scripts/projects/projects_controller.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
 	load("res://scripts/launcher/tool_config_injector.gd")
+	load("res://scripts/logging/logger.gd")
 	load("res://scripts/network/offline_enforcer.gd")
 	load("res://scripts/network/socket_blocker.gd")
 	load("res://scripts/network/tool_downloader.gd")
@@ -65,6 +66,9 @@ func _init() -> void:
 	var socket_blocker_tests = load("res://tests/socket_blocker_tests.gd")
 	if socket_blocker_tests:
 		test_suites.append(socket_blocker_tests.new())
+	var logger_tests = load("res://tests/logger_tests.gd")
+	if logger_tests:
+		test_suites.append(logger_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

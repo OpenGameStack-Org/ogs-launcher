@@ -29,6 +29,7 @@
   - New features require tests before merging; existing tests must continue to pass.
 * **Performance:** Optimize for minimal resource usage, especially in offline mode. Avoid unnecessary background processes or network calls.
 * **Error Handling:** Implement robust error handling that provides clear feedback to the user without crashing the application, especially in air-gapped environments.
+* **Logging:** Use the `Logger` in `scripts/logging/logger.gd` for operational events; avoid raw prints. Include context (component, project, tool) and avoid sensitive data. Logs live under user:// with rotation.
 * **User Experience:** Prioritize a simple, intuitive user interface for the OGS Launcher that abstracts away complexity while providing necessary controls for both indie developers and enterprise users.
 * **Security Best Practices:** Ensure that all code adheres to security best practices, especially when handling file operations or user input, to prevent vulnerabilities in the launcher or tool management scripts.
 

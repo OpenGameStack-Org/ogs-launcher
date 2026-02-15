@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 118
+tests passed: 121
 tests failed: 0
 ```
 
@@ -76,6 +76,10 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Offline blocks socket creation
   - Online creates sockets without connecting
   - Online blocks hosts not on the allowlist
+
+- **[tests/logger_tests.gd](tests/logger_tests.gd)** — Validates structured logging behavior.
+  - Writes JSON logs
+  - Enforces level filtering
 
 ### Scene Tests (Integration with UI)
 

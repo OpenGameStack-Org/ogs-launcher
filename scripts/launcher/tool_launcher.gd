@@ -8,6 +8,7 @@ class_name ToolLauncher
 
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const ToolConfigInjector = preload("res://scripts/launcher/tool_config_injector.gd")
+const Logger = preload("res://scripts/logging/logger.gd")
 
 ## Handles spawning external tools from the frozen stack with correct environment and working directory.
 ##
@@ -42,42 +43,52 @@ enum LaunchError {
 static func launch(tool_entry: Dictionary, project_dir: String) -> Dictionary:
 	# Validate inputs
 	if project_dir.is_empty():
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "empty_project_dir"})
 		return _error_result(LaunchError.INVALID_PROJECT_DIR, "Project directory path is empty.")
 	
 	if not tool_entry.has("path"):
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "missing_path"})
 		return _error_result(LaunchError.TOOL_PATH_MISSING, "Tool entry is missing 'path' field.")
 	
 	var tool_path = String(tool_entry["path"])
 	if tool_path.is_empty():
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "empty_path"})
 		return _error_result(LaunchError.TOOL_PATH_MISSING, "Tool path is empty.")
+	var tool_id = String(tool_entry.get("id", "unknown"))
 	
 	# Resolve tool path (relative paths only, within project root)
 	if tool_path.is_absolute_path():
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "absolute_path"})
 		return _error_result(LaunchError.TOOL_PATH_ABSOLUTE, "Tool path must be project-relative.")
 	var full_tool_path = project_dir.path_join(tool_path)
 	if not _is_path_under_root(full_tool_path, project_dir):
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "path_escape"})
 		return _error_result(LaunchError.TOOL_PATH_OUTSIDE_ROOT, "Tool path escapes project root.")
 	
 	if not FileAccess.file_exists(full_tool_path):
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "not_found", "tool": tool_id})
 		return _error_result(LaunchError.TOOL_NOT_FOUND, "Tool executable not found at: %s" % full_tool_path)
 
 	var hash_check = _validate_tool_hash(tool_entry, full_tool_path)
 	if not hash_check["success"]:
+		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "hash_check", "tool": tool_id})
 		return _error_result(hash_check["error_code"], hash_check["error_message"])
 	
 	# Build tool-specific arguments
-	var tool_id = String(tool_entry.get("id", "unknown"))
 	var args = _build_launch_arguments(tool_id, project_dir)
 	if OfflineEnforcer.is_offline():
 		var inject = ToolConfigInjector.apply(tool_id, project_dir)
 		if not inject["success"]:
+			Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "offline_inject", "tool": tool_id})
 			return _error_result(LaunchError.OFFLINE_CONFIG_FAILED, inject["error_message"])
 		args.append_array(inject["args"])
 	
 	# Spawn the process
 	var pid = OS.create_process(full_tool_path, args)
 	if pid == -1:
+		Logger.error("tool_launch_failed", {"component": "launcher", "reason": "spawn_failed", "tool": tool_id})
 		return _error_result(LaunchError.SPAWN_FAILED, "Failed to spawn process for tool: %s" % tool_id)
+	Logger.info("tool_launched", {"component": "launcher", "tool": tool_id, "project": project_dir.get_file()})
 	
 	return {
 		"success": true,

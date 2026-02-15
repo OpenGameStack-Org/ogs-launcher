@@ -8,6 +8,7 @@ extends RefCounted
 class_name SocketBlocker
 
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
+const Logger = preload("res://scripts/logging/logger.gd")
 
 ## Default allowlist for outbound connections.
 static var _allowed_hosts: Array[String] = ["localhost", "127.0.0.1"]
@@ -31,6 +32,7 @@ static func open_tcp_client(host: String, port: int, connect: bool = true) -> Di
 	"""
 	var guard = OfflineEnforcer.guard_network_call("tcp:%s:%d" % [host, port])
 	if not guard["allowed"]:
+		Logger.warn("socket_blocked", {"component": "network", "reason": "offline", "host": host, "port": port})
 		return {
 			"success": false,
 			"error_code": SocketError.OFFLINE_BLOCKED,
@@ -39,6 +41,7 @@ static func open_tcp_client(host: String, port: int, connect: bool = true) -> Di
 		}
 	var allow_check = _is_allowed(host, port)
 	if not allow_check["allowed"]:
+		Logger.warn("socket_blocked", {"component": "network", "reason": "allowlist", "host": host, "port": port})
 		return {
 			"success": false,
 			"error_code": SocketError.CONNECT_FAILED,
@@ -55,12 +58,14 @@ static func open_tcp_client(host: String, port: int, connect: bool = true) -> Di
 		}
 	var err = peer.connect_to_host(host, port)
 	if err != OK:
+		Logger.error("socket_connect_failed", {"component": "network", "host": host, "port": port})
 		return {
 			"success": false,
 			"error_code": SocketError.CONNECT_FAILED,
 			"error_message": "Failed to connect (%s:%d). Error: %d" % [host, port, err],
 			"client": peer
 		}
+	Logger.info("socket_connected", {"component": "network", "host": host, "port": port})
 	return {
 		"success": true,
 		"error_code": SocketError.SUCCESS,

@@ -8,6 +8,7 @@ class_name ProjectsController
 
 const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
+const Logger = preload("res://scripts/logging/logger.gd")
 
 ## Emitted when offline state changes after loading a project or config.
 signal offline_state_changed(active: bool, reason: String)
@@ -87,6 +88,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	"""Loads and validates stack.json and ogs_config.json from a project folder."""
 	if project_dir.is_empty():
 		_update_status("Status: Please select a project folder.")
+		Logger.warn("project_load_failed", {"component": "projects", "reason": "empty_path"})
 		_apply_offline_config(null)
 		_disable_launch_button()
 		return
@@ -97,6 +99,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	if not FileAccess.file_exists(stack_path):
 		_update_status("Status: stack.json not found in the selected folder.")
 		_update_offline_status(null)
+		Logger.warn("project_load_failed", {"component": "projects", "reason": "missing_stack"})
 		_apply_offline_config(null)
 		tools_list.clear()
 		_disable_launch_button()
@@ -106,6 +109,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	if not manifest.is_valid():
 		_update_status("Status: stack.json is invalid. Errors: %s" % ", ".join(manifest.errors))
 		_update_offline_status(null)
+		Logger.warn("project_load_failed", {"component": "projects", "reason": "invalid_manifest"})
 		_apply_offline_config(null)
 		tools_list.clear()
 		_disable_launch_button()
@@ -113,6 +117,7 @@ func _load_project_from_path(project_dir: String) -> void:
 
 	_update_status("Status: Manifest loaded for '%s'." % manifest.stack_name)
 	_populate_tools_list(manifest.tools)
+	Logger.info("project_loaded", {"component": "projects", "stack_name": manifest.stack_name})
 	
 	# Store the manifest for launching tools
 	current_manifest = manifest
