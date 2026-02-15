@@ -23,6 +23,8 @@ extends Control
 @onready var btn_launch_tool = $AppLayout/Content/PageProjects/LaunchButton
 @onready var project_dir_dialog = $ProjectDirDialog
 
+var network_ui_nodes: Array = []
+
 var projects_controller: ProjectsController
 
 func _ready():
@@ -45,6 +47,10 @@ func _ready():
 		btn_launch_tool,
 		project_dir_dialog
 	)
+	projects_controller.offline_state_changed.connect(_on_offline_state_changed)
+
+	_collect_network_ui_nodes()
+	_apply_offline_ui(false)
 	
 	# Start on the Projects page
 	_on_tab_pressed(page_projects)
@@ -58,3 +64,31 @@ func _on_tab_pressed(target_page: Control):
 	
 	# 2. Show the requested page
 	target_page.visible = true
+
+func _collect_network_ui_nodes() -> void:
+	"""Collects all UI nodes tagged as network-related."""
+	if is_inside_tree():
+		network_ui_nodes = get_tree().get_nodes_in_group("network_ui")
+		return
+	network_ui_nodes = _collect_network_ui_nodes_from(self)
+
+func _collect_network_ui_nodes_from(root: Node) -> Array:
+	"""Collects tagged nodes when the scene is not in a tree."""
+	var found: Array = []
+	if root.has_meta("network_ui") and root.get_meta("network_ui") == true:
+		found.append(root)
+	for child in root.get_children():
+		found.append_array(_collect_network_ui_nodes_from(child))
+	return found
+
+func _on_offline_state_changed(active: bool, _reason: String) -> void:
+	"""Disables network-related UI when offline is active."""
+	_apply_offline_ui(active)
+
+func _apply_offline_ui(active: bool) -> void:
+	"""Applies offline UI state to tagged controls."""
+	for node in network_ui_nodes:
+		if node is BaseButton:
+			var button := node as BaseButton
+			button.disabled = active
+			button.tooltip_text = "Disabled in offline mode." if active else ""

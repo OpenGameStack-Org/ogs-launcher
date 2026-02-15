@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 81
+tests passed: 83
 tests failed: 0
 ```
 

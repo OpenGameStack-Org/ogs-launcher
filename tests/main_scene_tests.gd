@@ -15,6 +15,7 @@ func run() -> Dictionary:
 		"failures": []
 	}
 	_test_main_scene_loads(results)
+	_test_network_ui_disabled_offline(results)
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -50,4 +51,19 @@ func _test_main_scene_loads(results: Dictionary) -> void:
 	var new_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ProjectsControls/NewButton")
 	_expect(new_button != null, "New Project button should exist", results)
 
+	instance.free()
+
+func _test_network_ui_disabled_offline(results: Dictionary) -> void:
+	"""Verifies network-related controls are disabled in offline mode."""
+	var scene = load("res://main.tscn")
+	if scene == null:
+		_expect(false, "main.tscn should load for offline UI test", results)
+		return
+	var instance = scene.instantiate()
+	var check_updates = instance.get_node_or_null("AppLayout/Content/PageSettings/CheckUpdatesButton")
+	_expect(check_updates != null, "Check Updates button should exist", results)
+	if check_updates != null:
+		instance._collect_network_ui_nodes()
+		instance._on_offline_state_changed(true, "offline_mode")
+		_expect(check_updates.disabled == true, "network UI should be disabled when offline", results)
 	instance.free()

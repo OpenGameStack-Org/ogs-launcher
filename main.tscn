@@ -120,6 +120,15 @@ layout_mode = 2
 layout_mode = 2
 text = "Settings"
 
+[node name="NetworkLabel" type="Label" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+text = "Network"
+
+[node name="CheckUpdatesButton" type="Button" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+text = "Check for Updates"
+metadata/network_ui = true
+
 [node name="ProjectDirDialog" type="FileDialog" parent="."]
 title = "Open a Directory"
 ok_button_text = "Select Current Folder"

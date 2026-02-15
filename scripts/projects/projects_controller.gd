@@ -4,6 +4,8 @@ class_name ProjectsController
 const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 
+signal offline_state_changed(active: bool, reason: String)
+
 var project_path_line_edit: LineEdit
 var btn_browse_project: Button
 var btn_load_project: Button
@@ -46,7 +48,7 @@ func setup(
 	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
 	
-	OfflineEnforcer.apply_config(null)
+	_apply_offline_config(null)
 
 	# Initially disable launch button until a project is loaded
 	btn_launch_tool.disabled = true
@@ -79,7 +81,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	"""Loads and validates stack.json and ogs_config.json from a project folder."""
 	if project_dir.is_empty():
 		_update_status("Status: Please select a project folder.")
-		OfflineEnforcer.apply_config(null)
+		_apply_offline_config(null)
 		_disable_launch_button()
 		return
 
@@ -89,7 +91,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	if not FileAccess.file_exists(stack_path):
 		_update_status("Status: stack.json not found in the selected folder.")
 		_update_offline_status(null)
-		OfflineEnforcer.apply_config(null)
+		_apply_offline_config(null)
 		tools_list.clear()
 		_disable_launch_button()
 		return
@@ -98,7 +100,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	if not manifest.is_valid():
 		_update_status("Status: stack.json is invalid. Errors: %s" % ", ".join(manifest.errors))
 		_update_offline_status(null)
-		OfflineEnforcer.apply_config(null)
+		_apply_offline_config(null)
 		tools_list.clear()
 		_disable_launch_button()
 		return
@@ -111,7 +113,7 @@ func _load_project_from_path(project_dir: String) -> void:
 	_enable_launch_button()
 
 	var config = _load_config_if_present(config_path)
-	OfflineEnforcer.apply_config(config)
+	_apply_offline_config(config)
 	_update_offline_status(config)
 
 func _load_config_if_present(config_path: String) -> OgsConfig:
@@ -145,6 +147,11 @@ func _update_offline_status(config: OgsConfig) -> void:
 		lbl_offline_status.text = "Offline: Enabled (offline_mode=true)"
 	else:
 		lbl_offline_status.text = "Offline: Disabled"
+
+func _apply_offline_config(config: OgsConfig) -> void:
+	"""Applies offline configuration and notifies listeners."""
+	OfflineEnforcer.apply_config(config)
+	offline_state_changed.emit(OfflineEnforcer.is_offline(), OfflineEnforcer.get_reason())
 
 func _on_launch_tool_pressed() -> void:
 	"""Launches the currently selected tool from the tools list."""
