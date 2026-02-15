@@ -34,7 +34,7 @@ This document lists recurring security pitfalls and checks for contributors. Use
 
 ## Data Handling
 
-- Minimize storage of local paths in shared locations.
+- Minimize storage of local paths in shared locations; prefer hashed project identifiers.
 - Avoid storing credentials; never write secrets to disk.
 
 ## Testing Expectations

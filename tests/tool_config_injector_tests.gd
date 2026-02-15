@@ -54,6 +54,12 @@ func _test_krita_placeholder(results: Dictionary) -> void:
 	var file_path = "user://ogs_offline_overrides/krita.json"
 	_expect(FileAccess.file_exists(file_path), "krita override file should exist", results)
 	_expect(OS.get_environment("OGS_OFFLINE_TOOL_KRITA") == "1", "krita env flag should be set", results)
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if file:
+		var payload = JSON.parse_string(file.get_as_text())
+		file.close()
+		_expect(payload.has("project_id"), "krita override should include project_id", results)
+		_expect(not payload.has("project_dir"), "krita override should not include project_dir", results)
 
 func _test_audacity_placeholder(results: Dictionary) -> void:
 	"""Verifies Audacity placeholder override file and env flag are set."""
@@ -62,3 +68,9 @@ func _test_audacity_placeholder(results: Dictionary) -> void:
 	var file_path = "user://ogs_offline_overrides/audacity.json"
 	_expect(FileAccess.file_exists(file_path), "audacity override file should exist", results)
 	_expect(OS.get_environment("OGS_OFFLINE_TOOL_AUDACITY") == "1", "audacity env flag should be set", results)
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if file:
+		var payload = JSON.parse_string(file.get_as_text())
+		file.close()
+		_expect(payload.has("project_id"), "audacity override should include project_id", results)
+		_expect(not payload.has("project_dir"), "audacity override should not include project_dir", results)

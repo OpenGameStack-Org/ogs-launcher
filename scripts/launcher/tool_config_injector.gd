@@ -131,7 +131,7 @@ static func _write_placeholder_override(tool_id: String, project_dir: String) ->
 		}
 	var payload = {
 		"tool_id": tool_id,
-		"project_dir": project_dir,
+		"project_id": _hash_project_id(project_dir),
 		"offline": true
 	}
 	file.store_string(JSON.stringify(payload, "\t"))
@@ -141,3 +141,13 @@ static func _write_placeholder_override(tool_id: String, project_dir: String) ->
 		"error_message": "",
 		"args": PackedStringArray()
 	}
+
+static func _hash_project_id(project_dir: String) -> String:
+	var normalized = project_dir.strip_edges().to_lower()
+	var hasher = HashingContext.new()
+	var start_err = hasher.start(HashingContext.HASH_SHA256)
+	if start_err != OK:
+		return ""
+	hasher.update(normalized.to_utf8_buffer())
+	var digest = hasher.finish()
+	return digest.hex_encode().to_lower()

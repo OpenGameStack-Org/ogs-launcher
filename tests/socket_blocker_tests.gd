@@ -14,6 +14,7 @@ func run() -> Dictionary:
 	var results := {"passed": 0, "failed": 0, "failures": []}
 	_test_offline_blocks_socket(results)
 	_test_online_allows_socket_creation(results)
+	_test_online_blocks_disallowed_host(results)
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -31,6 +32,7 @@ func _expect(condition: bool, message: String, results: Dictionary) -> void:
 func _test_offline_blocks_socket(results: Dictionary) -> void:
 	"""Verifies offline mode blocks socket creation attempts."""
 	OfflineEnforcer.reset()
+	SocketBlocker.reset_allowlist()
 	var config = OgsConfigScript.from_dict({"offline_mode": true})
 	OfflineEnforcer.apply_config(config)
 	var result = SocketBlocker.open_tcp_client("example.com", 80)
@@ -40,9 +42,20 @@ func _test_offline_blocks_socket(results: Dictionary) -> void:
 func _test_online_allows_socket_creation(results: Dictionary) -> void:
 	"""Verifies online mode creates sockets without connecting."""
 	OfflineEnforcer.reset()
+	SocketBlocker.set_allowlist(["example.com"])
 	var config = OgsConfigScript.from_dict({"offline_mode": false})
 	OfflineEnforcer.apply_config(config)
 	var result = SocketBlocker.open_tcp_client("example.com", 80, false)
 	_expect(result["success"], "online socket creation should succeed", results)
 	_expect(result["error_code"] == SocketBlocker.SocketError.SUCCESS, "online socket should return SUCCESS", results)
 	_expect(result["client"] != null, "online socket should return a client", results)
+
+func _test_online_blocks_disallowed_host(results: Dictionary) -> void:
+	"""Verifies online mode blocks hosts not on the allowlist."""
+	OfflineEnforcer.reset()
+	SocketBlocker.set_allowlist(["example.com"])
+	var config = OgsConfigScript.from_dict({"offline_mode": false})
+	OfflineEnforcer.apply_config(config)
+	var result = SocketBlocker.open_tcp_client("not-allowed.com", 80, false)
+	_expect(not result["success"], "disallowed host should be blocked", results)
+	_expect(result["error_message"].find("Host not allowed") != -1, "blocked host should report allowlist error", results)

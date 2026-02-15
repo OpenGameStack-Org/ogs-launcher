@@ -59,7 +59,7 @@ Upon launching a tool, the Launcher injects or validates specific configuration 
     *   Script execution on launch: `bpy.context.preferences.system.use_online_access = False`
     *   Disables "Check for Updates" and "Extensions" repositories.
 *   **Krita/Audacity (placeholder overrides):**
-    *   Writes `user://ogs_offline_overrides/<tool>.json` and sets `OGS_OFFLINE_TOOL_<TOOL>` environment flags
+    *   Writes `user://ogs_offline_overrides/<tool>.json` with a hashed `project_id` and sets `OGS_OFFLINE_TOOL_<TOOL>` environment flags
     *   Placeholder until tool-native config files are integrated
 
 ## **6. The "Seal for Delivery" Protocol**

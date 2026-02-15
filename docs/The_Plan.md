@@ -37,7 +37,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 | Manifest System | `StackManifest` class with full validation + error codes | [scripts/manifest/stack_manifest.gd](../scripts/manifest/stack_manifest.gd) |
 | Manifest Generator | Factory `StackGenerator` for new projects | [scripts/manifest/stack_generator.gd](../scripts/manifest/stack_generator.gd) |
 | Config Loader | `OgsConfig` class for `ogs_config.json` (offline mode flags) | [scripts/config/ogs_config.gd](../scripts/config/ogs_config.gd) |
-| Test Harness | Headless test runner + 107 unit/scene tests (all passing) | [tests/](../tests/) |
+| Test Harness | Headless test runner + 118 unit/scene tests (all passing) | [tests/](../tests/) |
 | Testing Documentation | Comprehensive testing guide with categories and best practices | [docs/TESTING.md](TESTING.md) |
 | Projects Page UI | Folder selection, manifest/config loading, tool list display | [scripts/projects/projects_controller.gd](../scripts/projects/projects_controller.gd) |
 | Tool Launcher | Process spawning with tool-specific arguments and environment setup | [scripts/launcher/tool_launcher.gd](../scripts/launcher/tool_launcher.gd) |
@@ -67,6 +67,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 - [ ] **Hash Verification** (Sovereign Mode) — Validate tool binaries against SHA-256 checksums
 - [ ] **Seal for Delivery** — UI workflow to freeze project + sanitize artifacts
 - [ ] **Settings Page** — Toggle offline mode, manage tool versions, configure cache paths
+- [ ] **Allowlist Policy** — Config-driven allowlist for outbound hosts/ports via `ogs_config.json`
 
 #### Could-Have Tasks
 
@@ -116,7 +117,7 @@ All changes should pass the manifest test suite before merging:
 godot --headless --script res://tests/test_runner.gd
 ```
 
-Expected output: `tests passed: 107, tests failed: 0`
+Expected output: `tests passed: 118, tests failed: 0`
 
 ## Definition of Done
 
