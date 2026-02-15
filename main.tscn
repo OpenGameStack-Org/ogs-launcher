@@ -57,10 +57,43 @@ size_flags_horizontal = 3
 
 [node name="PageProjects" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="AppLayout/Content/PageProjects"]
+[node name="ProjectsTitle" type="Label" parent="AppLayout/Content/PageProjects"]
 layout_mode = 2
-text = "Projects Page"
+text = "Projects"
+
+[node name="ProjectsControls" type="HBoxContainer" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+
+[node name="ProjectPathLineEdit" type="LineEdit" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Select a project folder containing stack.json"
+
+[node name="BrowseButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+layout_mode = 2
+text = "Browse"
+
+[node name="LoadButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+layout_mode = 2
+text = "Load"
+
+[node name="NewButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+layout_mode = 2
+text = "New Project"
+
+[node name="ProjectsStatusLabel" type="Label" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Status: Waiting for project selection."
+
+[node name="OfflineStatusLabel" type="Label" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Offline: Unknown"
+
+[node name="ToolsList" type="ItemList" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2
@@ -82,3 +115,9 @@ layout_mode = 2
 [node name="Label" type="Label" parent="AppLayout/Content/PageSettings"]
 layout_mode = 2
 text = "Settings"
+
+[node name="ProjectDirDialog" type="FileDialog" parent="."]
+title = "Open a Directory"
+ok_button_text = "Select Current Folder"
+file_mode = 2
+access = 2

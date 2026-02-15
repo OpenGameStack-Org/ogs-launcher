@@ -106,10 +106,18 @@ static func validate_data(data: Dictionary) -> Array[String]:
 	var found_errors: Array[String] = []
 	if not data.has("schema_version"):
 		found_errors.append("schema_version_missing")
-	elif typeof(data["schema_version"]) != TYPE_INT:
-		found_errors.append("schema_version_not_int")
-	elif int(data["schema_version"]) != CURRENT_SCHEMA_VERSION:
-		found_errors.append("schema_version_unsupported")
+	else:
+		var schema_value = data["schema_version"]
+		if typeof(schema_value) == TYPE_INT:
+			if int(schema_value) != CURRENT_SCHEMA_VERSION:
+				found_errors.append("schema_version_unsupported")
+		elif typeof(schema_value) == TYPE_FLOAT:
+			if int(schema_value) != schema_value:
+				found_errors.append("schema_version_not_int")
+			elif int(schema_value) != CURRENT_SCHEMA_VERSION:
+				found_errors.append("schema_version_unsupported")
+		else:
+			found_errors.append("schema_version_not_int")
 
 	if not data.has("stack_name"):
 		found_errors.append("stack_name_missing")

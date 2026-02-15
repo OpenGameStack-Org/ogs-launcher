@@ -1,5 +1,6 @@
 extends Control
 
+
 # -- PRELOAD REFERENCES --
 # These allow us to talk to the nodes we created in the editor
 @onready var page_projects = $AppLayout/Content/PageProjects
@@ -12,12 +13,36 @@ extends Control
 @onready var btn_tools = $AppLayout/Sidebar/VBoxContainer/BtnTools
 @onready var btn_settings = $AppLayout/Sidebar/VBoxContainer/BtnSettings
 
+@onready var project_path_line_edit = $AppLayout/Content/PageProjects/ProjectsControls/ProjectPathLineEdit
+@onready var btn_browse_project = $AppLayout/Content/PageProjects/ProjectsControls/BrowseButton
+@onready var btn_load_project = $AppLayout/Content/PageProjects/ProjectsControls/LoadButton
+@onready var btn_new_project = $AppLayout/Content/PageProjects/ProjectsControls/NewButton
+@onready var lbl_project_status = $AppLayout/Content/PageProjects/ProjectsStatusLabel
+@onready var lbl_offline_status = $AppLayout/Content/PageProjects/OfflineStatusLabel
+@onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
+@onready var project_dir_dialog = $ProjectDirDialog
+
+var projects_controller: ProjectsController
+
 func _ready():
 	# Connect the button signals to our function
 	btn_projects.pressed.connect(_on_tab_pressed.bind(page_projects))
 	btn_engine.pressed.connect(_on_tab_pressed.bind(page_engine))
 	btn_tools.pressed.connect(_on_tab_pressed.bind(page_tools))
 	btn_settings.pressed.connect(_on_tab_pressed.bind(page_settings))
+
+	# Projects page controller
+	projects_controller = ProjectsController.new()
+	projects_controller.setup(
+		project_path_line_edit,
+		btn_browse_project,
+		btn_load_project,
+		btn_new_project,
+		lbl_project_status,
+		lbl_offline_status,
+		tools_list,
+		project_dir_dialog
+	)
 	
 	# Start on the Projects page
 	_on_tab_pressed(page_projects)

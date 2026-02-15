@@ -95,10 +95,17 @@ static func validate_data(data: Dictionary) -> Array[String]:
 	var found_errors: Array[String] = []
 	
 	if data.has("schema_version"):
-		if typeof(data["schema_version"]) != TYPE_INT:
+		var schema_value = data["schema_version"]
+		if typeof(schema_value) == TYPE_INT:
+			if int(schema_value) != CURRENT_SCHEMA_VERSION:
+				found_errors.append("schema_version_unsupported")
+		elif typeof(schema_value) == TYPE_FLOAT:
+			if int(schema_value) != schema_value:
+				found_errors.append("schema_version_not_int")
+			elif int(schema_value) != CURRENT_SCHEMA_VERSION:
+				found_errors.append("schema_version_unsupported")
+		else:
 			found_errors.append("schema_version_not_int")
-		elif int(data["schema_version"]) != CURRENT_SCHEMA_VERSION:
-			found_errors.append("schema_version_unsupported")
 	
 	if data.has("offline_mode"):
 		if typeof(data["offline_mode"]) != TYPE_BOOL:
@@ -115,7 +122,7 @@ func _load_from_file(file_path: String) -> void:
 	Parameters:
 	  file_path (String): Path to ogs_config.json"""
 	errors.clear()
-	if not ResourceLoader.exists(file_path):
+	if not FileAccess.file_exists(file_path):
 		# File missing is not an error—use defaults
 		return
 	

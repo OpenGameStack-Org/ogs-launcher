@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "stack_name": "Sample OGS Project",
+  "tools": [
+    {
+      "id": "godot",
+      "version": "4.3",
+      "path": "tools/godot/Godot_v4.3-stable_win64.exe"
+    },
+    {
+      "id": "blender",
+      "version": "4.2",
+      "path": "tools/blender/blender.exe"
+    }
+  ]
+}
