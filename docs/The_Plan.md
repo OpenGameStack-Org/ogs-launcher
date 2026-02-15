@@ -28,7 +28,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 
 ### Phase 1: Foundation (In Progress)
 
-**Status:** ~40% complete
+**Status:** ~60% complete
 
 #### ✅ Completed Tasks
 
@@ -36,22 +36,22 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 |------|---------|-----------|
 | Manifest System | `StackManifest` class with full validation + error codes | [scripts/manifest/stack_manifest.gd](../scripts/manifest/stack_manifest.gd) |
 | Manifest Generator | Factory `StackGenerator` for new projects | [scripts/manifest/stack_generator.gd](../scripts/manifest/stack_generator.gd) |
-| Test Harness | Headless test runner + 6 unit tests (all passing) | [tests/](../tests/) |
-| Documentation | Comprehensive docstrings on all classes + schema guide | [docs/MANIFEST_SCHEMA.md](MANIFEST_SCHEMA.md) |
+| Config Loader | `OgsConfig` class for `ogs_config.json` (offline mode flags) | [scripts/config/ogs_config.gd](../scripts/config/ogs_config.gd) |
+| Test Harness | Headless test runner + 11 unit tests (all passing) | [tests/](../tests/) |
+| Documentation | Comprehensive docstrings + schema guides (manifest + config) | [docs/MANIFEST_SCHEMA.md](MANIFEST_SCHEMA.md), [docs/CONFIG_SCHEMA.md](CONFIG_SCHEMA.md) |
 | Project Structure | Git setup, .gitignore configured, workspace file ready | [.github/](.github/) |
 
-#### 🔄 In-Progress Tasks
+#### 🔄 In-Progress / Backlog
 
 | Task | Status | Owner | Acceptance Criteria |
 |------|--------|-------|-------------------|
-| Config Loader (`ogs_config.json`) | Not started | – | Load offline/force_offline flags from JSON; no external calls |
 | Projects Page UI | Not started | – | List projects, detect `stack.json`, show tool status, error handling |
 | Tool Launcher | Not started | – | Launch Godot/Blender with correct working directory and $PATH |
 | Offline Mode Enforcement | Not started | – | Disable asset library UI, block network sockets, inject tool configs |
 
 #### 📋 Must-Have for MVP
 
-- [ ] **Config System** — Load `ogs_config.json` (offline_mode flag, project paths)
+- [x] **Config System** — Load `ogs_config.json` (offline_mode flag, project paths)
 - [ ] **Projects Page** — Select folder → detect/load `stack.json` → display tool status
 - [ ] **Tool Launch** — Click "Launch Godot" → spawn process with correct environment
 - [ ] **Offline Enforcement** — When `offline_mode=true`, disable all network UI and block sockets
@@ -138,4 +138,4 @@ A task is "complete" when:
 
 Check this file regularly. Tasks will be moved between sections as work progresses. Each section shows the latest status, expected owner, and acceptance criteria.
 
-Last updated: **February 15, 2026**
+Last updated: **February 15, 2026** (Config Loader complete)
