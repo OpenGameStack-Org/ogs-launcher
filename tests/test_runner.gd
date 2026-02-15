@@ -24,6 +24,7 @@ func _init() -> void:
 	load("res://scripts/projects/projects_controller.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
 	load("res://scripts/network/offline_enforcer.gd")
+	load("res://scripts/network/tool_downloader.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -53,6 +54,9 @@ func _init() -> void:
 	var offline_enforcer_tests = load("res://tests/offline_enforcer_tests.gd")
 	if offline_enforcer_tests:
 		test_suites.append(offline_enforcer_tests.new())
+	var tool_downloader_tests = load("res://tests/tool_downloader_tests.gd")
+	if tool_downloader_tests:
+		test_suites.append(tool_downloader_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

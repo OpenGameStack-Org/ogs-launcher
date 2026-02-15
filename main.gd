@@ -67,10 +67,15 @@ func _on_tab_pressed(target_page: Control):
 
 func _collect_network_ui_nodes() -> void:
 	"""Collects all UI nodes tagged as network-related."""
+	var found: Array = []
 	if is_inside_tree():
-		network_ui_nodes = get_tree().get_nodes_in_group("network_ui")
-		return
-	network_ui_nodes = _collect_network_ui_nodes_from(self)
+		found = get_tree().get_nodes_in_group("network_ui")
+	# Fallback to metadata scan to catch nodes without group tags.
+	var meta_found = _collect_network_ui_nodes_from(self)
+	for node in meta_found:
+		if not found.has(node):
+			found.append(node)
+	network_ui_nodes = found
 
 func _collect_network_ui_nodes_from(root: Node) -> Array:
 	"""Collects tagged nodes when the scene is not in a tree."""

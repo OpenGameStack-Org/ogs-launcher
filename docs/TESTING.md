@@ -14,7 +14,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 83
+tests passed: 87
 tests failed: 0
 ```
 
@@ -62,6 +62,10 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - offline_mode and force_offline enable enforcement
   - Disabled config keeps enforcement off
   - Guard allows when online and blocks when offline
+
+- **[tests/tool_downloader_tests.gd](tests/tool_downloader_tests.gd)** — Validates that download attempts are blocked in offline mode.
+  - Offline attempts return OFFLINE_BLOCKED
+  - Online attempts return NOT_IMPLEMENTED (stubbed)
 
 ### Scene Tests (Integration with UI)
 

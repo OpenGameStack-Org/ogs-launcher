@@ -127,6 +127,7 @@ text = "Network"
 [node name="CheckUpdatesButton" type="Button" parent="AppLayout/Content/PageSettings"]
 layout_mode = 2
 text = "Check for Updates"
+groups = ["network_ui"]
 metadata/network_ui = true
 
 [node name="ProjectDirDialog" type="FileDialog" parent="."]

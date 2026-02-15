@@ -51,7 +51,7 @@ This plan realizes the core vision from [docs/Design_Doc.md](Design_Doc.md): **"
 | Offline Mode Enforcement | **Next up** | – | Disable asset library UI, block network sockets, inject tool configs |
 
 **Notes:**
-- Launcher-level offline enforcement and UI disabling are in place. Tool config injection and socket-level blocking are still pending.
+- Launcher-level offline enforcement and UI disabling are in place. Download guardrails are in place; tool config injection and socket-level blocking are still pending.
 
 #### 📋 Must-Have for MVP
 
@@ -122,7 +122,7 @@ godot --headless --script res://tests/test_runner.gd
 ```
 
 Expected output: `tests passed: 67, tests failed: 0`
-Expected output: `tests passed: 83, tests failed: 0`
+Expected output: `tests passed: 87, tests failed: 0`
 45
 ---
 
