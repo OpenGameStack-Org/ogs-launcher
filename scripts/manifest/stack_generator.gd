@@ -59,12 +59,11 @@ static func create_default() -> StackManifest:
 ##   String: JSON representation of manifest (or empty if StackManifest is invalid)
 static func to_json_string(manifest: StackManifest, pretty: bool = true) -> String:
 	"""Serializes a manifest to JSON with optional pretty-printing."""
-	var json = JSON.new()
 	var data = manifest.to_dict()
-	var json_string = json.stringify(data)
 	if pretty:
-		json_string = json.stringify(data, "\t")
-	return json_string
+		return JSON.stringify(data, "\t")
+	else:
+		return JSON.stringify(data)
 
 ## Saves a manifest to disk.
 ## Creates parent directories if needed (via Godot's FileAccess).
