@@ -26,3 +26,10 @@
 * **Error Handling:** Implement robust error handling that provides clear feedback to the user without crashing the application, especially in air-gapped environments.
 * **User Experience:** Prioritize a simple, intuitive user interface for the OGS Launcher that abstracts away complexity while providing necessary controls for both indie developers and enterprise users.
 * **Security Best Practices:** Ensure that all code adheres to security best practices, especially when handling file operations or user input, to prevent vulnerabilities in the launcher or tool management scripts.
+
+### **4. Development Tracking**
+
+* See [docs/The_Plan.md](../docs/The_Plan.md) for the MVP definition, current progress, and development roadmap.
+* Tasks are marked as completed (✅) and in-progress (🔄) as work advances.
+* The plan ties directly to [docs/Design_Doc.md](../docs/Design_Doc.md) for architectural vision.
+* All pull requests must pass the manifest test suite: `godot --headless --script res://tests/test_runner.gd`
