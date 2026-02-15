@@ -18,37 +18,37 @@ extends RefCounted
 class_name StackGenerator
 
 const SCHEMA_VERSION := 1
+const StackManifestScript = preload("res://scripts/manifest/stack_manifest.gd")
 
 ## Creates the standard OGS profile manifest.
 ## Returns:
 ##   StackManifest: Pre-populated with Godot, Blender, Krita, Audacity (current versions)
 static func create_default() -> StackManifest:
 	"""Creates the standard OGS profile with Godot, Blender, Krita, and Audacity."""
-	var manifest = StackManifest.new()
+	var manifest = StackManifestScript.new()
 	manifest.schema_version = SCHEMA_VERSION
 	manifest.stack_name = "OGS Standard Profile"
-	manifest.tools = [
-		{
-			"id": "godot",
-			"version": "4.3",
-			"path": "tools/godot/Godot_v4.3-stable_win64.exe"
-		},
-		{
-			"id": "blender",
-			"version": "4.2",
-			"path": "tools/blender/blender.exe"
-		},
-		{
-			"id": "krita",
-			"version": "5.2",
-			"path": "tools/krita/bin/krita.exe"
-		},
-		{
-			"id": "audacity",
-			"version": "3.7",
-			"path": "tools/audacity/audacity.exe"
-		}
-	]
+	manifest.tools.clear()
+	manifest.tools.append({
+		"id": "godot",
+		"version": "4.3",
+		"path": "tools/godot/Godot_v4.3-stable_win64.exe"
+	})
+	manifest.tools.append({
+		"id": "blender",
+		"version": "4.2",
+		"path": "tools/blender/blender.exe"
+	})
+	manifest.tools.append({
+		"id": "krita",
+		"version": "5.2",
+		"path": "tools/krita/bin/krita.exe"
+	})
+	manifest.tools.append({
+		"id": "audacity",
+		"version": "3.7",
+		"path": "tools/audacity/audacity.exe"
+	})
 	return manifest
 
 ## Converts a manifest to JSON string.

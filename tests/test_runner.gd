@@ -17,8 +17,11 @@ extends SceneTree
 ## Loads test suites, runs them, aggregates results, and exits.
 func _init() -> void:
 	"""Entry point for headless test execution."""
-	# Pre-load config to register class_name
+	# Pre-load classes to register class_name
 	load("res://scripts/config/ogs_config.gd")
+	load("res://scripts/manifest/stack_manifest.gd")
+	load("res://scripts/manifest/stack_generator.gd")
+	load("res://scripts/projects/projects_controller.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -33,6 +36,15 @@ func _init() -> void:
 	var ogs_config_tests = load("res://tests/ogs_config_tests.gd")
 	if ogs_config_tests:
 		test_suites.append(ogs_config_tests.new())
+	var stack_generator_tests = load("res://tests/stack_generator_tests.gd")
+	if stack_generator_tests:
+		test_suites.append(stack_generator_tests.new())
+	var projects_controller_scene_tests = load("res://tests/projects_controller_scene_tests.gd")
+	if projects_controller_scene_tests:
+		test_suites.append(projects_controller_scene_tests.new())
+	var main_scene_tests = load("res://tests/main_scene_tests.gd")
+	if main_scene_tests:
+		test_suites.append(main_scene_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

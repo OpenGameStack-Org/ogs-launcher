@@ -24,6 +24,8 @@ func run() -> Dictionary:
 	}
 	_test_valid_offline_mode(results)
 	_test_valid_force_offline(results)
+	_test_schema_version_float_valid(results)
+	_test_schema_version_float_invalid(results)
 	_test_missing_file_returns_defaults(results)
 	_test_invalid_json(results)
 	_test_invalid_field_types(results)
@@ -68,6 +70,20 @@ func _test_valid_force_offline(results: Dictionary) -> void:
 	_expect(config.is_valid(), "valid config should pass validation", results)
 	_expect(config.force_offline, "force_offline should be true", results)
 	_expect(config.is_offline(), "is_offline() should be true when force_offline=true", results)
+
+func _test_schema_version_float_valid(results: Dictionary) -> void:
+	"""Verifies schema_version float 1.0 is accepted."""
+	var data = _make_valid_config_data()
+	data["schema_version"] = 1.0
+	var config = ogs_config_class.from_dict(data)
+	_expect(config.is_valid(), "schema_version float 1.0 should pass", results)
+
+func _test_schema_version_float_invalid(results: Dictionary) -> void:
+	"""Verifies non-integer float schema_version is rejected."""
+	var data = _make_valid_config_data()
+	data["schema_version"] = 1.5
+	var config = ogs_config_class.from_dict(data)
+	_expect(not config.is_valid(), "schema_version float 1.5 should fail", results)
 
 func _test_missing_file_returns_defaults(results: Dictionary) -> void:
 	"""Verifies missing config file returns defaults without error."""

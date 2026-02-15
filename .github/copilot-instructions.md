@@ -21,7 +21,12 @@
 * **Project Vision Reference:** Always refer to `design_doc.md` for the overarching architectural vision before proposing structural changes.
 * **Privacy & Security:** Do not suggest libraries that require cloud-based authentication or proprietary license validation.
 * **Modularity:** Propose modular code structures that allow for easy swapping of tools or components in the future.
-* **Testing & Validation:** Include unit tests for critical functions, especially those related to the manifest system and offline mode enforcement.
+* **Testing & Validation:** 
+  - Write tests alongside new features (unit tests for logic, scene tests for UI interactions).
+  - All unit tests must extend `RefCounted`, declare `class_name`, and implement `run() -> Dictionary`.
+  - Scene tests must free all created UI nodes to avoid resource leaks.
+  - Update [docs/TESTING.md](../docs/TESTING.md) when adding new test categories or changing test patterns.
+  - New features require tests before merging; existing tests must continue to pass.
 * **Performance:** Optimize for minimal resource usage, especially in offline mode. Avoid unnecessary background processes or network calls.
 * **Error Handling:** Implement robust error handling that provides clear feedback to the user without crashing the application, especially in air-gapped environments.
 * **User Experience:** Prioritize a simple, intuitive user interface for the OGS Launcher that abstracts away complexity while providing necessary controls for both indie developers and enterprise users.

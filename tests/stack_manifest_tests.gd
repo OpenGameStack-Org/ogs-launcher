@@ -24,9 +24,12 @@ func run() -> Dictionary:
 	}
 	_test_valid_manifest(results)
 	_test_missing_schema_version(results)
+	_test_schema_version_float_valid(results)
+	_test_schema_version_float_invalid(results)
 	_test_invalid_tools_type(results)
 	_test_missing_tool_id(results)
 	_test_unsupported_schema_version(results)
+	_test_invalid_sha256(results)
 	_test_invalid_json(results)
 	return results
 
@@ -73,6 +76,20 @@ func _test_missing_schema_version(results: Dictionary) -> void:
 	var manifest = StackManifest.from_dict(data)
 	_expect(not manifest.is_valid(), "missing schema_version should fail", results)
 
+func _test_schema_version_float_valid(results: Dictionary) -> void:
+	"""Verifies schema_version as float 1.0 is accepted."""
+	var data = _make_valid_manifest_data()
+	data["schema_version"] = 1.0
+	var manifest = StackManifest.from_dict(data)
+	_expect(manifest.is_valid(), "schema_version float 1.0 should pass", results)
+
+func _test_schema_version_float_invalid(results: Dictionary) -> void:
+	"""Verifies non-integer float schema_version is rejected."""
+	var data = _make_valid_manifest_data()
+	data["schema_version"] = 1.5
+	var manifest = StackManifest.from_dict(data)
+	_expect(not manifest.is_valid(), "schema_version float 1.5 should fail", results)
+
 func _test_invalid_tools_type(results: Dictionary) -> void:
 	"""Verifies tools must be an array."""
 	var data = _make_valid_manifest_data()
@@ -93,6 +110,13 @@ func _test_unsupported_schema_version(results: Dictionary) -> void:
 	data["schema_version"] = 2
 	var manifest = StackManifest.from_dict(data)
 	_expect(not manifest.is_valid(), "unsupported schema version should fail", results)
+
+func _test_invalid_sha256(results: Dictionary) -> void:
+	"""Verifies invalid sha256 formats are rejected."""
+	var data = _make_valid_manifest_data()
+	data["tools"][0]["sha256"] = "not-a-hash"
+	var manifest = StackManifest.from_dict(data)
+	_expect(not manifest.is_valid(), "invalid sha256 should fail", results)
 
 func _test_invalid_json(results: Dictionary) -> void:
 	"""Verifies invalid JSON text is rejected."""
