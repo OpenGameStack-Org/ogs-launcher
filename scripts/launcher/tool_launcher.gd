@@ -1,3 +1,8 @@
+## ToolLauncher: Responsible for launching tools from the frozen stack.
+##
+## Applies tool-specific arguments, offline injection overrides, and returns
+## structured error details for UI-friendly reporting.
+
 extends RefCounted
 class_name ToolLauncher
 

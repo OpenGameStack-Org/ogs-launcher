@@ -58,6 +58,9 @@ Upon launching a tool, the Launcher injects or validates specific configuration 
 *   **Blender (`userpref.blend` python override):**
     *   Script execution on launch: `bpy.context.preferences.system.use_online_access = False`
     *   Disables "Check for Updates" and "Extensions" repositories.
+*   **Krita/Audacity (placeholder overrides):**
+    *   Writes `user://ogs_offline_overrides/<tool>.json` and sets `OGS_OFFLINE_TOOL_<TOOL>` environment flags
+    *   Placeholder until tool-native config files are integrated
 
 ## **6. The "Seal for Delivery" Protocol**
 To enable the seamless transition from Contractor (Mode A) to Government (Mode B), the Launcher includes a **"Seal Project"** utility. This feature prepares the environment for final delivery or source control archival.

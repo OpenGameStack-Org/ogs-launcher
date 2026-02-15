@@ -74,7 +74,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
 
 - **[tests/socket_blocker_tests.gd](tests/socket_blocker_tests.gd)** — Validates socket blocking behavior.
   - Offline blocks socket creation
-  - Online returns NOT_IMPLEMENTED (stubbed)
+  - Online creates sockets without connecting
 
 ### Scene Tests (Integration with UI)
 

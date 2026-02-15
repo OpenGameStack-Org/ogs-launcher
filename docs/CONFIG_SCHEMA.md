@@ -102,6 +102,8 @@ The launcher then:
 - Blocks all external network sockets
 - Injects tool configs to disable their network features
 
+**Scope Note:** Offline enforcement targets the launcher and editor tooling only. It does not modify project runtime networking, so exported applications can still use internal network features when required.
+
 ### Sealed Project (Government Deployment)
 
 During "Seal for Delivery," the contractor's launcher writes:

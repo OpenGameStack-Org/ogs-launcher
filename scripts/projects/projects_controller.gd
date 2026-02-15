@@ -1,9 +1,15 @@
+## ProjectsController: Projects page coordinator for loading manifests and configs.
+##
+## Handles project selection, stack.json validation, ogs_config.json loading,
+## offline status updates, and tool launch requests from the Projects page UI.
+
 extends RefCounted
 class_name ProjectsController
 
 const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 
+## Emitted when offline state changes after loading a project or config.
 signal offline_state_changed(active: bool, reason: String)
 
 var project_path_line_edit: LineEdit
