@@ -1,35 +1,62 @@
 # OGS-Launcher: Technical Design Document
 
 ## 1. Executive Summary
-The **Open Game Stack (OGS) Launcher** is a standalone, portable application designed to manage "Frozen Stacks" of open-source simulation tools. Unlike commercial launchers (Epic Games Launcher, Unity Hub), OGS acts as a dual-use bridge: it serves as a **Provisioning Tool** for the open internet and a **Sovereign Environment Manager** for air-gapped defense networks. Its primary mandate is to prioritize project sovereignty over ecosystem connectivity.
+The **Open Game Stack (OGS) Launcher** is a standalone application designed to bridge the gap between rapid commercial development and secure government sustainment. Unlike commercial launchers (Epic, Unity Hub), OGS operates on a **"Hub & Spoke"** architecture: it serves as a **Central Library Manager** during development (saving disk space and bandwidth) but enables the creation of **"Sealed Artifacts"**—self-contained, air-gapped simulations—for delivery. Its primary mandate is to prioritize project sovereignty over ecosystem connectivity.
 
-## 2. Core Philosophy: The "Frozen Stack"
-A "Frozen Stack" is a directory containing specific, immutable versions of tools required to build a specific project. It relies on **Relative Paths** to ensure portability across different drives, secure networks, or optical media.
+---
 
-### 2.1 The Manifest (`stack.json`)
-Every project includes a `stack.json` file at its root, defining the exact environment required to open it. The Launcher reads this manifest to locate the correct binaries within the portable directory structure.
+## 2. Core Philosophy: The Two States of a Simulation
+To support both modern CI/CD workflows and long-term archiving, OGS defines two distinct states for a simulation project:
 
-## **3. Operational Modes & User Stories**
-The OGS-Launcher is designed to facilitate the full lifecycle of a defense program, from unclassified contractor development to classified government sustainment.
+### 2.1 State 1: The "Linked" Project (Development)
+*   **Context:** Connected Developer Workstation.
+*   **Structure:** A lightweight root folder containing a `stack.json` manifest and the source assets.
+*   **Binaries:** The project does *not* contain heavy tool binaries. Instead, it "links" to a **Central Tool Library** managed by the Launcher (located in `%LOCALAPPDATA%/OGS/Library`).
+*   **Efficiency:** Multiple projects using "Godot 4.3" share the same single installation, mimicking the efficiency of Unity Hub or NVM.
 
-### **3.1 Mode A: Provisioning & Development (NIPR / Commercial)**
-*   **Target User:** DoD Contractors, Indie Developers, Prototyping Teams.
-*   **Context:** Unclassified development environment with internet access.
+### 2.2 State 2: The "Sealed" Artifact (Delivery)
+*   **Context:** Air-Gapped / Sovereign Sustainment.
+*   **Structure:** A heavy, portable directory where the specific tool binaries have been physically **embedded** into the project structure.
+*   **Sovereignty:** The artifact has zero external dependencies. It can run directly from optical media or a read-only network share in 2040 without installation.
+
+### 2.3 The Project Wrapper
+Every OGS project enforces a specific directory hierarchy to ensure "Seal" compatibility:
+```text
+My_Simulation_Project/
+├── stack.json          # The Environment Manifest (Managed by Launcher)
+├── .gitignore          # Excludes /tools/ and temporary builds
+├── tools/              # (Empty in State 1; Populated in State 2)
+└── project_source/     # The actual Godot Project & Assets
+    ├── project.godot
+    └── ...
+```
+
+---
+
+## 3. Operational Modes & User Stories
+
+### 3.1 Mode A: Provisioning & Development (NIPR / Commercial)
+*   **Target User:** DoD Contractors, Indie Developers.
+*   **Context:** Unclassified environment with internet access.
 *   **Workflow:**
-    *   **Hydration:** The contractor clones the project repository. The Launcher detects missing tools in the `tools/` directory and fetches the exact versions defined in `stack.json`.
-    *   **Updates:** The contractor can update tool versions (e.g., Godot 4.3 -> 4.3.1). The Launcher updates `stack.json` to reflect the new baseline.
-    *   **Commitment:** The contractor commits both the project source assets **and** the updated `stack.json` (and optionally the `tools/` binaries via Git LFS) to the Version Control System (VCS).
+    1.  **Hydration (Link):** When a user opens a project, the Launcher reads `stack.json`.
+        *   *Check:* Is "Godot 4.3 (Hardened)" present in the Central Library?
+        *   *Action:* If no, download from the OGS Mirror. If yes, launch the project using the central binary.
+    2.  **Strict Pinning:** Updates are never automatic. If the user wants to upgrade to "Godot 4.4", they must explicitly click "Upgrade Project Stack" in the Launcher UI, which updates `stack.json`.
+    3.  **Source Control:** The developer commits `stack.json` and `project_source/`. The `tools/` folder is ignored via `.gitignore`, keeping the repo lightweight.
 
-### **3.2 Mode B: Sovereign Sustainment (SIPR / Air-Gapped)**
+### 3.2 Mode B: Sovereign Sustainment (SIPR / Air-Gapped)
 *   **Target User:** Government Program Offices, Classified Labs.
-*   **Context:** Secure environment receiving the contractor's deliverable.
+*   **Context:** Secure environment receiving the "Sealed" deliverable.
 *   **Workflow:**
-    *   **Reception:** The Government receives the repository (via physical media or cross-domain solution).
-    *   **Verification:** The Launcher validates that the hash of the tools in `tools/` matches the `stack.json` manifest.
-    *   **Lockdown:** The Launcher detects the environment is restricted (or is manually set to `offline_mode=true`) and disables all external fetch capabilities, running purely from the committed artifacts.
+    1.  **Reception:** The Government receives a "Sealed Artifact" (Zip or HDD).
+    2.  **Verification:** The Launcher validates that the tools inside the local `./tools/` directory match the hashes in `stack.json`.
+    3.  **Isolation:** The Launcher detects the `force_offline=true` flag in the project config and disables all "Check for Updates" or "Asset Library" features.
+
+---
 
 ## 4. The Validated Toolchain (Standard Profile)
-The OGS-Launcher is optimized to manage the "Standard OGS Profile." While the launcher is agnostic, the following specific versions constitute the reference architecture for RMF compliance:
+The OGS-Launcher manages a "Standard OGS Profile" of tools known to be compliant with the "Hardened" spec.
 
 | Tool | Version (Reference) | License | Role |
 | :--- | :--- | :--- | :--- |
@@ -38,63 +65,56 @@ The OGS-Launcher is optimized to manage the "Standard OGS Profile." While the la
 | **Krita** | 5.x | GPL | 2D Texture & UI Asset Creation |
 | **Audacity** | 3.x | GPL | Audio Processing |
 
+*Note: The Launcher enforces "White Box" security by only downloading these tools from the official OGS Mirror, where they have been pre-validated and hashed.*
+
+---
+
 ## 5. Governance & Configuration
-To guarantee "Zero Connectivity", the Launcher actively manages the configuration files of child processes to override default behaviors.
+To guarantee "Zero Connectivity," the Launcher actively manages the configuration files of child processes.
 
 ### 5.1 Global Flag: `offline_mode=true`
-When the Launcher detects this flag in `ogs_config.json`:
+When this flag is active (auto-detected in Mode B):
 1.  **UI Modification:** Hides "Asset Library," "Extension Store," and "Update Available" UI elements.
-2.  **Socket Lock:** Attempts to initialize network requests return an immediate error without contacting the OS network stack.
-
-**Scope Note:** Offline enforcement applies to the launcher and editor tooling only. It does not modify project runtime networking, so exported Godot applications can still use network features when required.
+2.  **Socket Lock:** Network requests from the Launcher are blocked at the application logic level.
 
 ### 5.2 Tool-Specific Overrides
-Upon launching a tool, the Launcher injects or validates specific configuration overrides to ensure the child process respects the air-gap:
-
+Upon launching a tool, the Launcher injects configuration overrides to ensure the child process respects the air-gap:
 *   **Godot (`editor_settings.tres`):**
-    *   Sets `asset_library/use_threads = false`
-    *   Sets `network/debug/bandwidth_limiter = 0`
-    *   Disables "Editor Settings > Network > HTTP Proxy" functionality.
+    *   `asset_library/use_threads = false`
+    *   `network/debug/bandwidth_limiter = 0`
+    *   Removes HTTP Proxy settings.
 *   **Blender (`userpref.blend` python override):**
-    *   Script execution on launch: `bpy.context.preferences.system.use_online_access = False`
+    *   Executes `bpy.context.preferences.system.use_online_access = False` on startup.
     *   Disables "Check for Updates" and "Extensions" repositories.
-*   **Krita/Audacity (placeholder overrides):**
-    *   Writes `user://ogs_offline_overrides/<tool>.json` with a hashed `project_id` and sets `OGS_OFFLINE_TOOL_<TOOL>` environment flags
-    *   Placeholder until tool-native config files are integrated
 
-### 5.3 Logging Architecture
-The launcher uses structured JSON logs written to `user://logs/ogs_launcher.log` with size-based rotation. Logs are intended for operational events (project load, tool launch, network guardrails) and must avoid sensitive data such as raw filesystem paths.
+---
 
-## **6. The "Seal for Delivery" Protocol**
-To enable the seamless transition from Contractor (Mode A) to Government (Mode B), the Launcher includes a **"Seal Project"** utility. This feature prepares the environment for final delivery or source control archival.
+## 6. The "Seal for Delivery" Protocol (Export)
+This is the critical utility that converts a **State 1 (Linked)** project into a **State 2 (Sealed)** artifact.
 
-1.  **Binary Freezing:**
-    *   The Launcher moves all referenced tools from local caches into the project’s local `./tools/` directory.
-    *   It generates a `.gitignore` exception list to ensure these binaries are tracked by the VCS (or configured for Git LFS), ensuring the "Environment is the Artifact."
+**The "Seal" Workflow:**
+1.  **Inventory Scan:** The Launcher parses `stack.json` to identify all required tools.
+2.  **Binary Embedding:** The Launcher physically copies the specific tool binaries from the **Central Library** into the project's local `./tools/` directory.
+3.  **Config Injection (`ogs_config.json`):**
+    *   Generates a local config file in the project root.
+    *   Sets `"force_offline": true`.
+    *   Sets `"sealed_date": "YYYY-MM-DD"`.
+4.  **Sanitization:**
+    *   Removes contractor-specific user preferences and temporary build caches (`.godot`).
+    *   Removes `.gitignore` (or modifies it) so the tools are now seen as part of the directory.
+5.  **Packaging:** Zips the entire folder structure into a timestamped artifact (e.g., `Project_Name_Sealed_20251101.zip`).
 
-2.  **Configuration Injection (`ogs_config.json`):**
-    *   The Launcher generates a local configuration file intended for the repository root.
-    *   **Option: "Enforce Offline":** A boolean flag (`"force_offline": true`) is written to the config. When the Government opens this project, the Launcher reads this flag and *immediately* enforces Mode B, regardless of the physical network status.
-
-3.  **Sanitization:**
-    *   Removes all contractor-specific user preferences, temporary build caches (`.godot`), and editor history, ensuring the Government receives a "clean room" version of the stack.
+---
 
 ## 7. Source Hardening & Build Specifications
-For high-security deployments, the OGS-Launcher is paired with a **"Hardened Build"** of the Godot Engine. This section specifies the build flags required to physically strip networking capabilities from the engine binary, as detailed in the project Outline.
+For high-security deployments, the OGS-Launcher is paired with a **"Hardened Build"** of the Godot Engine.
 
 ### 7.1 Compilation Flags (SCons)
-When compiling the "Frozen Stack" version of Godot 4.3 for Sovereign Mode, the following flags must be set to `no`:
-
-```bash
-# SCons Build Arguments for OGS Hardened Profile
-scons platform=windows target=editor \
-    module_upnp_enabled=no \       # Removes Universal Plug and Play
-    module_webrtc_enabled=no \     # Removes WebRTC connectivity
-    module_websocket_enabled=no \  # Removes WebSocket support
-    module_enet_enabled=no \       # Removes High-level multiplayer API
-    builtin_certs=no               # Removes bundled SSL certificates
-```
+When compiling the "Frozen Stack" version of Godot 4.3 for Sovereign Mode:
+*   `module_upnp_enabled=no` (Disables Universal Plug and Play)
+*   `module_webrtc_enabled=no` (Disables WebRTC)
+*   `module_websocket_enabled=no` (Disables WebSocket)
 
 ### 7.2 Source Code Stripping
-*   **HTTP Requests:** The `HTTPRequest` node class is disabled or removed from the `scene/main` directory to prevent logic-level internet access.
-*   **Asset Library:** The `editor/editor_asset_installer` module is excluded from the build to remove the internal Asset Library tab entirely.
+*   **HTTP Requests:** The `HTTPRequest` node class is disabled/removed to prevent logic-level internet access.
+*   **Asset Library:** The `editor/editor_asset_installer` module is excluded to remove the internal Asset Library tab entirely.
