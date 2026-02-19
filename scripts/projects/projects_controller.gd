@@ -1,7 +1,13 @@
 ## ProjectsController: Projects page coordinator for loading manifests and configs.
 ##
 ## Handles project selection, stack.json validation, ogs_config.json loading,
-## offline status updates, and tool launch requests from the Projects page UI.
+## offline status updates, tool availability checking, and tool launch requests.
+##
+## When a project is loaded:
+##   1. Loads and validates stack.json
+##   2. Checks if all required tools exist in the library
+##   3. Signals if tools are missing (for hydration/repair UI)
+##   4. Enables launch only if environment is ready
 
 extends RefCounted
 class_name ProjectsController
@@ -9,9 +15,17 @@ class_name ProjectsController
 const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
 const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const Logger = preload("res://scripts/logging/logger.gd")
+const ProjectEnvironmentValidator = preload("res://scripts/projects/project_environment_validator.gd")
 
 ## Emitted when offline state changes after loading a project or config.
 signal offline_state_changed(active: bool, reason: String)
+
+## Emitted when tools are missing from the library.
+## Missing tools can be hydrated via download/repair workflow.
+signal environment_incomplete(missing_tools: Array)
+
+## Emitted when environment is complete and ready for launch.
+signal environment_ready
 
 var project_path_line_edit: LineEdit
 var btn_browse_project: Button
@@ -25,6 +39,7 @@ var project_dir_dialog: FileDialog
 
 var current_project_dir := ""
 var current_manifest: StackManifest = null
+var environment_validator: ProjectEnvironmentValidator
 
 func setup(
 	path_line_edit: LineEdit,
@@ -54,6 +69,8 @@ func setup(
 	btn_launch_tool.pressed.connect(_on_launch_tool_pressed)
 	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
+	
+	environment_validator = ProjectEnvironmentValidator.new()
 	
 	_apply_offline_config(null)
 
@@ -121,7 +138,9 @@ func _load_project_from_path(project_dir: String) -> void:
 	
 	# Store the manifest for launching tools
 	current_manifest = manifest
-	_enable_launch_button()
+	
+	# Validate environment (check if tools exist in library)
+	_validate_and_report_environment(project_dir)
 
 	var config = _load_config_if_present(config_path)
 	_apply_offline_config(config)
@@ -199,3 +218,63 @@ func _disable_launch_button() -> void:
 	if btn_launch_tool:
 		btn_launch_tool.disabled = true
 	current_manifest = null
+## Validates the project environment and signals if tools are missing.
+func _validate_and_report_environment(project_dir: String) -> void:
+	"""Checks if all required tools are available in the library.
+	
+	Note: Validation is non-blocking. Launch is allowed even with missing tools,
+	but a signal is emitted for UI to show "Repair Environment" button.
+	"""
+	var validation = environment_validator.validate_project(project_dir)
+	
+	if not validation["valid"]:
+		# Validation error - append to existing status
+		var error_msg = ", ".join(validation["errors"])
+		_update_status("Status: Manifest loaded (Environment error: %s)" % error_msg)
+		Logger.warn("environment_validation_error", {
+			"component": "projects",
+			"project": project_dir,
+			"errors": validation["errors"]
+		})
+		_enable_launch_button()
+		return
+	
+	# Validation successful - check if tools are ready
+	if validation["ready"]:
+		# Environment complete - all tools available
+		_update_status("Status: Manifest loaded. Environment ready - all tools in library.")
+		_enable_launch_button()
+		environment_ready.emit()
+		Logger.info("environment_ready", {
+			"component": "projects",
+			"project": project_dir
+		})
+	else:
+		# Tools are missing - but still allow launch with warning
+		var tool_count = validation["missing_tools"].size()
+		_update_status("Status: Manifest loaded (%d tool(s) missing - use 'Repair Environment' to download)." % tool_count)
+		_enable_launch_button()
+		environment_incomplete.emit(validation["missing_tools"])
+		Logger.warn("environment_incomplete", {
+			"component": "projects",
+			"project": project_dir,
+			"missing_count": tool_count
+		})
+
+## Returns the list of missing tools from the last validation.
+## Useful for hydration/repair UI to know what to download.
+## Returns:
+##   Array[Dictionary]: Tool entries that need to be downloaded
+func get_missing_tools() -> Array:
+	if current_manifest == null:
+		return []
+	
+	var validation = environment_validator.validate_project(current_project_dir)
+	return validation["missing_tools"]
+
+## Prepares a download list for the given missing tools.
+## Returns:
+##   Array[Dictionary]: [{tool_id, version}] suitable for ToolDownloader
+func get_download_list_for_missing() -> Array:
+	var missing = get_missing_tools()
+	return environment_validator.get_download_list(missing)

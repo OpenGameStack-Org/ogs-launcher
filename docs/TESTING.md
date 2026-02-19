@@ -108,6 +108,13 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Parameter validation
   - Nested archive structure handling
 
+- **[tests/project_environment_validator_tests.gd](tests/project_environment_validator_tests.gd)** — Validates project environment readiness for launching.
+  - Environment validation against library state
+  - Missing tool detection from stack.json
+  - Library accessibility checking
+  - Download list generation for hydration
+  - Error reporting and validation structure
+
 ### Scene Tests (Integration with UI)
 
 Scene tests instantiate UI nodes and verify controller behaviors. These are similar to Unity's "Play Mode tests" but run headlessly in Godot.

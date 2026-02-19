@@ -22,6 +22,7 @@ func _init() -> void:
 	load("res://scripts/manifest/stack_manifest.gd")
 	load("res://scripts/manifest/stack_generator.gd")
 	load("res://scripts/projects/projects_controller.gd")
+	load("res://scripts/projects/project_environment_validator.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
 	load("res://scripts/launcher/tool_config_injector.gd")
 	load("res://scripts/logging/logger.gd")
@@ -81,6 +82,9 @@ func _init() -> void:
 	var tool_extractor_tests = load("res://tests/tool_extractor_tests.gd")
 	if tool_extractor_tests:
 		test_suites.append(tool_extractor_tests.new())
+	var project_environment_validator_tests = load("res://tests/project_environment_validator_tests.gd")
+	if project_environment_validator_tests:
+		test_suites.append(project_environment_validator_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()
