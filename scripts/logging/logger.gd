@@ -27,7 +27,7 @@ static func set_level(level: int) -> void:
 	Parameters:
 	  level (int): Logger.Level value
 	"""
-	_level = level
+	_level = level as Level
 
 static func enable(enabled: bool) -> void:
 	"""Enables or disables logging at runtime.

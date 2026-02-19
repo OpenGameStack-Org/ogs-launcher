@@ -6,10 +6,6 @@
 extends RefCounted
 class_name ToolLauncher
 
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
-const ToolConfigInjector = preload("res://scripts/launcher/tool_config_injector.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Handles spawning external tools from the frozen stack with correct environment and working directory.
 ##
 ## This class is responsible for:

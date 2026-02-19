@@ -9,7 +9,6 @@ extends RefCounted
 class_name ProjectsControllerSceneTests
 
 const ProjectsControllerScript = preload("res://scripts/projects/projects_controller.gd")
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 
 func run() -> Dictionary:
 	"""Runs all ProjectsController scene tests.

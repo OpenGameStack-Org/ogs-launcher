@@ -20,8 +20,6 @@
 extends RefCounted
 class_name PathResolver
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Returns the root directory for the central library.
 ## On Windows: %LOCALAPPDATA%/OGS/Library
 ## On Unix:    ~/.config/ogs-launcher/library
@@ -125,7 +123,7 @@ func get_available_tools() -> Array[String]:
 	
 	while file_name != "":
 		if not file_name.begins_with("."):
-			var full_path = root.path_join(file_name)
+			var _full_path = root.path_join(file_name)
 			if dir.current_is_dir():
 				tools.append(file_name)
 		file_name = dir.get_next()
@@ -167,7 +165,7 @@ func get_available_versions(tool_id: String) -> Array[String]:
 	
 	while file_name != "":
 		if not file_name.begins_with("."):
-			var full_path = tool_dir.path_join(file_name)
+			var _full_path = tool_dir.path_join(file_name)
 			if dir.current_is_dir():
 				versions.append(file_name)
 		file_name = dir.get_next()

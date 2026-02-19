@@ -7,9 +7,6 @@
 extends RefCounted
 class_name SocketBlocker
 
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Default allowlist for outbound connections.
 static var _allowed_hosts: Array[String] = ["localhost", "127.0.0.1"]
 static var _allowed_ports: Array[int] = []
@@ -21,12 +18,12 @@ enum SocketError {
 	CONNECT_FAILED = 2,
 }
 
-static func open_tcp_client(host: String, port: int, connect: bool = true) -> Dictionary:
+static func open_tcp_client(host: String, port: int, auto_connect: bool = true) -> Dictionary:
 	"""Guards TCP client creation based on offline state.
 	Parameters:
 	  host (String): Target host
 	  port (int): Target port
-	  connect (bool): If true, attempt a connection immediately
+	  auto_connect (bool): If true, attempt a connection immediately
 	Returns:
 	  Dictionary: {"success": bool, "error_code": int, "error_message": String, "client": StreamPeerTCP}
 	"""
@@ -49,7 +46,7 @@ static func open_tcp_client(host: String, port: int, connect: bool = true) -> Di
 			"client": null
 		}
 	var peer = StreamPeerTCP.new()
-	if not connect:
+	if not auto_connect:
 		return {
 			"success": true,
 			"error_code": SocketError.SUCCESS,

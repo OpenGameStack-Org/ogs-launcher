@@ -28,9 +28,6 @@
 extends RefCounted
 class_name LibraryManager
 
-const PathResolver = preload("res://scripts/library/path_resolver.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 var path_resolver: PathResolver
 
 func _init():
@@ -225,7 +222,7 @@ func get_library_summary() -> Dictionary:
 	return summary
 
 # Private helper: recursively calculate directory size (MVP: simplified - just return 0)
-func _calculate_dir_size(dir_path: String) -> int:
+func _calculate_dir_size(_dir_path: String) -> int:
 	# TODO: Implement proper directory size calculation in Phase 2
 	# For MVP, we don't need exact sizes, just validation
 	return 0

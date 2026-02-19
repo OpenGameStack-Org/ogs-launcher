@@ -5,9 +5,6 @@
 
 extends RefCounted
 class_name ToolDownloaderTests
-
-const ToolDownloader = preload("res://scripts/network/tool_downloader.gd")
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const OgsConfigScript = preload("res://scripts/config/ogs_config.gd")
 
 func run() -> Dictionary:

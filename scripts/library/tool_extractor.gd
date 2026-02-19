@@ -33,9 +33,6 @@
 extends RefCounted
 class_name ToolExtractor
 
-const PathResolver = preload("res://scripts/library/path_resolver.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Error codes for extraction failures
 enum ExtractionError {
 	SUCCESS = 0,
@@ -183,7 +180,7 @@ func validate_archive(archive_path: String) -> Dictionary:
 
 # Private helper: extract zip using ZipReader
 # MVP: Stubbed for Phase 2 - actual implementation requires ZipReader integration
-func _extract_zip(archive_path: String, target_dir: String) -> Dictionary:
+func _extract_zip(archive_path: String, _target_dir: String) -> Dictionary:
 	var result = {
 		"success": false,
 		"error": "",

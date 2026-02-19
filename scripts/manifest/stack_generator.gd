@@ -17,8 +17,6 @@
 extends RefCounted
 class_name StackGenerator
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 const SCHEMA_VERSION := 1
 const StackManifestScript = preload("res://scripts/manifest/stack_manifest.gd")
 

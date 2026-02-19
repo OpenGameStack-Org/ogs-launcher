@@ -6,8 +6,6 @@
 extends RefCounted
 class_name PathResolverTests
 
-const PathResolver = preload("res://scripts/library/path_resolver.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,

@@ -3,8 +3,6 @@
 extends RefCounted
 class_name LoggerTests
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 func run() -> Dictionary:
 	"""Runs Logger unit tests.
 	Returns:

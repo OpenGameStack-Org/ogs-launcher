@@ -15,9 +15,6 @@
 extends RefCounted
 class_name LibraryHydrationController
 
-const LibraryHydrator = preload("res://scripts/library/library_hydrator.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Emitted when hydration completes (success or failure).
 signal hydration_finished(success: bool, message: String)
 
@@ -164,7 +161,7 @@ func _on_download_button_pressed() -> void:
 	})
 	
 	# Non-blocking: start hydration
-	var result = hydrator.hydrate(current_missing_tools)
+	var _result = hydrator.hydrate(current_missing_tools)
 	# Note: Signals will update UI as progress happens
 
 # Private: Tool download started signal handler.

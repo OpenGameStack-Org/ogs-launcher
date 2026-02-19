@@ -6,8 +6,6 @@
 extends RefCounted
 class_name ToolExtractorTests
 
-const ToolExtractor = preload("res://scripts/library/tool_extractor.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,

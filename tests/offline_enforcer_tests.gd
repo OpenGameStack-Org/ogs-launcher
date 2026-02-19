@@ -4,8 +4,6 @@
 
 extends RefCounted
 class_name OfflineEnforcerTests
-
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const OgsConfigScript = preload("res://scripts/config/ogs_config.gd")
 
 func run() -> Dictionary:

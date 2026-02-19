@@ -3,8 +3,6 @@
 extends RefCounted
 class_name ToolConfigInjectorTests
 
-const ToolConfigInjector = preload("res://scripts/launcher/tool_config_injector.gd")
-
 func run() -> Dictionary:
 	"""Runs ToolConfigInjector unit tests.
 	Returns:

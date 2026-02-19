@@ -6,8 +6,6 @@
 extends RefCounted
 class_name LibraryHydratorTests
 
-const LibraryHydrator = preload("res://scripts/library/library_hydrator.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,

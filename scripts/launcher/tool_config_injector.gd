@@ -6,8 +6,6 @@
 extends RefCounted
 class_name ToolConfigInjector
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 const GODOT_SETTINGS_PRIMARY := "user://editor_settings-4.tres"
 const GODOT_SETTINGS_LEGACY := "user://editor_settings.tres"
 

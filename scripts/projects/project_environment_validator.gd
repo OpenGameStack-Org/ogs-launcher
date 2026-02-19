@@ -20,10 +20,6 @@
 extends RefCounted
 class_name ProjectEnvironmentValidator
 
-const StackManifest = preload("res://scripts/manifest/stack_manifest.gd")
-const LibraryManager = preload("res://scripts/library/library_manager.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 var library: LibraryManager
 
 func _init():

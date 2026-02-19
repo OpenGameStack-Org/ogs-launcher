@@ -19,11 +19,6 @@
 extends RefCounted
 class_name ProjectsController
 
-const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-const ProjectEnvironmentValidator = preload("res://scripts/projects/project_environment_validator.gd")
-
 ## Emitted when offline state changes after loading a project or config.
 signal offline_state_changed(active: bool, reason: String)
 

@@ -16,8 +16,6 @@
 extends RefCounted
 class_name OfflineEnforcer
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 const BLOCKED_ERROR_CODE := "network_blocked_offline"
 
 static var _offline_active := false

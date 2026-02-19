@@ -1,8 +1,5 @@
 extends RefCounted
 class_name ToolLauncherTests
-
-const ToolLauncher = preload("res://scripts/launcher/tool_launcher.gd")
-const OfflineEnforcer = preload("res://scripts/network/offline_enforcer.gd")
 const OgsConfigScript = preload("res://scripts/config/ogs_config.gd")
 
 ## Unit tests for ToolLauncher process spawning logic.

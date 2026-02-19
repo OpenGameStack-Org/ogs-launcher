@@ -6,8 +6,6 @@
 extends RefCounted
 class_name ProjectEnvironmentValidatorTests
 
-const ProjectEnvironmentValidator = preload("res://scripts/projects/project_environment_validator.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,

@@ -6,8 +6,6 @@
 extends RefCounted
 class_name LibraryManagerTests
 
-const LibraryManager = preload("res://scripts/library/library_manager.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,

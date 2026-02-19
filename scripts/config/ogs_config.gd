@@ -27,7 +27,6 @@
 extends RefCounted
 class_name OgsConfig
 
-const Logger = preload("res://scripts/logging/logger.gd")
 
 const CURRENT_SCHEMA_VERSION := 1
 
