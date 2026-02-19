@@ -73,7 +73,7 @@ func validate_project(project_dir: String) -> Dictionary:
 			continue
 		
 		if not library.tool_exists(tool_id, version):
-			missing.append(tool_entry)
+			missing.append({"tool_id": tool_id, "version": version})
 			Logger.debug("tool_missing_from_library", {
 				"component": "projects",
 				"tool_id": tool_id,
@@ -113,7 +113,7 @@ func get_download_list(missing_tools: Array) -> Array:
 	var downloads = []
 	for tool_entry in missing_tools:
 		downloads.append({
-			"tool_id": tool_entry.get("id", ""),
+			"tool_id": tool_entry.get("tool_id", ""),
 			"version": tool_entry.get("version", "")
 		})
 	return downloads

@@ -26,6 +26,7 @@ var dialog: Node
 var tools_list_control: ItemList
 var status_label: Label
 var download_button: Button
+var scene_tree: SceneTree
 var active_hydration := false
 var current_missing_tools: Array = []
 
@@ -34,7 +35,8 @@ func setup(
 	tools_list: ItemList,
 	status_text: Label,
 	btn_download: Button,
-	mirror_url: String = ""
+	mirror_url: String = "",
+	tree: SceneTree = null
 ) -> void:
 	"""Wires the hydration UI controls to the controller.
 	Parameters:
@@ -43,11 +45,13 @@ func setup(
 	  status_text (Label): Status/progress label
 	  btn_download (Button): "Download and Install" button
 	  mirror_url (String): Mirror URL for downloads
+	  tree (SceneTree): Scene tree reference for timers (auto-detected if null)
 	"""
 	dialog = hydration_dialog
 	tools_list_control = tools_list
 	status_label = status_text
 	download_button = btn_download
+	scene_tree = tree if tree else hydration_dialog.get_tree()
 	
 	hydrator = LibraryHydrator.new(mirror_url)
 	
@@ -204,7 +208,8 @@ func _on_hydration_complete(success: bool, failed_tools: Array) -> void:
 	hydration_finished.emit(success, _get_status_message(success, failed_tools))
 	
 	# Close dialog after a brief delay
-	await get_tree().create_timer(2.0).timeout
+	if scene_tree:
+		await scene_tree.create_timer(2.0).timeout
 	close_dialog()
 
 # Private: Generates completion message.

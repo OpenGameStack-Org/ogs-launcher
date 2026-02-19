@@ -21,11 +21,18 @@ extends Control
 @onready var lbl_offline_status = $AppLayout/Content/PageProjects/OfflineStatusLabel
 @onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
 @onready var btn_launch_tool = $AppLayout/Content/PageProjects/LaunchButton
+@onready var btn_repair_environment = $AppLayout/Content/PageProjects/RepairButton
 @onready var project_dir_dialog = $ProjectDirDialog
+
+# Hydration dialog nodes
+@onready var hydration_dialog = $HydrationDialog
+@onready var hydration_tools_list = $HydrationDialog/VBoxContainer/ToolsList
+@onready var hydration_status_label = $HydrationDialog/VBoxContainer/StatusLabel
 
 var network_ui_nodes: Array = []
 
 var projects_controller: ProjectsController
+var hydration_controller: LibraryHydrationController
 
 func _ready():
 	# Connect the button signals to our function
@@ -48,6 +55,28 @@ func _ready():
 		project_dir_dialog
 	)
 	projects_controller.offline_state_changed.connect(_on_offline_state_changed)
+	
+	# Set up hydration controller and wire signals
+	hydration_controller = LibraryHydrationController.new()
+	hydration_controller.setup(
+		hydration_dialog,
+		hydration_tools_list,
+		hydration_status_label,
+		hydration_dialog.get_ok_button(),
+		"",  # mirror_url
+		get_tree()  # Pass scene tree reference for timers
+	)
+	
+	# Wire hydration signals
+	projects_controller.request_hydration.connect(_on_request_hydration)
+	hydration_controller.hydration_finished.connect(_on_hydration_finished)
+	
+	# Wire repair button
+	btn_repair_environment.pressed.connect(_on_repair_environment_pressed)
+	
+	# Listen for environment status changes
+	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
+	projects_controller.environment_ready.connect(_on_environment_ready)
 
 	_collect_network_ui_nodes()
 	_apply_offline_ui(false)
@@ -97,3 +126,28 @@ func _apply_offline_ui(active: bool) -> void:
 			var button := node as BaseButton
 			button.disabled = active
 			button.tooltip_text = "Disabled in offline mode." if active else ""
+## Signal handler: when ProjectsController requests hydration.
+func _on_request_hydration(missing_tools: Array) -> void:
+	"""Shows the hydration dialog with list of missing tools."""
+	hydration_controller.start_hydration(missing_tools)
+	hydration_dialog.popup_centered()
+
+## Signal handler: when hydration completes.
+func _on_hydration_finished(success: bool, message: String) -> void:
+	"""Re-validates the project environment after hydration."""
+	projects_controller.on_hydration_complete(success, message)
+
+## Signal handler: repair button pressed.
+func _on_repair_environment_pressed() -> void:
+	"""User clicked the 'Repair Environment' button."""
+	projects_controller.request_repair_environment()
+
+## Signal handler: environment is incomplete.
+func _on_environment_incomplete(_missing_tools: Array) -> void:
+	"""Shows the repair button when tools are missing."""
+	btn_repair_environment.visible = true
+
+## Signal handler: environment is complete.
+func _on_environment_ready() -> void:
+	"""Hides the repair button when all tools are available."""
+	btn_repair_environment.visible = false
