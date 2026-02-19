@@ -31,6 +31,7 @@ func _process(_delta: float) -> bool:
 	load("res://scripts/manifest/stack_generator.gd")
 	load("res://scripts/projects/projects_controller.gd")
 	load("res://scripts/projects/project_environment_validator.gd")
+	load("res://scripts/projects/project_sealer.gd")
 	load("res://scripts/launcher/tool_launcher.gd")
 	load("res://scripts/launcher/tool_config_injector.gd")
 	load("res://scripts/logging/logger.gd")
@@ -67,6 +68,7 @@ func _process(_delta: float) -> bool:
 		"res://tests/tool_extractor_tests.gd",
 		"res://tests/project_environment_validator_tests.gd",
 		"res://tests/library_hydrator_tests.gd",
+		"res://tests/project_sealer_tests.gd",
 	]
 	
 	for test_file in test_files:
