@@ -43,7 +43,7 @@ The MVP is not complete until this full sequence works end to end:
 ---
 
 ### Phase 1.5: The Showcase MVP (Windows)
-**Status:** **Active / In Progress - 96% Complete** ✅
+**Status:** **97% Complete — Ready for Showcase** 🎯
 *Focus: The "Hub" Logic, Library Management, and The Seal.*
 
 #### 📋 Critical Tasks (Must-Have for Showcase)
@@ -67,9 +67,12 @@ The MVP is not complete until this full sequence works end to end:
     *   *Package Placeholder:* Returns zip path (actual zipping deferred to Phase 2).
     *   *Tests:* 11 unit tests covering all seal operations, path handling, and error cases.
     *   *Total Tests Now:* **164 passing, 0 failures** (17 test suites)
-*   [ ] **UI Integration: "Seal for Delivery" Button** — Next
-    *   *Action:* Add button to Projects page that calls ProjectSealer.
-    *   *Workflow:* Show progress dialog, display sealed zip location on complete.
+*   [x] **UI Integration: "Seal for Delivery" Button** — 100% Complete ✅
+    *   *Scene Changes:* Added "Seal for Delivery" button to Projects page + SealDialog.
+    *   *Wiring:* Connected button to ProjectSealer call in main.gd.
+    *   *Result Display:* Shows seal status, zip path, size, and tools copied in dialog.
+    *   *Open Folder:* "Open Sealed Folder" button to navigate to result on success.
+    *   *Error Handling:* Clear error messages if project not loaded or seal fails.
 *   [ ] **The "Standard Profile" Mirror** — Not Started (Phase 2)
     *   *Infrastructure:* Set up S3/GitHub Release hosting the "White Box" binaries.
     *   *Manifest:* Create the master `repository.json` for the Launcher to query.

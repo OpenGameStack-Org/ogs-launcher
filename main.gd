@@ -20,9 +20,16 @@ extends Control
 @onready var lbl_project_status = $AppLayout/Content/PageProjects/ProjectsStatusLabel
 @onready var lbl_offline_status = $AppLayout/Content/PageProjects/OfflineStatusLabel
 @onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
-@onready var btn_launch_tool = $AppLayout/Content/PageProjects/LaunchButton
+@onready var btn_launch_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/LaunchButton
+@onready var btn_seal_for_delivery = $AppLayout/Content/PageProjects/ToolControlsContainer/SealButton
 @onready var btn_repair_environment = $AppLayout/Content/PageProjects/RepairButton
 @onready var project_dir_dialog = $ProjectDirDialog
+
+# Seal dialog nodes
+@onready var seal_dialog = $SealDialog
+@onready var seal_status_label = $SealDialog/VBoxContainer/StatusLabel
+@onready var seal_output_label = $SealDialog/VBoxContainer/OutputLabel
+@onready var seal_open_folder_button = $SealDialog/VBoxContainer/OpenFolderButton
 
 # Hydration dialog nodes
 @onready var hydration_dialog = $HydrationDialog
@@ -34,12 +41,27 @@ var network_ui_nodes: Array = []
 var projects_controller: ProjectsController
 var hydration_controller: LibraryHydrationController
 
+const ProjectSealer = preload("res://scripts/projects/project_sealer.gd")
+const LayoutController = preload("res://scripts/launcher/layout_controller.gd")
+const SealController = preload("res://scripts/launcher/seal_controller.gd")
+
+var layout_controller: LayoutController
+var seal_controller: SealController
+
 func _ready():
-	# Connect the button signals to our function
-	btn_projects.pressed.connect(_on_tab_pressed.bind(page_projects))
-	btn_engine.pressed.connect(_on_tab_pressed.bind(page_engine))
-	btn_tools.pressed.connect(_on_tab_pressed.bind(page_tools))
-	btn_settings.pressed.connect(_on_tab_pressed.bind(page_settings))
+	# Set up layout controller for page navigation
+	layout_controller = LayoutController.new()
+	layout_controller.setup(
+		btn_projects,
+		btn_engine,
+		btn_tools,
+		btn_settings,
+		page_projects,
+		page_engine,
+		page_tools,
+		page_settings
+	)
+	layout_controller.page_changed.connect(_on_page_changed)
 
 	# Projects page controller
 	projects_controller = ProjectsController.new()
@@ -55,6 +77,16 @@ func _ready():
 		project_dir_dialog
 	)
 	projects_controller.offline_state_changed.connect(_on_offline_state_changed)
+	
+	# Set up seal controller for seal dialog
+	seal_controller = SealController.new()
+	seal_controller.setup(
+		seal_dialog,
+		seal_status_label,
+		seal_output_label,
+		seal_open_folder_button
+	)
+	seal_controller.seal_completed.connect(_on_seal_completed)
 	
 	# Set up hydration controller and wire signals
 	hydration_controller = LibraryHydrationController.new()
@@ -74,6 +106,9 @@ func _ready():
 	# Wire repair button
 	btn_repair_environment.pressed.connect(_on_repair_environment_pressed)
 	
+	# Wire seal button
+	btn_seal_for_delivery.pressed.connect(_on_seal_button_pressed)
+	
 	# Listen for environment status changes
 	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
 	projects_controller.environment_ready.connect(_on_environment_ready)
@@ -82,17 +117,12 @@ func _ready():
 	_apply_offline_ui(false)
 	
 	# Start on the Projects page
-	_on_tab_pressed(page_projects)
+	layout_controller.navigate_to("projects")
 
-func _on_tab_pressed(target_page: Control):
-	# 1. Hide all pages
-	page_projects.visible = false
-	page_engine.visible = false
-	page_tools.visible = false
-	page_settings.visible = false
-	
-	# 2. Show the requested page
-	target_page.visible = true
+func _on_page_changed(page_name: String) -> void:
+	"""Called when LayoutController changes pages."""
+	# Page visibility is handled by LayoutController
+	pass
 
 func _collect_network_ui_nodes() -> void:
 	"""Collects all UI nodes tagged as network-related."""
@@ -151,3 +181,16 @@ func _on_environment_incomplete(_missing_tools: Array) -> void:
 func _on_environment_ready() -> void:
 	"""Hides the repair button when all tools are available."""
 	btn_repair_environment.visible = false
+
+## Signal handler: seal for delivery button pressed.
+func _on_seal_button_pressed() -> void:
+	"""User clicked the 'Seal for Delivery' button."""
+	var current_project_path = projects_controller.current_project_dir
+	seal_controller.seal_for_delivery(current_project_path)
+
+## Signal handler: seal operation completed.
+func _on_seal_completed(success: bool, zip_path: String) -> void:
+	"""Seal controller finished sealing project."""
+	# SealController handles all UI updates
+	# This is just a notification point for future extensions
+	pass
