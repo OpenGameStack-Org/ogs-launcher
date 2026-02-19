@@ -1,0 +1,231 @@
+## LibraryManager: Central management of the OGS tool library.
+##
+## The LibraryManager handles discovery, validation, and metadata about tools
+## in the central library. It provides the interface between the Launcher UI
+## and the actual file system structure where frozen stack tools are stored.
+##
+## Responsibilities:
+##   - Query available tools and versions
+##   - Validate tool integrity
+##   - Provide metadata (path, size, last updated)
+##   - Detect missing/broken tools
+##   - Report readiness for project hydration
+##
+## The library structure is:
+##   [LIBRARY_ROOT]/[tool_id]/[version]/[tool_files]
+##
+## Example queries:
+##   - "Is Godot 4.3 installed?" -> tool_exists("godot", "4.3")
+##   - "What tools do I have?" -> get_available_tools()
+##   - "What versions of Blender?" -> get_available_versions("blender")
+##   - "Where's Godot 4.3?" -> get_tool_path("godot", "4.3")
+##
+## Usage:
+##   var library = LibraryManager.new()
+##   if library.tool_exists("godot", "4.3"):
+##       print("Ready to launch: " + library.get_tool_path("godot", "4.3"))
+
+extends RefCounted
+class_name LibraryManager
+
+const PathResolver = preload("res://scripts/library/path_resolver.gd")
+const Logger = preload("res://scripts/logging/logger.gd")
+
+var path_resolver: PathResolver
+
+func _init():
+	path_resolver = PathResolver.new()
+
+## Returns the absolute path to a tool in the library.
+## Parameters:
+##   tool_id (String): Tool identifier (e.g., "godot", "blender")
+##   version (String): Version string (e.g., "4.3")
+## Returns:
+##   String: Absolute path to the tool directory, or empty string if not found
+func get_tool_path(tool_id: String, version: String) -> String:
+	var path = path_resolver.get_tool_path(tool_id, version)
+	
+	if path.is_empty():
+		Logger.warn("library_tool_path_failed", {
+			"component": "library",
+			"tool_id": tool_id,
+			"version": version,
+			"reason": "path resolution failed"
+		})
+		return ""
+	
+	if not path_resolver.tool_exists(tool_id, version):
+		Logger.debug("library_tool_not_found", {
+			"component": "library",
+			"tool_id": tool_id,
+			"version": version,
+			"path": path
+		})
+		return ""
+	
+	return path
+
+## Checks if a tool version exists in the library.
+## Parameters:
+##   tool_id (String): Tool identifier
+##   version (String): Version string
+## Returns:
+##   bool: True if the tool directory exists
+func tool_exists(tool_id: String, version: String) -> bool:
+	return path_resolver.tool_exists(tool_id, version)
+
+## Returns a list of all tools currently in the library.
+## Returns:
+##   Array[String]: Tool identifiers (e.g., ["godot", "blender"])
+func get_available_tools() -> Array[String]:
+	return path_resolver.get_available_tools()
+
+## Returns all versions of a specific tool in the library.
+## Parameters:
+##   tool_id (String): Tool identifier
+## Returns:
+##   Array[String]: Version strings, sorted
+func get_available_versions(tool_id: String) -> Array[String]:
+	return path_resolver.get_available_versions(tool_id)
+
+## Returns metadata about a tool in the library.
+## Useful for UI display and validation.
+## Parameters:
+##   tool_id (String): Tool identifier
+##   version (String): Version string
+## Returns:
+##   Dictionary: {
+##       "exists": bool,
+##       "path": String,
+##       "size_bytes": int (0 if not found),
+##       "last_modified": int (unix timestamp, 0 if not found)
+##   }
+func get_tool_metadata(tool_id: String, version: String) -> Dictionary:
+	var meta = {
+		"exists": false,
+		"path": "",
+		"size_bytes": 0,
+		"last_modified": 0
+	}
+	
+	var tool_path = path_resolver.get_tool_path(tool_id, version)
+	if tool_path.is_empty():
+		return meta
+	
+	if not path_resolver.tool_exists(tool_id, version):
+		return meta
+	
+	meta["exists"] = true
+	meta["path"] = tool_path
+	
+	# Calculate directory size
+	var size = _calculate_dir_size(tool_path)
+	meta["size_bytes"] = size
+	
+	# Get modification time
+	if FileAccess.file_exists(tool_path):
+		meta["last_modified"] = FileAccess.get_modified_time(tool_path)
+	
+	Logger.debug("tool_metadata_retrieved", {
+		"component": "library",
+		"tool_id": tool_id,
+		"version": version,
+		"size_bytes": meta["size_bytes"]
+	})
+	
+	return meta
+
+## Validates that a tool exists and is accessible.
+## Performs sanity checks (directory exists, readable, etc).
+## Parameters:
+##   tool_id (String): Tool identifier
+##   version (String): Version string
+## Returns:
+##   Dictionary: {
+##       "valid": bool,
+##       "errors": Array[String]
+##   }
+func validate_tool(tool_id: String, version: String) -> Dictionary:
+	var result = {
+		"valid": true,
+		"errors": []
+	}
+	
+	# Check existence
+	if not tool_exists(tool_id, version):
+		result["valid"] = false
+		result["errors"].append("Tool directory not found")
+		Logger.warn("tool_validation_failed", {
+			"component": "library",
+			"tool_id": tool_id,
+			"version": version,
+			"reason": "not found"
+		})
+		return result
+	
+	# Check readability
+	var tool_path = path_resolver.get_tool_path(tool_id, version)
+	var dir = DirAccess.open(tool_path)
+	if dir == null:
+		result["valid"] = false
+		result["errors"].append("Tool directory not readable")
+		Logger.warn("tool_validation_failed", {
+			"component": "library",
+			"tool_id": tool_id,
+			"version": version,
+			"reason": "not readable"
+		})
+		return result
+	
+	Logger.debug("tool_validation_success", {
+		"component": "library",
+		"tool_id": tool_id,
+		"version": version
+	})
+	
+	return result
+
+## Returns the library root directory.
+## Returns:
+##   String: Absolute path to library root
+func get_library_root() -> String:
+	return path_resolver.get_library_root()
+
+## Returns a summary of the library state.
+## Useful for status UI and diagnostics.
+## Returns:
+##   Dictionary: {
+##       "library_root": String,
+##       "total_tools": int,
+##       "total_versions": int,
+##       "tools": Dictionary of tool_id -> Array[String] (versions)
+##   }
+func get_library_summary() -> Dictionary:
+	var summary = {
+		"library_root": get_library_root(),
+		"total_tools": 0,
+		"total_versions": 0,
+		"tools": {}
+	}
+	
+	var tools = get_available_tools()
+	summary["total_tools"] = tools.size()
+	
+	for tool_id in tools:
+		var versions = get_available_versions(tool_id)
+		summary["tools"][tool_id] = versions
+		summary["total_versions"] += versions.size()
+	
+	Logger.debug("library_summary_generated", {
+		"component": "library",
+		"total_tools": summary["total_tools"],
+		"total_versions": summary["total_versions"]
+	})
+	
+	return summary
+
+# Private helper: recursively calculate directory size (MVP: simplified - just return 0)
+func _calculate_dir_size(dir_path: String) -> int:
+	# TODO: Implement proper directory size calculation in Phase 2
+	# For MVP, we don't need exact sizes, just validation
+	return 0

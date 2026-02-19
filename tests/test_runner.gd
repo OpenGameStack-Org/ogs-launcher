@@ -28,6 +28,9 @@ func _init() -> void:
 	load("res://scripts/network/offline_enforcer.gd")
 	load("res://scripts/network/socket_blocker.gd")
 	load("res://scripts/network/tool_downloader.gd")
+	load("res://scripts/library/path_resolver.gd")
+	load("res://scripts/library/library_manager.gd")
+	load("res://scripts/library/tool_extractor.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -69,6 +72,15 @@ func _init() -> void:
 	var logger_tests = load("res://tests/logger_tests.gd")
 	if logger_tests:
 		test_suites.append(logger_tests.new())
+	var path_resolver_tests = load("res://tests/path_resolver_tests.gd")
+	if path_resolver_tests:
+		test_suites.append(path_resolver_tests.new())
+	var library_manager_tests = load("res://tests/library_manager_tests.gd")
+	if library_manager_tests:
+		test_suites.append(library_manager_tests.new())
+	var tool_extractor_tests = load("res://tests/tool_extractor_tests.gd")
+	if tool_extractor_tests:
+		test_suites.append(tool_extractor_tests.new())
 	
 	for suite in test_suites:
 		var result = suite.run()

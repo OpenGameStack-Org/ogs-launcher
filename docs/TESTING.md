@@ -63,9 +63,12 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Disabled config keeps enforcement off
   - Guard allows when online and blocks when offline
 
-- **[tests/tool_downloader_tests.gd](tests/tool_downloader_tests.gd)** — Validates that download attempts are blocked in offline mode.
-  - Offline attempts return OFFLINE_BLOCKED
-  - Online attempts return NOT_IMPLEMENTED (stubbed)
+- **[tests/tool_downloader_tests.gd](tests/tool_downloader_tests.gd)** — Validates that download attempts are blocked in offline mode and library integration.
+  - Downloader initialization with mirror URL
+  - Offline mode blocks download attempts
+  - Mirror configuration validation
+  - Result structure validation
+  - Existing tool detection (early return without network access)
 
 - **[tests/tool_config_injector_tests.gd](tests/tool_config_injector_tests.gd)** — Validates tool-specific offline config injection.
   - Blender launch args include python override
@@ -80,6 +83,30 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
 - **[tests/logger_tests.gd](tests/logger_tests.gd)** — Validates structured logging behavior.
   - Writes JSON logs
   - Enforces level filtering
+
+- **[tests/path_resolver_tests.gd](tests/path_resolver_tests.gd)** — Validates cross-platform path resolution for the library system.
+  - Library root path resolution (Windows %LOCALAPPDATA%, Unix ~/.config)
+  - Tool path construction
+  - Path normalization (backslash handling)
+  - Tool existence checking
+  - Available tools discovery
+  - Available versions discovery
+
+- **[tests/library_manager_tests.gd](tests/library_manager_tests.gd)** — Validates central library management operations.
+  - Tool discovery and querying
+  - Version enumeration
+  - Tool existence validation
+  - Tool metadata retrieval (path, size, modification time)
+  - Tool validation with integrity checks
+  - Library summary generation
+
+- **[tests/tool_extractor_tests.gd](tests/tool_extractor_tests.gd)** — Validates tool archive extraction and library integration.
+  - Archive validation and structure checking
+  - Extraction to library with proper directory structure
+  - File count tracking during extraction
+  - Error handling for missing archives
+  - Parameter validation
+  - Nested archive structure handling
 
 ### Scene Tests (Integration with UI)
 
