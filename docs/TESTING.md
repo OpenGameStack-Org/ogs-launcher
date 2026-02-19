@@ -26,11 +26,11 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 153
+tests passed: 164
 tests failed: 0
 ```
 
-The test runner automatically exits when complete (~1.5 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~1.7-1.8 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
@@ -130,6 +130,24 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Library accessibility checking
   - Download list generation for hydration
   - Error reporting and validation structure
+
+- **[tests/library_hydrator_tests.gd](tests/library_hydrator_tests.gd)** — Validates library hydration workflow for missing tools.
+  - Tool missing detection and batch processing
+  - Download list generation from environment validator
+  - Error handling for offline mode
+  - Empty library handling
+  - Hydration workflow integration
+
+- **[tests/project_sealer_tests.gd](tests/project_sealer_tests.gd)** — Validates "Seal for Delivery" workflow.
+  - Seal project rejects missing stack.json
+  - Seal project rejects missing tools in library
+  - Seal project rejects invalid manifest
+  - Seal project validates against library state
+  - Offline config generation with force_offline flag
+  - Tools copied from library to project
+  - Sealed zip path returned in result
+  - Path handling with and without trailing slashes
+  - Result structure validation (success, errors, sealed_zip, tools_copied, project_size_mb)
 
 ### Scene Tests (Integration with UI)
 

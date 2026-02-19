@@ -43,7 +43,7 @@ The MVP is not complete until this full sequence works end to end:
 ---
 
 ### Phase 1.5: The Showcase MVP (Windows)
-**Status:** **97% Complete — Ready for Showcase** 🎯
+**Status:** **99% Complete — Seal Implementation Done** 🎯
 *Focus: The "Hub" Logic, Library Management, and The Seal.*
 
 #### 📋 Critical Tasks (Must-Have for Showcase)
@@ -73,6 +73,12 @@ The MVP is not complete until this full sequence works end to end:
     *   *Result Display:* Shows seal status, zip path, size, and tools copied in dialog.
     *   *Open Folder:* "Open Sealed Folder" button to navigate to result on success.
     *   *Error Handling:* Clear error messages if project not loaded or seal fails.
+*   [x] **Controller Refactoring** — 100% Complete ✅
+    *   *LayoutController:* Extracted page navigation logic from main.gd (85 lines).
+    *   *SealController:* Extracted seal dialog management from main.gd (120 lines).
+    *   *main.gd:* Reduced from 220 → 197 lines (pure orchestration).
+    *   *Code Quality:* Fixed all GDScript language server warnings (shadowed globals, unused params, static calls).
+    *   *Tests:* All 164 tests passing with zero warnings.
 *   [ ] **The "Standard Profile" Mirror** — Not Started (Phase 2)
     *   *Infrastructure:* Set up S3/GitHub Release hosting the "White Box" binaries.
     *   *Manifest:* Create the master `repository.json` for the Launcher to query.
@@ -99,5 +105,6 @@ The MVP is not complete until this full sequence works end to end:
 
 ## Progress Tracking
 *   **Foundation:** Completed Feb 15.
-*   **Showcase MVP:** Central Library & Hydration UI 95% complete (Feb 18). Next: Seal for Delivery, then Onboarding Wizard.
-*   **Test Suite:** 153 tests passing, ~1.5 sec execution, all suites documented.
+*   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18). Next: Mirror infrastructure, then Onboarding Wizard.
+*   **Test Suite:** 164 tests passing, ~1.7-1.8 sec execution, all suites documented.
+*   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.

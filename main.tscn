@@ -163,6 +163,7 @@ text = "Sealing project..."
 text_overrun_behavior = 3
 
 [node name="OutputLabel" type="Label" parent="SealDialog/VBoxContainer"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 3
 autowrap_mode = 2
@@ -193,6 +194,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Label" type="Label" parent="HydrationDialog/VBoxContainer"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 text = "The following tools are missing from your library. Click below to download and install them:"
 autowrap_mode = 2
@@ -203,6 +205,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="StatusLabel" type="Label" parent="HydrationDialog/VBoxContainer"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 text = "Ready to download."
 autowrap_mode = 2

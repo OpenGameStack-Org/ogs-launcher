@@ -6,9 +6,6 @@
 extends RefCounted
 class_name ProjectSealerTests
 
-const ProjectSealer = preload("res://scripts/projects/project_sealer.gd")
-const StackManifest = preload("res://scripts/manifest/stack_manifest.gd")
-
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,
@@ -106,7 +103,7 @@ func test_seal_project_rejects_missing_stack_json() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var sealer = ProjectSealer.new()
 	var result = sealer.seal_project(temp_dir)
@@ -134,7 +131,7 @@ func test_seal_project_rejects_missing_tools() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	# Create a stack.json with a tool that definitely doesn't exist
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
@@ -171,7 +168,7 @@ func test_seal_project_validates_manifest_integrity() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:
@@ -207,7 +204,7 @@ func test_seal_project_success_with_valid_project() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:
@@ -244,7 +241,7 @@ func test_seal_project_creates_ogs_config() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:
@@ -276,7 +273,7 @@ func test_seal_project_returns_tools_copied() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:
@@ -306,7 +303,7 @@ func test_seal_project_returns_zip_path() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:
@@ -337,7 +334,7 @@ func test_seal_project_trims_path_slash() -> Dictionary:
 	if dir_access == null:
 		return {"passed": false, "error": "Cannot access user:// directory"}
 	
-	dir_access.make_dir_absolute(temp_dir)
+	DirAccess.make_dir_absolute(temp_dir)
 	
 	var stack_file = FileAccess.open(temp_dir.path_join("stack.json"), FileAccess.WRITE)
 	if stack_file == null:

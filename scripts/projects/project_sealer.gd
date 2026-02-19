@@ -29,10 +29,6 @@
 extends RefCounted
 class_name ProjectSealer
 
-const StackManifest = preload("res://scripts/manifest/stack_manifest.gd")
-const LibraryManager = preload("res://scripts/library/library_manager.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 var library: LibraryManager
 
 func _init():
@@ -320,7 +316,7 @@ func _create_sealed_zip(project_path: String) -> Dictionary:
 	var zip_path = parent_path.path_join(zip_name) if not parent_path.is_empty() else zip_name
 	
 	# Use Godot's built-in ZIP functionality (available in 4.3+)
-	var zip = ZIPReader.new()
+	var _zip = ZIPReader.new()
 	
 	# We need to create a zip by iterating through files
 	# This is a simplified approach using system commands for now

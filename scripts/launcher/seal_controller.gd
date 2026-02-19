@@ -11,9 +11,6 @@
 extends RefCounted
 class_name SealController
 
-const ProjectSealer = preload("res://scripts/projects/project_sealer.gd")
-const Logger = preload("res://scripts/logging/logger.gd")
-
 ## Emitted when seal operation completes (success or failure).
 signal seal_completed(success: bool, zip_path: String)
 

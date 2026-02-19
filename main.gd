@@ -40,11 +40,6 @@ var network_ui_nodes: Array = []
 
 var projects_controller: ProjectsController
 var hydration_controller: LibraryHydrationController
-
-const ProjectSealer = preload("res://scripts/projects/project_sealer.gd")
-const LayoutController = preload("res://scripts/launcher/layout_controller.gd")
-const SealController = preload("res://scripts/launcher/seal_controller.gd")
-
 var layout_controller: LayoutController
 var seal_controller: SealController
 
@@ -119,7 +114,7 @@ func _ready():
 	# Start on the Projects page
 	layout_controller.navigate_to("projects")
 
-func _on_page_changed(page_name: String) -> void:
+func _on_page_changed(_page_name: String) -> void:
 	"""Called when LayoutController changes pages."""
 	# Page visibility is handled by LayoutController
 	pass
@@ -189,7 +184,7 @@ func _on_seal_button_pressed() -> void:
 	seal_controller.seal_for_delivery(current_project_path)
 
 ## Signal handler: seal operation completed.
-func _on_seal_completed(success: bool, zip_path: String) -> void:
+func _on_seal_completed(_success: bool, _zip_path: String) -> void:
 	"""Seal controller finished sealing project."""
 	# SealController handles all UI updates
 	# This is just a notification point for future extensions

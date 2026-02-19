@@ -37,8 +37,6 @@
 extends RefCounted
 class_name StackManifest
 
-const Logger = preload("res://scripts/logging/logger.gd")
-
 const CURRENT_SCHEMA_VERSION := 1
 
 var schema_version := 0
