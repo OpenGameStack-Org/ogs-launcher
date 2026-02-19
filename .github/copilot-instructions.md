@@ -39,4 +39,7 @@
 * See [docs/The_Plan.md](../docs/The_Plan.md) for the MVP definition, current progress, and development roadmap.
 * Tasks are marked as completed (✅) and in-progress (🔄) as work advances.
 * The plan ties directly to [docs/Design_Doc.md](../docs/Design_Doc.md) for architectural vision.
-* All pull requests must pass the manifest test suite: `godot --headless --script res://tests/test_runner.gd`
+* All pull requests must pass the manifest test suite:
+  - **Windows:** `$start = Get-Date; & "C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe" --headless --script res://tests/test_runner.gd 2>&1 | Select-Object -Last 10; $elapsed = ((Get-Date) - $start).TotalSeconds; Write-Host "Exit code: $LASTEXITCODE (execution time: $elapsed seconds)"`
+  - **Linux/macOS:** `godot --headless --script res://tests/test_runner.gd`
+  - Note: The Windows command includes output piping (`2>&1 | Select-Object`) to ensure proper stdout/stderr handling and prevent terminal hangs.

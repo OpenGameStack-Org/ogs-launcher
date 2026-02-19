@@ -8,6 +8,13 @@
 ##   2. Checks if all required tools exist in the library
 ##   3. Signals if tools are missing (for hydration/repair UI)
 ##   4. Enables launch only if environment is ready
+##
+## Environment Validation Flow:
+##   - environment_incomplete(missing_tools) → UI shows "Repair Environment" button
+##   - User clicks repair → request_hydration() signals ProjectsController
+##   - UI starts LibraryHydrationController with missing_tools
+##   - Hydration completes → UI calls on_hydration_complete()
+##   - ProjectsController re-validates project
 
 extends RefCounted
 class_name ProjectsController
@@ -26,6 +33,10 @@ signal environment_incomplete(missing_tools: Array)
 
 ## Emitted when environment is complete and ready for launch.
 signal environment_ready
+
+## Emitted when user requests hydration/repair of environment.
+## Allows UI to show hydration dialog.
+signal request_hydration(missing_tools: Array)
 
 var project_path_line_edit: LineEdit
 var btn_browse_project: Button
@@ -278,3 +289,41 @@ func get_missing_tools() -> Array:
 func get_download_list_for_missing() -> Array:
 	var missing = get_missing_tools()
 	return environment_validator.get_download_list(missing)
+
+## Requests hydration of the environment (called by "Repair Environment" button).
+## Emits request_hydration signal for the UI to show hydration dialog.
+func request_repair_environment() -> void:
+	"""Requests repair/hydration of the environment."""
+	var missing = get_missing_tools()
+	
+	if missing.is_empty():
+		_update_status("Status: Environment is already complete. All tools are available.")
+		return
+	
+	_update_status("Status: Requesting environment repair...")
+	Logger.info("repair_requested", {
+		"component": "projects",
+		"missing_count": missing.size()
+	})
+	
+	request_hydration.emit(missing)
+
+## Called after hydration completes to re-validate the project.
+## Parameters:
+##   success (bool): Whether hydration was successful
+##   message (String): Completion message from hydrator
+func on_hydration_complete(success: bool, message: String) -> void:
+	"""Re-validates project after hydration completes."""
+	Logger.info("hydration_callback", {
+		"component": "projects",
+		"success": success,
+		"message": message
+	})
+	
+	if not success:
+		_update_status("Status: Hydration failed. See logs for details. " + message)
+		return
+	
+	# Re-validate environment after successful hydration
+	_update_status("Status: Hydration complete. Re-validating environment...")
+	_validate_and_report_environment(current_project_dir)

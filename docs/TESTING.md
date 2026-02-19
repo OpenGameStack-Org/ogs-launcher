@@ -8,17 +8,33 @@ The OGS Launcher uses a comprehensive test suite to ensure reliability and maint
 
 Execute the full test suite in headless mode:
 
+**PowerShell (Windows) - Recommended:**
+```powershell
+$start = Get-Date; & "C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe" --headless --script res://tests/test_runner.gd 2>&1 | Select-Object -Last 10; $elapsed = ((Get-Date) - $start).TotalSeconds; Write-Host "Exit code: $LASTEXITCODE (execution time: $elapsed seconds)"
+```
+
+This command:
+- Captures stdout and stderr with `2>&1`
+- Pipes output to force proper handling
+- Measures and displays execution time
+- Shows the last 10 lines of output plus exit code
+
+**Bash (Linux/macOS):**
 ```bash
 godot --headless --script res://tests/test_runner.gd
 ```
 
 Expected output:
 ```
-tests passed: 121
+tests passed: 153
 tests failed: 0
 ```
 
-**Note:** You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
+The test runner automatically exits when complete (~1.5 seconds) without requiring manual termination.
+
+**Notes:**
+- You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
+- The test runner uses `_process()` callback to ensure proper scene tree initialization before calling `quit()`, allowing clean process termination on all platforms.
 
 ## Test Categories
 
@@ -239,8 +255,8 @@ godot --headless --script res://tests/test_runner.gd
 
 All pull requests must pass the test suite. The CI pipeline runs:
 
-```bash
-godot --headless --script res://tests/test_runner.gd
+```powershell
+& "C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe" --headless --script res://tests/test_runner.gd
 ```
 
 Exit code 0 = all tests passed; exit code 1 = failures detected.
@@ -279,4 +295,4 @@ Target coverage for all new features:
 
 ---
 
-Last updated: **February 15, 2026**
+Last updated: **February 18, 2026**
