@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "mirror_name": "OGS Standard Profile",
+  "tools": [
+    {
+      "id": "godot",
+      "version": "4.3",
+      "archive_path": "tools/godot/4.3/godot_4.3_win64.zip",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 123456789
+    },
+    {
+      "id": "blender",
+      "version": "4.2",
+      "archive_path": "tools/blender/4.2/blender_4.2_win64.zip",
+      "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "size": 987654321
+    },
+    {
+      "id": "krita",
+      "version": "5.2",
+      "archive_path": "tools/krita/5.2/krita_5.2_win64.zip",
+      "sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "size": 456789123
+    },
+    {
+      "id": "audacity",
+      "version": "3.7",
+      "archive_path": "tools/audacity/3.7/audacity_3.7_win64.zip",
+      "sha256": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+      "size": 234567891
+    }
+  ]
+}

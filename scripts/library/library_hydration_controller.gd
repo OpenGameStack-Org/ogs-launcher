@@ -15,10 +15,16 @@
 extends RefCounted
 class_name LibraryHydrationController
 
+const MirrorHydratorScript = preload("res://scripts/mirror/mirror_hydrator.gd")
+const MirrorPathResolverScript = preload("res://scripts/mirror/mirror_path_resolver.gd")
+
 ## Emitted when hydration completes (success or failure).
 signal hydration_finished(success: bool, message: String)
 
 var hydrator: LibraryHydrator
+var mirror_hydrator
+var mirror_resolver
+var mirror_root: String = ""
 var dialog: Node
 var tools_list_control: ItemList
 var status_label: Label
@@ -26,6 +32,7 @@ var download_button: Button
 var scene_tree: SceneTree
 var active_hydration := false
 var current_missing_tools: Array = []
+var using_mirror := false
 
 func setup(
 	hydration_dialog: Node,
@@ -33,7 +40,8 @@ func setup(
 	status_text: Label,
 	btn_download: Button,
 	mirror_url: String = "",
-	tree: SceneTree = null
+	tree: SceneTree = null,
+	mirror_root_override: String = ""
 ) -> void:
 	"""Wires the hydration UI controls to the controller.
 	Parameters:
@@ -43,19 +51,27 @@ func setup(
 	  btn_download (Button): "Download and Install" button
 	  mirror_url (String): Mirror URL for downloads
 	  tree (SceneTree): Scene tree reference for timers (auto-detected if null)
+	  mirror_root_override (String): Optional mirror root path for offline hydration
 	"""
 	dialog = hydration_dialog
 	tools_list_control = tools_list
 	status_label = status_text
 	download_button = btn_download
 	scene_tree = tree if tree else hydration_dialog.get_tree()
-	
+
 	hydrator = LibraryHydrator.new(mirror_url)
+	mirror_resolver = MirrorPathResolverScript.new()
+	mirror_root = mirror_root_override if not mirror_root_override.is_empty() else mirror_resolver.get_mirror_root()
+	mirror_hydrator = MirrorHydratorScript.new(mirror_root)
 	
 	# Wire signals
 	hydrator.tool_download_started.connect(_on_tool_download_started)
 	hydrator.tool_download_complete.connect(_on_tool_download_complete)
 	hydrator.hydration_complete.connect(_on_hydration_complete)
+	
+	mirror_hydrator.tool_install_started.connect(_on_tool_install_started)
+	mirror_hydrator.tool_install_complete.connect(_on_tool_install_complete)
+	mirror_hydrator.hydration_complete.connect(_on_hydration_complete)
 	
 	download_button.pressed.connect(_on_download_button_pressed)
 	
@@ -79,14 +95,14 @@ func start_hydration(missing_tools: Array) -> void:
 	
 	# Populate tools list
 	_populate_tools_list(missing_tools)
-	
-	# Check if mirror is configured
-	if not hydrator.is_mirror_configured():
-		_update_status("Error: Mirror URL not configured. Cannot download tools.")
+
+	using_mirror = _is_mirror_available()
+	if not using_mirror:
+		_update_status("Error: Mirror repository not found. Cannot install tools.")
 		_disable_download_button()
 		Logger.warn("hydration_blocked", {
 			"component": "library",
-			"reason": "mirror not configured"
+			"reason": "mirror repository missing"
 		})
 		return
 	
@@ -95,7 +111,7 @@ func start_hydration(missing_tools: Array) -> void:
 	var to_download = missing_tools.size() - already_count
 	
 	if to_download > 0:
-		_update_status("Ready to download %d tool(s). Click 'Download and Install'." % to_download)
+		_update_status("Ready to install %d tool(s) from mirror." % to_download)
 		_enable_download_button()
 	else:
 		_update_status("All tools already in library!")
@@ -153,15 +169,15 @@ func _on_download_button_pressed() -> void:
 	
 	active_hydration = true
 	_disable_download_button()
-	_update_status("Starting downloads...")
+	_update_status("Starting mirror install...")
 	
 	Logger.info("hydration_started", {
 		"component": "library",
 		"tool_count": current_missing_tools.size()
 	})
-	
+
 	# Non-blocking: start hydration
-	var _result = hydrator.hydrate(current_missing_tools)
+	var _result = mirror_hydrator.hydrate(current_missing_tools)
 	# Note: Signals will update UI as progress happens
 
 # Private: Tool download started signal handler.
@@ -181,6 +197,22 @@ func _on_tool_download_complete(tool_id: String, version: String, success: bool,
 		_update_status("✓ %s v%s installed successfully." % [tool_id, version])
 	else:
 		_update_status("✗ Failed to download %s v%s: %s" % [tool_id, version, error_message])
+
+func _on_tool_install_started(tool_id: String, version: String) -> void:
+	"""Called when a mirror install starts."""
+	_update_status("Installing %s v%s from mirror..." % [tool_id, version])
+	Logger.debug("mirror_install_started", {
+		"component": "mirror",
+		"tool_id": tool_id,
+		"version": version
+	})
+
+func _on_tool_install_complete(tool_id: String, version: String, success: bool, error_message: String) -> void:
+	"""Called when a mirror install completes."""
+	if success:
+		_update_status("✓ %s v%s installed successfully." % [tool_id, version])
+	else:
+		_update_status("✗ Failed to install %s v%s: %s" % [tool_id, version, error_message])
 
 # Private: Hydration complete signal handler.
 func _on_hydration_complete(success: bool, failed_tools: Array) -> void:
@@ -217,3 +249,10 @@ func _get_status_message(success: bool, failed_tools: Array) -> String:
 	else:
 		var fail_count = failed_tools.size()
 		return "Library hydration completed with %d failure(s)." % fail_count
+
+func _is_mirror_available() -> bool:
+	"""Returns true when repository.json exists in the mirror root."""
+	if mirror_root.is_empty():
+		return false
+	var repo_path = mirror_root.path_join("repository.json")
+	return FileAccess.file_exists(repo_path)

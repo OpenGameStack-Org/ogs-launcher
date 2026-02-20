@@ -186,17 +186,107 @@ func _extract_zip(archive_path: String, _target_dir: String) -> Dictionary:
 		"error": "",
 		"file_count": 0
 	}
-	
-	# TODO: Phase 2 - Implement actual zip extraction using ZipReader
-	# For MVP, this is stubbed to allow testing library manager without extraction
-	Logger.warn("zip_extraction_stubbed", {
-		"component": "library",
-		"archive": archive_path,
-		"reason": "Phase 2 implementation"
-	})
-	
-	result["error"] = "Zip extraction not yet implemented (Phase 2)"
+
+	var reader = ZIPReader.new()
+	var open_err = reader.open(archive_path)
+	if open_err != OK:
+		result["error"] = "Failed to open archive"
+		return result
+
+	var files = reader.get_files()
+	if files.is_empty():
+		reader.close()
+		result["error"] = "Archive contains no files"
+		return result
+
+	var normalized_files: Array[String] = []
+	for file_path in files:
+		normalized_files.append(String(file_path).replace("\\", "/"))
+
+	var root_prefix = _compute_common_root_prefix(normalized_files)
+	var file_count = 0
+	for file_path in normalized_files:
+		if not _is_safe_zip_path(file_path):
+			reader.close()
+			result["error"] = "Unsafe path in archive"
+			return result
+		var relative = file_path
+		if not root_prefix.is_empty() and relative.begins_with(root_prefix):
+			relative = relative.substr(root_prefix.length())
+		if relative.is_empty():
+			continue
+		var output_path = _target_dir.path_join(relative).simplify_path()
+		if not _is_path_under_root(output_path, _target_dir):
+			reader.close()
+			result["error"] = "Archive path escapes target directory"
+			return result
+		if relative.ends_with("/"):
+			DirAccess.make_dir_recursive_absolute(output_path)
+			continue
+		var parent_dir = output_path.get_base_dir()
+		if not DirAccess.dir_exists_absolute(parent_dir):
+			DirAccess.make_dir_recursive_absolute(parent_dir)
+		var data = reader.read_file(file_path)
+		var out_file = FileAccess.open(output_path, FileAccess.WRITE)
+		if out_file == null:
+			reader.close()
+			result["error"] = "Failed to write extracted file"
+			return result
+		out_file.store_buffer(data)
+		out_file.close()
+		file_count += 1
+
+	reader.close()
+	result["success"] = true
+	result["file_count"] = file_count
 	return result
+
+## Computes a common root directory prefix from a list of archive paths.
+static func _compute_common_root_prefix(paths: Array[String]) -> String:
+	"""Returns a common root prefix ending with '/' if all files share it."""
+	if paths.is_empty():
+		return ""
+	var candidate = ""
+	var saw_root_file = false
+	for path in paths:
+		var clean = String(path)
+		if clean.ends_with("/"):
+			continue
+		if clean.find("/") == -1:
+			saw_root_file = true
+			break
+		var first = clean.substr(0, clean.find("/") + 1)
+		if candidate == "":
+			candidate = first
+		elif candidate != first:
+			return ""
+	if saw_root_file:
+		return ""
+	return candidate
+
+## Checks that a zip path is safe and relative (no traversal, no absolute paths).
+static func _is_safe_zip_path(path: String) -> bool:
+	"""Returns true if the path is safe for extraction."""
+	if path.is_empty():
+		return false
+	if path.begins_with("/") or path.begins_with("\\"):
+		return false
+	if path.find(":") != -1:
+		return false
+	var parts = path.split("/")
+	for part in parts:
+		if part == "..":
+			return false
+	return true
+
+## Checks if a path is under a target directory.
+static func _is_path_under_root(full_path: String, root: String) -> bool:
+	"""Returns true if full_path is inside root (case-insensitive)."""
+	var normalized_root = root.simplify_path().to_lower()
+	var normalized_path = full_path.simplify_path().to_lower()
+	if normalized_path == normalized_root:
+		return true
+	return normalized_path.begins_with(normalized_root + "/")
 
 # Private helper: delete archive after successful extraction
 func _cleanup_archive(archive_path: String) -> Error:
