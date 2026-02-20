@@ -86,7 +86,7 @@ The MVP is not complete until this full sequence works end to end:
     *   *MirrorHydrator:* Offline tool installation from local archives
     *   *Settings UI:* Mirror root configuration with real-time status indicator
     *   *Onboarding Wizard:* First-run default stack bootstrap
-    *   *Tests:* 180 tests passing covering all mirror functionality
+    *   *Tests:* Comprehensive test coverage for all mirror functionality
     *   *Note:* Server infrastructure (S3/GitHub hosting) is post-MVP backlog
 *   [x] **Onboarding Wizard** — 100% Complete ✅
     *   *First Run Detection:* Checks if wizard has been completed and library is empty
@@ -115,7 +115,7 @@ The MVP is not complete until this full sequence works end to end:
     *   *MirrorHydrator:* Offline tool installation from local archives
     *   *ToolExtractor:* Real ZIP extraction with common-root stripping and path safety
     *   *LibraryHydrationController Integration:* Wired mirror hydration into repair workflow
-    *   *Tests:* 180 tests passing (schema validation, path safety, hydration, UI integration)
+    *   *Tests:* Comprehensive test coverage (schema validation, path safety, hydration, UI integration)
 *   [ ] **Mirror Server Infrastructure** — Backlog (Post-MVP)
     *   *Hosting:* S3/GitHub Releases for "White Box" binaries
     *   *Master Manifest:* repository.json for standard frozen stack
@@ -135,7 +135,7 @@ The MVP is not complete until this full sequence works end to end:
 ## Progress Tracking
 *   **Foundation:** Completed Feb 15.
 *   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18).
-*   **Test Suite:** 180 tests passing, ~3.4 sec execution, all suites documented.
+*   **Test Suite:** Comprehensive coverage (~3.2-3.4 sec execution), all suites documented including startup verification tests.
 *   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.
 ## Summary: Phase 1.5 + Phase 2 Complete
 
@@ -144,7 +144,7 @@ The MVP is not complete until this full sequence works end to end:
 - Settings UI for mirror root configuration with real-time status indicator
 - Onboarding wizard for first-run default stack bootstrap
 - Manual testing guide with 6 comprehensive test scenarios
-- 180 tests passing, ~3.4 sec execution time
+- Comprehensive test coverage (~3.2-3.4 sec execution time), including startup initialization verification
 - Full offline-only (air-gap safe) architecture
 
 **Next: Mirror Server Infrastructure (Post-MVP)**

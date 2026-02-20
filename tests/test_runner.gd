@@ -45,6 +45,8 @@ func _process(_delta: float) -> bool:
 	load("res://scripts/mirror/mirror_repository.gd")
 	load("res://scripts/mirror/mirror_path_resolver.gd")
 	load("res://scripts/mirror/mirror_hydrator.gd")
+	load("res://scripts/library/library_hydration_controller.gd")
+	load("res://scripts/onboarding/onboarding_wizard.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -76,6 +78,7 @@ func _process(_delta: float) -> bool:
 		"res://tests/mirror_repository_tests.gd",
 		"res://tests/mirror_path_resolver_tests.gd",
 		"res://tests/mirror_hydrator_tests.gd",
+		"res://tests/startup_tests.gd",
 	]
 	
 	for test_file in test_files:

@@ -28,11 +28,11 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 180
+tests passed: 185
 tests failed: 0
 ```
 
-The test runner automatically exits when complete (~3.3-3.5 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~3.2-3.4 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
@@ -44,7 +44,7 @@ The test runner automatically exits when complete (~3.3-3.5 seconds) without req
 
 Unit tests validate pure logic without instantiating UI nodes. These run quickly and focus on data validation, parsing, and business logic.
 
-**Current unit test suites (21 total, 180 tests):**
+**Current unit test suites (22 total, 185 tests):**
 
 - **[tests/stack_manifest_tests.gd](tests/stack_manifest_tests.gd)** — Validates `stack.json` loading, schema compliance, and error codes.
   - Valid manifests pass
@@ -205,6 +205,13 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - main.tscn loads without errors
   - All page nodes exist (Projects, Engine, Tools, Settings)
   - New Project button exists
+
+### Startup Tests (Initialization Verification)
+
+- **[tests/startup_tests.gd](tests/startup_tests.gd)** — Verifies launcher initialization without errors (3 tests).
+  - Main scene loads and instantiates successfully
+  - All required UI nodes exist and are accessible (11 critical nodes)
+  - Script validation: main.gd is properly formed and instantiable
 
 ## Test Structure
 

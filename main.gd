@@ -319,7 +319,9 @@ func _update_mirror_status() -> void:
 			mirror_status_label.modulate = Color.RED
 
 ## Signal handler: onboarding wizard completed.
-if success:
-Logger.info("wizard_startup_complete", {"component": "onboarding", "message": message})
-else:
-Logger.warn("wizard_startup_failed", {"component": "onboarding", "message": message})
+func _on_wizard_completed(success: bool, message: String) -> void:
+	"""Called when onboarding wizard completes."""
+	if success:
+		Logger.info("wizard_startup_complete", {"component": "onboarding", "message": message})
+	else:
+		Logger.warn("wizard_startup_failed", {"component": "onboarding", "message": message})

@@ -78,10 +78,8 @@ func _create_wizard_dialog() -> void:
 	"""Creates the wizard dialog with UI elements."""
 	dialog = AcceptDialog.new()
 	dialog.title = "Welcome to Open Game Stack"
-	dialog.initial_position = Window.WINDOW_POS_CENTER_SCREEN
 	dialog.size = Vector2i(600, 400)
 	dialog.ok_button_text = "Start"
-	dialog.hide_on_ok = false
 	
 	var vbox = VBoxContainer.new()
 	vbox.anchors_preset = Control.PRESET_FULL_RECT
@@ -162,21 +160,15 @@ func _initialize_default_stack() -> void:
 	# Create library directory structure
 	var lib_dir = library_root
 	if not DirAccess.dir_exists_absolute(lib_dir):
-		var result = DirAccess.make_absolute_path(lib_dir)
-		if result == "":
-			if status_label:
-				status_label.text = "Error: Could not create library directory."
-				status_label.modulate = Color.RED
-			wizard_completed.emit(false, "Failed to create library directory.")
-			return
+		DirAccess.make_dir_recursive_absolute(lib_dir)
 	
 	# Create tool subdirectories
 	var godot_dir = lib_dir.path_join("godot").path_join("4.3")
 	var blender_dir = lib_dir.path_join("blender").path_join("4.2")
 	
 	# Ensure directories exist
-	DirAccess.make_absolute_path(godot_dir)
-	DirAccess.make_absolute_path(blender_dir)
+	DirAccess.make_dir_recursive_absolute(godot_dir)
+	DirAccess.make_dir_recursive_absolute(blender_dir)
 	
 	# Mark wizard complete
 	mark_complete()
