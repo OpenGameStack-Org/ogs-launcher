@@ -152,8 +152,8 @@ text = "Mirror Settings"
 layout_mode = 2
 
 [node name="MirrorRootLabel" type="Label" parent="AppLayout/Content/PageSettings/MirrorRootContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
 text = "Mirror Root:"
 vertical_alignment = 1
 
@@ -171,9 +171,9 @@ layout_mode = 2
 text = "Reset to Default"
 
 [node name="MirrorStatusLabel" type="Label" parent="AppLayout/Content/PageSettings"]
+modulate = Color(1, 0.8, 0.2, 1)
 layout_mode = 2
 text = "Mirror status: Not configured"
-modulate = Color(1, 0.8, 0.2, 1)
 
 [node name="SealDialog" type="AcceptDialog" parent="."]
 title = "Seal for Delivery"

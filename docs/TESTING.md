@@ -28,11 +28,11 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 167
+tests passed: 180
 tests failed: 0
 ```
 
-The test runner automatically exits when complete (~1.7-1.8 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~3.3-3.5 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
@@ -44,7 +44,7 @@ The test runner automatically exits when complete (~1.7-1.8 seconds) without req
 
 Unit tests validate pure logic without instantiating UI nodes. These run quickly and focus on data validation, parsing, and business logic.
 
-**Current unit test suites:**
+**Current unit test suites (21 total, 180 tests):**
 
 - **[tests/stack_manifest_tests.gd](tests/stack_manifest_tests.gd)** — Validates `stack.json` loading, schema compliance, and error codes.
   - Valid manifests pass
@@ -153,6 +153,39 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Sealed zip path returned in result
   - Path handling with and without trailing slashes
   - Result structure validation (success, errors, sealed_zip, tools_copied, project_size_mb)
+
+- **[tests/mirror_repository_tests.gd](tests/mirror_repository_tests.gd)** — Validates local mirror repository.json loading and schema.
+  - Valid manifests load correctly
+  - Schema version enforcement (must be 1)
+  - Mirror name validation (required, non-empty)
+  - Tools array validation (required, non-empty)
+  - Tool entry validation (id, version, archive_path required)
+  - SHA-256 checksum format validation (64 lowercase hex chars)
+  - Tool size validation (positive integer)
+  - Error code generation for invalid schemas
+
+- **[tests/mirror_path_resolver_tests.gd](tests/mirror_path_resolver_tests.gd)** — Validates safe path resolution for mirrors.
+  - Default mirror root paths (Windows: %LOCALAPPDATA%/OGS/Mirror, Unix: ~/.config/ogs-launcher/mirror)
+  - Path safety checks (rejects .. and absolute paths)
+  - Case-insensitive path containment validation
+  - Archive path resolution and validation
+  - Security: prevents directory traversal attacks
+
+- **[tests/mirror_hydrator_tests.gd](tests/mirror_hydrator_tests.gd)** — Validates offline mirror tool installation.
+  - Mirror repository loading and validation
+  - Archive existence checking
+  - SHA-256 hash verification
+  - ZIP extraction with safe path handling
+  - Common-root prefix stripping for nested archives
+  - Tool installation signals (started, completed)
+  - Hydration lifecycle status updates
+
+- **[tests/library_hydration_controller_tests.gd](tests/library_hydration_controller_tests.gd)** — Validates mirror integration into repair workflow.
+  - Mirror availability detection (repository.json presence check)
+  - Button state management (disable when mirror missing, enable when ready)
+  - Error handling and status messaging
+  - Dynamic mirror root updates via `update_mirror_root()` method
+  - UI label updates for mirror configuration status
 
 ### Scene Tests (Integration with UI)
 
