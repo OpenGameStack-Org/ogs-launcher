@@ -1,3 +1,4 @@
-Sample OGS project for launcher UI testing.
+Sample OGS project for launcher UI testing (development/linked mode).
 
-Use this folder with the Projects page to validate stack.json parsing.
+Use this folder with the Projects page to validate stack.json and ogs_config parsing.
+This sample uses force_offline=false and tool paths in linked/dev style.

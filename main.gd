@@ -44,6 +44,9 @@ var layout_controller: LayoutController
 var seal_controller: SealController
 
 func _ready():
+	Logger.enable_console(true)
+	Logger.set_level(Logger.Level.DEBUG)
+	Logger.info("launcher_started", {"component": "app"})
 	# Set up layout controller for page navigation
 	layout_controller = LayoutController.new()
 	layout_controller.setup(
@@ -169,13 +172,23 @@ func _on_repair_environment_pressed() -> void:
 
 ## Signal handler: environment is incomplete.
 func _on_environment_incomplete(_missing_tools: Array) -> void:
-	"""Shows the repair button when tools are missing."""
+	"""Shows the repair button and disables seal when tools are missing."""
 	btn_repair_environment.visible = true
+	# Color repair button orange to indicate action needed
+	btn_repair_environment.add_theme_color_override("font_color", Color.ORANGE)
+	# Disable seal button when environment is incomplete
+	btn_seal_for_delivery.disabled = true
+	btn_seal_for_delivery.tooltip_text = "Repair environment first to seal project."
 
 ## Signal handler: environment is complete.
 func _on_environment_ready() -> void:
-	"""Hides the repair button when all tools are available."""
+	"""Hides the repair button and re-enables seal when all tools are available."""
 	btn_repair_environment.visible = false
+	# Reset repair button color to default
+	btn_repair_environment.remove_theme_color_override("font_color")
+	# Re-enable seal button when environment is complete
+	btn_seal_for_delivery.disabled = false
+	btn_seal_for_delivery.tooltip_text = ""
 
 ## Signal handler: seal for delivery button pressed.
 func _on_seal_button_pressed() -> void:

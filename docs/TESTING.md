@@ -4,6 +4,8 @@
 
 The OGS Launcher uses a comprehensive test suite to ensure reliability and maintainability. Tests are categorized into **unit tests** (pure logic, no UI) and **scene tests** (integration tests with UI nodes).
 
+For **manual user-facing tests** (UI workflows with sample projects), see [MANUAL_TESTING.md](MANUAL_TESTING.md).
+
 ## Running Tests
 
 Execute the full test suite in headless mode:

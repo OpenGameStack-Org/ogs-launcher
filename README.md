@@ -48,6 +48,7 @@ The heart of the stack is the **OGS Launcher**, a custom application (built in G
 
 ## 📂 Documentation
 * **[Technical Design Document](docs/DESIGN_DOC.md):** Deep dive into the "Frozen Stack" architecture, directory structure, and `stack.json` schema.
+* **[Sample Projects](samples/README.txt):** Quick launcher test inputs for both development/linked mode and sealed-style mode.
 
 ## 🏁 Getting Started
 

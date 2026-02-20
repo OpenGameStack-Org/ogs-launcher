@@ -21,6 +21,7 @@ enum Level {
 
 static var _level := Level.INFO
 static var _enabled := true
+static var _console_enabled := Engine.is_editor_hint()
 
 static func set_level(level: int) -> void:
 	"""Sets the minimum log level for writing entries.
@@ -35,6 +36,13 @@ static func enable(enabled: bool) -> void:
 	  enabled (bool): True to enable logging
 	"""
 	_enabled = enabled
+
+static func enable_console(enabled: bool) -> void:
+	"""Enables or disables console logging (editor Output panel).
+	Parameters:
+	  enabled (bool): True to write logs to console
+	"""
+	_console_enabled = enabled
 
 static func debug(message: String, context: Dictionary = {}) -> void:
 	"""Writes a debug log entry.
@@ -85,6 +93,8 @@ static func write(level: int, message: String, context: Dictionary = {}) -> void
 		"message": message,
 		"context": _sanitize_context(context)
 	}
+	if _console_enabled:
+		print(JSON.stringify(entry))
 	var log_path = _get_log_path()
 	var file = FileAccess.open(log_path, FileAccess.READ_WRITE)
 	if file == null:
