@@ -26,7 +26,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 164
+tests passed: 167
 tests failed: 0
 ```
 
@@ -145,6 +145,9 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Seal project validates against library state
   - Offline config generation with force_offline flag
   - Tools copied from library to project
+  - Real zip archive is created on successful seal
+  - Sealed zip contains expected project/config/tool files
+  - Packaging lifecycle log events are emitted
   - Sealed zip path returned in result
   - Path handling with and without trailing slashes
   - Result structure validation (success, errors, sealed_zip, tools_copied, project_size_mb)
@@ -313,4 +316,4 @@ Target coverage for all new features:
 
 ---
 
-Last updated: **February 18, 2026**
+Last updated: **February 20, 2026**

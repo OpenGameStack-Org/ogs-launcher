@@ -6,6 +6,10 @@
 extends RefCounted
 class_name ProjectSealerTests
 
+const SealerTestHelpersScript = preload("res://tests/project_sealer_test_helpers.gd")
+
+var _helpers = SealerTestHelpersScript.new()
+
 func run() -> Dictionary:
 	var results = {
 		"passed": 0,
@@ -25,6 +29,9 @@ func run() -> Dictionary:
 		{"name": "test_seal_project_returns_tools_copied", "func": test_seal_project_returns_tools_copied},
 		{"name": "test_seal_project_returns_zip_path", "func": test_seal_project_returns_zip_path},
 		{"name": "test_seal_project_trims_path_slash", "func": test_seal_project_trims_path_slash},
+		{"name": "test_seal_project_creates_real_zip_archive", "func": test_seal_project_creates_real_zip_archive},
+		{"name": "test_sealed_zip_contains_expected_files", "func": test_sealed_zip_contains_expected_files},
+		{"name": "test_seal_project_writes_packaging_logs", "func": test_seal_project_writes_packaging_logs},
 	]
 	
 	for test in tests:
@@ -355,4 +362,105 @@ func test_seal_project_trims_path_slash() -> Dictionary:
 	if not result.has("errors"):
 		return {"passed": false, "error": "Result should have errors key even on failure"}
 	
+	return {"passed": true}
+
+## Test: seal_project creates a real zip archive when tools are available
+func test_seal_project_creates_real_zip_archive() -> Dictionary:
+	var fixture = _helpers.create_seal_success_fixture("test_seal_real_zip")
+	if not fixture.success:
+		return {"passed": false, "error": fixture.error}
+
+	var sealer = ProjectSealer.new()
+	var result = sealer.seal_project(fixture.project_dir)
+
+	_helpers.cleanup_seal_fixture(fixture)
+
+	if not result.success:
+		return {"passed": false, "error": "Seal should succeed, got errors: %s" % str(result.errors)}
+
+	if result.sealed_zip.is_empty():
+		return {"passed": false, "error": "sealed_zip should not be empty on success"}
+
+	if not FileAccess.file_exists(result.sealed_zip):
+		return {"passed": false, "error": "Expected zip archive to exist at: %s" % result.sealed_zip}
+
+	if result.project_size_mb <= 0.0:
+		return {"passed": false, "error": "project_size_mb should be greater than 0 for created zip"}
+
+	return {"passed": true}
+
+## Test: sealed zip contains stack, config, and copied tool files
+func test_sealed_zip_contains_expected_files() -> Dictionary:
+	var fixture = _helpers.create_seal_success_fixture("test_seal_zip_contents")
+	if not fixture.success:
+		return {"passed": false, "error": fixture.error}
+
+	var sealer = ProjectSealer.new()
+	var result = sealer.seal_project(fixture.project_dir)
+
+	if not result.success:
+		_helpers.cleanup_seal_fixture(fixture)
+		return {"passed": false, "error": "Seal should succeed, got errors: %s" % str(result.errors)}
+
+	var zip_reader = ZIPReader.new()
+	var open_error = zip_reader.open(result.sealed_zip)
+	if open_error != OK:
+		_helpers.cleanup_seal_fixture(fixture)
+		return {"passed": false, "error": "Failed to open sealed zip: %s" % error_string(open_error)}
+
+	var zip_files = zip_reader.get_files()
+	zip_reader.close()
+
+	_helpers.cleanup_seal_fixture(fixture)
+
+	if not zip_files.has("stack.json"):
+		return {"passed": false, "error": "Zip missing stack.json"}
+
+	if not zip_files.has("ogs_config.json"):
+		return {"passed": false, "error": "Zip missing ogs_config.json"}
+
+	var expected_prefix = "tools/%s_%s/" % [fixture.tool_id, fixture.version]
+	var has_tool_file = false
+	for zip_path in zip_files:
+		if String(zip_path).begins_with(expected_prefix):
+			has_tool_file = true
+			break
+
+	if not has_tool_file:
+		return {"passed": false, "error": "Zip missing copied tool files under %s" % expected_prefix}
+
+	return {"passed": true}
+
+## Test: seal_project logs packaging lifecycle events
+func test_seal_project_writes_packaging_logs() -> Dictionary:
+	Logger.clear_logs_for_tests()
+	Logger.set_level(Logger.Level.DEBUG)
+
+	var fixture = _helpers.create_seal_success_fixture("test_seal_logging")
+	if not fixture.success:
+		return {"passed": false, "error": fixture.error}
+
+	var sealer = ProjectSealer.new()
+	var result = sealer.seal_project(fixture.project_dir)
+
+	_helpers.cleanup_seal_fixture(fixture)
+
+	if not result.success:
+		return {"passed": false, "error": "Seal should succeed to verify logs"}
+
+	var log_file = FileAccess.open("user://logs/ogs_launcher.log", FileAccess.READ)
+	if log_file == null:
+		return {"passed": false, "error": "Log file not found after sealing"}
+
+	var log_text = log_file.get_as_text()
+
+	if not log_text.contains("sealed_zip_packaging_start"):
+		return {"passed": false, "error": "Missing sealed_zip_packaging_start log event"}
+
+	if not log_text.contains("sealed_zip_created"):
+		return {"passed": false, "error": "Missing sealed_zip_created log event"}
+
+	if not log_text.contains("seal_project_complete"):
+		return {"passed": false, "error": "Missing seal_project_complete log event"}
+
 	return {"passed": true}

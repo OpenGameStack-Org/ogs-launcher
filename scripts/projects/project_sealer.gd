@@ -29,10 +29,23 @@
 extends RefCounted
 class_name ProjectSealer
 
+const SealValidatorScript = preload("res://scripts/projects/project_seal_validator.gd")
+const SealToolCopierScript = preload("res://scripts/projects/project_seal_tool_copier.gd")
+const SealConfigWriterScript = preload("res://scripts/projects/project_seal_config_writer.gd")
+const SealArchiverScript = preload("res://scripts/projects/project_seal_archiver.gd")
+
 var library: LibraryManager
+var validator
+var copier
+var config_writer
+var archiver
 
 func _init():
 	library = LibraryManager.new()
+	validator = SealValidatorScript.new()
+	copier = SealToolCopierScript.new()
+	config_writer = SealConfigWriterScript.new()
+	archiver = SealArchiverScript.new()
 
 ## Main entry point: seals a project for offline delivery.
 ## Parameters:
@@ -127,240 +140,23 @@ func seal_project(project_path: String) -> Dictionary:
 ## Validates that the project exists, has stack.json, and all required tools are in library.
 ## Returns: {"success": bool, "errors": Array, "manifest": StackManifest}
 func _validate_project(project_path: String) -> Dictionary:
-	var result = {
-		"success": false,
-		"errors": [],
-		"manifest": null
-	}
-	
-	# Check project directory exists
-	if not DirAccess.dir_exists_absolute(project_path):
-		result.errors.append("Project directory does not exist: %s" % project_path)
-		return result
-	
-	# Check stack.json exists
-	var stack_path = project_path.path_join("stack.json")
-	if not FileAccess.file_exists(stack_path):
-		result.errors.append("stack.json not found at: %s" % stack_path)
-		return result
-	
-	# Load and validate manifest
-	var manifest = StackManifest.load_from_file(stack_path)
-	if not manifest.is_valid():
-		result.errors.append("stack.json is invalid: %s" % str(manifest.errors))
-		return result
-	
-	# Check all tools exist in library
-	for tool in manifest.tools:
-		var tool_id = tool.get("id", "")
-		var version = tool.get("version", "")
-		
-		if not library.tool_exists(tool_id, version):
-			result.errors.append("Tool not found in library: %s v%s" % [tool_id, version])
-	
-	if not result.errors.is_empty():
-		return result
-	
-	result.success = true
-	result.manifest = manifest
-	return result
+	"""Delegates project pre-seal validation to ProjectSealValidator."""
+	return validator.validate_project(project_path, library)
 
 ## Copies all tools from library to project's ./tools directory.
 ## Returns: {"success": bool, "errors": Array, "tools_copied": Array}
 func _copy_tools_to_local(project_path: String, manifest: StackManifest) -> Dictionary:
-	var result = {
-		"success": false,
-		"errors": [],
-		"tools_copied": []
-	}
-	
-	var tools_dir = project_path.path_join("tools")
-	
-	# Create ./tools directory if it doesn't exist
-	if not DirAccess.dir_exists_absolute(tools_dir):
-		var dir = DirAccess.open(project_path)
-		if dir == null:
-			result.errors.append("Cannot open project directory for writing: %s" % project_path)
-			return result
-		
-		var err = dir.make_dir("tools")
-		if err != OK:
-			result.errors.append("Failed to create ./tools directory: %s" % error_string(err))
-			return result
-	
-	# Copy each tool from library to ./tools
-	for tool in manifest.tools:
-		var tool_id = tool.get("id", "")
-		var version = tool.get("version", "")
-		
-		var source_path = library.get_tool_path(tool_id, version)
-		if source_path.is_empty():
-			result.errors.append("Cannot resolve tool path: %s v%s" % [tool_id, version])
-			continue
-		
-		var dest_path = tools_dir.path_join("%s_%s" % [tool_id, version])
-		
-		# Copy tool directory recursively
-		var copy_err = _copy_directory_recursive(source_path, dest_path)
-		if copy_err != OK:
-			result.errors.append("Failed to copy %s v%s: %s" % [tool_id, version, error_string(copy_err)])
-			continue
-		
-		result.tools_copied.append("%s v%s" % [tool_id, version])
-		Logger.debug("tool_copied_to_sealed", {
-			"component": "sealer",
-			"tool_id": tool_id,
-			"version": version
-		})
-	
-	if not result.errors.is_empty():
-		return result
-	
-	result.success = true
-	return result
-
-## Recursively copies a directory from source to destination.
-## Returns: Error code (OK = 0 on success)
-func _copy_directory_recursive(source: String, dest: String) -> int:
-	# Create destination directory
-	if not DirAccess.dir_exists_absolute(dest):
-		DirAccess.make_dir_recursive_absolute(dest)
-	
-	var dir = DirAccess.open(source)
-	if dir == null:
-		return FAILED
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
-	while file_name != "":
-		if file_name == "." or file_name == "..":
-			file_name = dir.get_next()
-			continue
-		
-		var source_item = source.path_join(file_name)
-		var dest_item = dest.path_join(file_name)
-		
-		if dir.current_is_dir():
-			var err = _copy_directory_recursive(source_item, dest_item)
-			if err != OK:
-				return err
-		else:
-			var err = _copy_file(source_item, dest_item)
-			if err != OK:
-				return err
-		
-		file_name = dir.get_next()
-	
-	return OK
-
-## Copies a single file from source to destination.
-## Returns: Error code (OK = 0 on success)
-func _copy_file(source: String, dest: String) -> int:
-	var file = FileAccess.open(source, FileAccess.READ)
-	if file == null:
-		return FileAccess.get_open_error()
-	
-	var content = file.get_as_bytes()
-	
-	var out_file = FileAccess.open(dest, FileAccess.WRITE)
-	if out_file == null:
-		return FileAccess.get_open_error()
-	
-	out_file.store_buffer(content)
-	return OK
+	"""Delegates library-to-project tool copy operations to ProjectSealToolCopier."""
+	return copier.copy_tools_to_local(project_path, manifest, library)
 
 ## Writes ogs_config.json with force_offline=true to project root.
 ## Returns: {"success": bool, "errors": Array}
 func _write_offline_config(project_path: String) -> Dictionary:
-	var result = {
-		"success": false,
-		"errors": []
-	}
-	
-	var config_path = project_path.path_join("ogs_config.json")
-	
-	# Write the config as a properly formatted JSON string
-	var config_json_text = "{\"schema_version\":1,\"offline_mode\":true,\"force_offline\":true}"
-	
-	var file = FileAccess.open(config_path, FileAccess.WRITE)
-	if file == null:
-		result.errors.append("Cannot write ogs_config.json: %s" % error_string(FileAccess.get_open_error()))
-		return result
-	
-	file.store_string(config_json_text)
-	result.success = true
-	
-	Logger.debug("offline_config_written", {
-		"component": "sealer",
-		"project_path": project_path
-	})
-	
-	return result
+	"""Delegates offline config writing to ProjectSealConfigWriter."""
+	return config_writer.write_offline_config(project_path)
 
 ## Creates a sealed zip archive of the entire project.
 ## Returns: {"success": bool, "errors": Array, "zip_path": String, "size_mb": float}
 func _create_sealed_zip(project_path: String) -> Dictionary:
-	var result = {
-		"success": false,
-		"errors": [],
-		"zip_path": "",
-		"size_mb": 0.0
-	}
-	
-	var project_name = project_path.get_file()
-	var parent_path = project_path.get_basename().get_basename()
-	
-	var timestamp = Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-")
-	var zip_name = "%s_Sealed_%s.zip" % [project_name, timestamp]
-	var zip_path = parent_path.path_join(zip_name) if not parent_path.is_empty() else zip_name
-	
-	# Use Godot's built-in ZIP functionality (available in 4.3+)
-	var _zip = ZIPReader.new()
-	
-	# We need to create a zip by iterating through files
-	# This is a simplified approach using system commands for now
-	# In production, we would use a proper ZIP library
-	
-	# For this MVP, we'll return success but note that actual zipping
-	# would need platform-specific implementation or a dedicated library
-	result.success = true
-	result.zip_path = zip_path
-	result.size_mb = _estimate_directory_size(project_path) / (1024.0 * 1024.0)
-	
-	Logger.info("sealed_zip_created", {
-		"component": "sealer",
-		"zip_path": zip_path,
-		"size_mb": result.size_mb
-	})
-	
-	return result
-
-## Estimates the total size of a directory in bytes.
-func _estimate_directory_size(dir_path: String) -> float:
-	var total = 0.0
-	var dir = DirAccess.open(dir_path)
-	
-	if dir == null:
-		return 0.0
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
-	while file_name != "":
-		if file_name == "." or file_name == "..":
-			file_name = dir.get_next()
-			continue
-		
-		var full_path = dir_path.path_join(file_name)
-		
-		if dir.current_is_dir():
-			total += _estimate_directory_size(full_path)
-		else:
-			var file = FileAccess.open(full_path, FileAccess.READ)
-			if file != null:
-				total += file.get_length()
-		
-		file_name = dir.get_next()
-	
-	return total
+	"""Delegates zip packaging to ProjectSealArchiver."""
+	return archiver.create_sealed_zip(project_path)

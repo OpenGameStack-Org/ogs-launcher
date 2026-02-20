@@ -64,9 +64,10 @@ The MVP is not complete until this full sequence works end to end:
     *   *Validation:* Validates manifest and checks tool availability.
     *   *Copy Logic:* Recursively copies tool binaries from library → `./tools/`.
     *   *Config Creation:* Writes `ogs_config.json` with `force_offline=true`.
-    *   *Package Placeholder:* Returns zip path (actual zipping deferred to Phase 2).
-    *   *Tests:* 11 unit tests covering all seal operations, path handling, and error cases.
-    *   *Total Tests Now:* **164 passing, 0 failures** (17 test suites)
+    *   *Archive Packaging:* Creates a real `.zip` artifact using Godot `ZIPPacker`.
+    *   *Packaging Logs:* Logs packaging start, file count, and completion/failure events.
+    *   *Tests:* 14 unit tests covering validation, copying, archive contents, and logging.
+    *   *Total Tests Now:* **167 passing, 0 failures** (17 test suites)
 *   [x] **UI Integration: "Seal for Delivery" Button** — 100% Complete ✅
     *   *Scene Changes:* Added "Seal for Delivery" button to Projects page + SealDialog.
     *   *Wiring:* Connected button to ProjectSealer call in main.gd.
@@ -106,5 +107,5 @@ The MVP is not complete until this full sequence works end to end:
 ## Progress Tracking
 *   **Foundation:** Completed Feb 15.
 *   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18). Next: Mirror infrastructure, then Onboarding Wizard.
-*   **Test Suite:** 164 tests passing, ~1.7-1.8 sec execution, all suites documented.
+*   **Test Suite:** 167 tests passing, ~1.7-1.8 sec execution, all suites documented.
 *   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.
