@@ -129,6 +129,7 @@ text = "Tools Manager"
 
 [node name="PageSettings" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Label" type="Label" parent="AppLayout/Content/PageSettings"]
 layout_mode = 2
@@ -142,6 +143,37 @@ text = "Network"
 layout_mode = 2
 text = "Check for Updates"
 metadata/network_ui = true
+
+[node name="MirrorSettingsLabel" type="Label" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+text = "Mirror Settings"
+
+[node name="MirrorRootContainer" type="HBoxContainer" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+
+[node name="MirrorRootLabel" type="Label" parent="AppLayout/Content/PageSettings/MirrorRootContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 0)
+text = "Mirror Root:"
+vertical_alignment = 1
+
+[node name="MirrorRootPath" type="LineEdit" parent="AppLayout/Content/PageSettings/MirrorRootContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "C:\\tools or ~/.config/ogs-launcher/mirror"
+
+[node name="MirrorRootBrowseButton" type="Button" parent="AppLayout/Content/PageSettings/MirrorRootContainer"]
+layout_mode = 2
+text = "Browse"
+
+[node name="MirrorRootResetButton" type="Button" parent="AppLayout/Content/PageSettings/MirrorRootContainer"]
+layout_mode = 2
+text = "Reset to Default"
+
+[node name="MirrorStatusLabel" type="Label" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+text = "Mirror status: Not configured"
+modulate = Color(1, 0.8, 0.2, 1)
 
 [node name="SealDialog" type="AcceptDialog" parent="."]
 title = "Seal for Delivery"

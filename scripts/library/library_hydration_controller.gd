@@ -123,6 +123,20 @@ func close_dialog() -> void:
 	if dialog and dialog.visible:
 		dialog.hide()
 
+## Updates the mirror root path dynamically.
+func update_mirror_root(new_mirror_root: String) -> void:
+	"""Updates the mirror root path and recreates the mirror hydrator.
+	Parameters:
+	  new_mirror_root (String): New mirror root path, or empty string for default
+	"""
+	mirror_root = new_mirror_root if not new_mirror_root.is_empty() else mirror_resolver.get_mirror_root()
+	mirror_hydrator = MirrorHydratorScript.new(mirror_root)
+	# Re-wire signals
+	mirror_hydrator.tool_install_started.connect(_on_tool_install_started)
+	mirror_hydrator.tool_install_complete.connect(_on_tool_install_complete)
+	mirror_hydrator.hydration_complete.connect(_on_hydration_complete)
+	Logger.info("mirror_root_updated", {"component": "library", "path": mirror_root})
+
 # Private: Populates the tools list UI with missing tools.
 func _populate_tools_list(tools: Array) -> void:
 	"""Shows the missing tools in the list control."""

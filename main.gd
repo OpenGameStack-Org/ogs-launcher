@@ -36,17 +36,33 @@ extends Control
 @onready var hydration_tools_list = $HydrationDialog/VBoxContainer/ToolsList
 @onready var hydration_status_label = $HydrationDialog/VBoxContainer/StatusLabel
 
+# Settings nodes
+@onready var mirror_root_path = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootPath
+@onready var mirror_root_browse_button = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootBrowseButton
+@onready var mirror_root_reset_button = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootResetButton
+@onready var mirror_status_label = $AppLayout/Content/PageSettings/MirrorStatusLabel
+
 var network_ui_nodes: Array = []
 
 var projects_controller: ProjectsController
 var hydration_controller: LibraryHydrationController
 var layout_controller: LayoutController
 var seal_controller: SealController
+var onboarding_wizard: OnboardingWizard
+var mirror_root_override: String = ""
+var settings_file_path: String = ""
 
 func _ready():
 	Logger.enable_console(true)
 	Logger.set_level(Logger.Level.DEBUG)
 	Logger.info("launcher_started", {"component": "app"})
+	
+	# Set up onboarding wizard for first-run experience
+	var library_root_path = OS.get_user_data_dir().path_join("OGS").path_join("Library")
+	onboarding_wizard = OnboardingWizard.new()
+	onboarding_wizard.setup(get_tree(), library_root_path)
+	onboarding_wizard.wizard_completed.connect(_on_wizard_completed)
+	
 	# Set up layout controller for page navigation
 	layout_controller = LayoutController.new()
 	layout_controller.setup(
@@ -94,7 +110,8 @@ func _ready():
 		hydration_status_label,
 		hydration_dialog.get_ok_button(),
 		"",  # mirror_url
-		get_tree()  # Pass scene tree reference for timers
+		get_tree(),  # Pass scene tree reference for timers
+		mirror_root_override
 	)
 	
 	# Wire hydration signals
@@ -111,11 +128,23 @@ func _ready():
 	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
 	projects_controller.environment_ready.connect(_on_environment_ready)
 
+	# Settings for mirror configuration
+	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
+	_load_mirror_root_setting()
+	mirror_root_path.text_changed.connect(_on_mirror_root_text_changed)
+	mirror_root_browse_button.pressed.connect(_on_mirror_root_browse_pressed)
+	mirror_root_reset_button.pressed.connect(_on_mirror_root_reset_pressed)
+	_update_mirror_status()
+
 	_collect_network_ui_nodes()
 	_apply_offline_ui(false)
 	
 	# Start on the Projects page
 	layout_controller.navigate_to("projects")
+	
+	# Show onboarding wizard if first run
+	if onboarding_wizard.should_show_wizard():
+		onboarding_wizard.show_wizard()
 
 func _on_page_changed(_page_name: String) -> void:
 	"""Called when LayoutController changes pages."""
@@ -202,3 +231,95 @@ func _on_seal_completed(_success: bool, _zip_path: String) -> void:
 	# SealController handles all UI updates
 	# This is just a notification point for future extensions
 	pass
+## Settings Methods
+
+## Loads the mirror root setting from disk.
+func _load_mirror_root_setting() -> void:
+	"""Loads saved mirror root path from settings file."""
+	if FileAccess.file_exists(settings_file_path):
+		var file = FileAccess.open(settings_file_path, FileAccess.READ)
+		if file != null:
+			var json_text = file.get_as_text()
+			var data = JSON.parse_string(json_text)
+			if data != null and typeof(data) == TYPE_DICTIONARY:
+				mirror_root_override = String(data.get("mirror_root", ""))
+				mirror_root_path.text = mirror_root_override
+				return
+	# No saved setting found, use default
+	mirror_root_override = ""
+	mirror_root_path.text = ""
+
+## Saves the mirror root setting to disk.
+func _save_mirror_root_setting() -> void:
+	"""Saves the current mirror root setting to disk."""
+	var data = {
+		"mirror_root": mirror_root_override,
+		"timestamp": Time.get_ticks_msec()
+	}
+	var json_text = JSON.stringify(data)
+	var file = FileAccess.open(settings_file_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(json_text)
+		Logger.info("mirror_root_saved", {"component": "settings", "path": mirror_root_override})
+
+## Called when mirror root text changes.
+func _on_mirror_root_text_changed(new_text: String) -> void:
+	"""Updates mirror root override when text changes."""
+	mirror_root_override = new_text
+	_update_mirror_status()
+	# Update hydration controller with new mirror root
+	if hydration_controller != null:
+		hydration_controller.update_mirror_root(mirror_root_override)
+
+## Called when browse button is pressed.
+func _on_mirror_root_browse_pressed() -> void:
+	"""Opens file dialog to select mirror root directory."""
+	var dialog = FileDialog.new()
+	dialog.title = "Select Mirror Root Directory"
+	dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.dir_selected.connect(func(path: String):
+		mirror_root_override = path
+		mirror_root_path.text = path
+		_save_mirror_root_setting()
+		_update_mirror_status()
+		if hydration_controller != null:
+			hydration_controller.update_mirror_root(mirror_root_override)
+	)
+	add_child(dialog)
+	dialog.popup_centered_ratio(0.7)
+
+## Called when reset button is pressed.
+func _on_mirror_root_reset_pressed() -> void:
+	"""Resets mirror root to default."""
+	mirror_root_override = ""
+	mirror_root_path.text = ""
+	_save_mirror_root_setting()
+	_update_mirror_status()
+	if hydration_controller != null:
+		hydration_controller.update_mirror_root("")
+
+## Updates the mirror status indicator.
+func _update_mirror_status() -> void:
+	"""Updates the mirror status label based on current settings."""
+	if mirror_root_override.is_empty():
+		mirror_status_label.text = "Mirror status: Using default location"
+		mirror_status_label.modulate = Color.GRAY
+	else:
+		if DirAccess.dir_exists_absolute(mirror_root_override):
+			var repo_path = mirror_root_override.path_join("repository.json")
+			if FileAccess.file_exists(repo_path):
+				mirror_status_label.text = "Mirror status: Configured and ready"
+				mirror_status_label.modulate = Color.GREEN
+			else:
+				mirror_status_label.text = "Mirror status: Directory exists, but repository.json not found"
+				mirror_status_label.modulate = Color.YELLOW
+		else:
+			mirror_status_label.text = "Mirror status: Directory does not exist"
+			mirror_status_label.modulate = Color.RED
+
+## Signal handler: onboarding wizard completed.
+if success:
+Logger.info("wizard_startup_complete", {"component": "onboarding", "message": message})
+else:
+Logger.warn("wizard_startup_failed", {"component": "onboarding", "message": message})
