@@ -175,14 +175,14 @@ func _update_status(message: String) -> void:
 func _update_offline_status(config: OgsConfig) -> void:
 	"""Updates the offline status label based on config state."""
 	if config == null:
-		lbl_offline_status.text = "Offline: Unknown"
+		lbl_offline_status.text = "Offline Mode: Unknown"
 		return
 	if config.force_offline:
-		lbl_offline_status.text = "Offline: Forced (force_offline=true)"
+		lbl_offline_status.text = "Offline Mode: Forced (force_offline=true)"
 	elif config.offline_mode:
-		lbl_offline_status.text = "Offline: Enabled (offline_mode=true)"
+		lbl_offline_status.text = "Offline Mode: Enabled (offline_mode=true)"
 	else:
-		lbl_offline_status.text = "Offline: Disabled"
+		lbl_offline_status.text = "Offline Mode: Disabled"
 
 func _apply_offline_config(config: OgsConfig) -> void:
 	"""Applies offline configuration and notifies listeners."""
@@ -258,7 +258,7 @@ func _validate_and_report_environment(project_dir: String) -> void:
 	else:
 		# Tools are missing - but still allow launch with warning
 		var tool_count = validation["missing_tools"].size()
-		_update_status("Status: Manifest loaded (%d tool(s) missing - use 'Repair Environment' to download)." % tool_count)
+		_update_status("Status: Manifest loaded (%d tool(s) missing - use Repair Environment to download)." % tool_count)
 		_enable_launch_button()
 		environment_incomplete.emit(validation["missing_tools"])
 		Logger.warn("environment_incomplete", {

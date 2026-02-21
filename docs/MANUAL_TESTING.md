@@ -144,7 +144,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ Tools list populates with two entries: "godot v4.3" and "blender v4.5.7"
 - ✅ "Repair Environment" button appears and is **enabled/orange** (ready for use)
 - ✅ "Seal for Delivery" button appears but is **disabled** (with reason: missing tools)
-- ✅ Status label shows: "Manifest loaded. 2 tool(s) missing — use 'Repair Environment' to download."
+- ✅ Status label shows: "Manifest loaded. 1 tool(s) missing — use Repair Environment to download."
 - ✅ "Offline" label shows: "Offline: Disabled" (since force_offline=false in config)
 - ✅ No errors in Output console
 
