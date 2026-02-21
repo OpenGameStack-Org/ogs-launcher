@@ -145,12 +145,13 @@ func _load_project_from_path(project_dir: String) -> void:
 	# Store the manifest for launching tools
 	current_manifest = manifest
 	
-	# Validate environment (check if tools exist in library)
-	_validate_and_report_environment(project_dir)
-
 	var config = _load_config_if_present(config_path)
 	_apply_offline_config(config)
 	_update_offline_status(config)
+
+	# Validate environment (library for linked projects, project tools for forced offline)
+	var use_project_tools = config != null and config.force_offline
+	_validate_and_report_environment(project_dir, use_project_tools)
 
 func _load_config_if_present(config_path: String) -> OgsConfig:
 	"""Loads ogs_config.json if present; returns a default config otherwise."""
@@ -225,13 +226,13 @@ func _disable_launch_button() -> void:
 		btn_launch_tool.disabled = true
 	current_manifest = null
 ## Validates the project environment and signals if tools are missing.
-func _validate_and_report_environment(project_dir: String) -> void:
+func _validate_and_report_environment(project_dir: String, use_project_tools: bool = false) -> void:
 	"""Checks if all required tools are available in the library.
 	
 	Note: Validation is non-blocking. Launch is allowed even with missing tools,
 	but a signal is emitted for UI to show "Repair Environment" button.
 	"""
-	var validation = environment_validator.validate_project(project_dir)
+	var validation = environment_validator.validate_project(project_dir, use_project_tools)
 	
 	if not validation["valid"]:
 		# Validation error - append to existing status
@@ -258,7 +259,10 @@ func _validate_and_report_environment(project_dir: String) -> void:
 	else:
 		# Tools are missing - but still allow launch with warning
 		var tool_count = validation["missing_tools"].size()
-		_update_status("Status: Manifest loaded (%d tool(s) missing - use Repair Environment to download)." % tool_count)
+		if OfflineEnforcer.is_offline():
+			_update_status("Status: Manifest loaded (%d tool(s) missing - offline mode prevents repair)." % tool_count)
+		else:
+			_update_status("Status: Manifest loaded (%d tool(s) missing - use Repair Environment to download)." % tool_count)
 		_enable_launch_button()
 		environment_incomplete.emit(validation["missing_tools"])
 		Logger.warn("environment_incomplete", {

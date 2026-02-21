@@ -145,7 +145,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ "Repair Environment" button appears and is **enabled/orange** (ready for use)
 - ✅ "Seal for Delivery" button appears but is **disabled** (with reason: missing tools)
 - ✅ Status label shows: "Manifest loaded. 1 tool(s) missing — use Repair Environment to download."
-- ✅ "Offline" label shows: "Offline: Disabled" (since force_offline=false in config)
+- ✅ "Offline" label shows: "Offline Mode: Disabled" (since force_offline=false in config)
 - ✅ No errors in Output console
 
 **Pass Criteria:**
@@ -175,7 +175,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ "Repair Environment" button appears and is **disabled** (offline mode prevents downloads)
 - ✅ "Seal for Delivery" button remains **disabled** (tools missing from library)
 - ✅ Status label shows: "Manifest loaded. 2 tool(s) missing — offline mode prevents repair."
-- ✅ "Offline" label shows: **"Offline: Forced (force_offline=true)"** in distinctive color (red text)
+- ✅ "Offline" label shows: **"Offline Mode: Forced (force_offline=true)"** in distinctive color (red text)
 - ✅ No online-only features in UI (if any implemented)
 
 **Pass Criteria:**
@@ -436,7 +436,7 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 - ✅ "Repair Environment" button is enabled and visible
 - ✅ "Seal for Delivery" button is disabled
 - ✅ Status reflects missing tools: "Manifest loaded. 2 tool(s) missing..."
-- ✅ Offline status shows: "Offline: Disabled"
+- ✅ Offline status shows: "Offline Mode: Disabled"
 
 **Pass Criteria:**
 - Same results as Editor Test 2, confirming editor and installed behavior are consistent
@@ -599,7 +599,7 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 - ✅ Tools list shows embedded tools (godot, blender)
 - ✅ "Repair Environment" button is **disabled** (offline mode active, tools present)
 - ✅ "Seal for Delivery" button is **disabled** (already sealed, no reason to reseal)
-- ✅ Offline status shows: **"Offline: Forced (force_offline=true)"** (from sealed config)
+- ✅ Offline status shows: **"Offline Mode: Forced (force_offline=true)"** (from sealed config)
 - ✅ Tools are shown as "available in library" (found in local ./tools/ directory)
 - ✅ No network requests are made (launcher respects force_offline)
 

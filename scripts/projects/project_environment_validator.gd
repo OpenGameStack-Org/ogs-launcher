@@ -25,9 +25,10 @@ var library: LibraryManager
 func _init():
 	library = LibraryManager.new()
 
-## Validates that all tools in a project's stack.json exist in the library.
+## Validates that all tools in a project's stack.json exist in the library or project.
 ## Parameters:
 ##   project_dir (String): Path to project folder
+##   use_project_tools (bool): When true, checks tools relative to project_dir
 ## Returns:
 ##   Dictionary: {
 ##       "valid": bool,
@@ -35,7 +36,7 @@ func _init():
 ##       "missing_tools": Array[Dictionary],
 ##       "errors": Array[String]
 ##   }
-func validate_project(project_dir: String) -> Dictionary:
+func validate_project(project_dir: String, use_project_tools: bool = false) -> Dictionary:
 	var result = {
 		"valid": false,
 		"ready": false,
@@ -63,19 +64,46 @@ func validate_project(project_dir: String) -> Dictionary:
 	for tool_entry in manifest.tools:
 		var tool_id = tool_entry.get("id", "")
 		var version = tool_entry.get("version", "")
+		var tool_path = String(tool_entry.get("path", ""))
 		
 		if tool_id.is_empty() or version.is_empty():
 			result["errors"].append("Tool entry missing id or version")
 			continue
 		
-		if not library.tool_exists(tool_id, version):
-			missing.append({"tool_id": tool_id, "version": version})
-			Logger.debug("tool_missing_from_library", {
-				"component": "projects",
-				"tool_id": tool_id,
-				"version": version,
-				"project": project_dir
-			})
+		if use_project_tools:
+			if tool_path.is_empty():
+				missing.append({"tool_id": tool_id, "version": version})
+				Logger.debug("tool_missing_from_project", {
+					"component": "projects",
+					"tool_id": tool_id,
+					"version": version,
+					"project": project_dir,
+					"reason": "missing_path"
+				})
+				continue
+			
+			var resolved_path = tool_path
+			if not tool_path.is_absolute_path():
+				resolved_path = project_dir.path_join(tool_path)
+			
+			if not FileAccess.file_exists(resolved_path):
+				missing.append({"tool_id": tool_id, "version": version})
+				Logger.debug("tool_missing_from_project", {
+					"component": "projects",
+					"tool_id": tool_id,
+					"version": version,
+					"project": project_dir,
+					"path": resolved_path
+				})
+		else:
+			if not library.tool_exists(tool_id, version):
+				missing.append({"tool_id": tool_id, "version": version})
+				Logger.debug("tool_missing_from_library", {
+					"component": "projects",
+					"tool_id": tool_id,
+					"version": version,
+					"project": project_dir
+				})
 	
 	result["missing_tools"] = missing
 	result["valid"] = true

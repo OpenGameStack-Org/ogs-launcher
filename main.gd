@@ -230,8 +230,15 @@ func _on_repair_environment_pressed() -> void:
 func _on_environment_incomplete(_missing_tools: Array) -> void:
 	"""Shows the repair button and disables seal when tools are missing."""
 	btn_repair_environment.visible = true
-	# Color repair button orange to indicate action needed
-	btn_repair_environment.add_theme_color_override("font_color", Color.ORANGE)
+	var offline_active = OfflineEnforcer.is_offline()
+	btn_repair_environment.disabled = offline_active
+	if offline_active:
+		btn_repair_environment.tooltip_text = "Disabled in offline mode."
+		btn_repair_environment.remove_theme_color_override("font_color")
+	else:
+		# Color repair button orange to indicate action needed
+		btn_repair_environment.add_theme_color_override("font_color", Color.ORANGE)
+		btn_repair_environment.tooltip_text = ""
 	# Disable seal button when environment is incomplete
 	btn_seal_for_delivery.disabled = true
 	btn_seal_for_delivery.tooltip_text = "Repair environment first to seal project."
