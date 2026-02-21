@@ -28,7 +28,7 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 191
+tests passed: 192
 tests failed: 0
 ```
 
@@ -44,7 +44,7 @@ The test runner automatically exits when complete (~4.0-4.3 seconds) without req
 
 Unit tests validate pure logic without instantiating UI nodes. These run quickly and focus on data validation, parsing, and business logic.
 
-**Current unit test suites (23 total, 191 tests):**
+**Current unit test suites (23 total, 192 tests):**
 
 - **[tests/stack_manifest_tests.gd](tests/stack_manifest_tests.gd)** — Validates `stack.json` loading, schema compliance, and error codes.
   - Valid manifests pass
@@ -160,7 +160,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Mirror name validation (required, non-empty)
   - Tools array validation (required, non-empty)
   - Tool entry validation (id, version, archive_path or archive_url required)
-  - SHA-256 checksum format validation (64 lowercase hex chars)
+  - SHA-256 checksum required and format validation (64 lowercase hex chars)
   - Tool size validation (positive integer)
   - Error code generation for invalid schemas
 

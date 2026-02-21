@@ -121,14 +121,17 @@ The MVP is not complete until this full sequence works end to end:
     *   *Hosting:* GitHub Releases for "White Box" binaries
     *   *Master Manifest:* repository.json for standard frozen stack
     *   *Repo:* OpenGameStack-Org/ogs-frozen-stacks
-*   [ ] **Git LFS Integration** — (Optional) Advanced workflow for teams.
-*   [ ] **Hash Verification** — (Security enhancement) SHA-256 validation for archives.
+*   [x] **Hash Verification** — 100% Complete ✅
+    *   *Manifest Enforcement:* `sha256` is required for each tool entry in `repository.json`
+    *   *Hydration Validation:* Local and remote mirror hydration verify archive SHA-256 before extraction
+    *   *Failure Handling:* Hash mismatch blocks installation with explicit status/logging
 *   [ ] **Allowlist Policy** — (Config-driven) Firewall rules for tool execution.
 
 ---
 
 ### Phase 3: Hardening (Future / Post-Conference)
 **Status:** Post-MVP
+*   [ ] **Git LFS Integration** — (Optional) Advanced workflow for Git-based teams.
 *   [ ] **Godot Hardened Build** (Source Stripping).
 *   [ ] **RMF Evidence Generation**.
 

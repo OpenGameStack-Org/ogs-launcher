@@ -47,7 +47,7 @@ func _write_repository_file(mirror_root: String) -> void:
 	var repo_path = mirror_root.path_join("repository.json")
 	var file = FileAccess.open(repo_path, FileAccess.WRITE)
 	if file:
-		file.store_string("{\"schema_version\":1,\"mirror_name\":\"Test\",\"tools\":[{\"id\":\"godot\",\"version\":\"4.3\",\"archive_path\":\"tools/godot/4.3/godot.zip\"}]}")
+		file.store_string("{\"schema_version\":1,\"mirror_name\":\"Test\",\"tools\":[{\"id\":\"godot\",\"version\":\"4.3\",\"archive_path\":\"tools/godot/4.3/godot.zip\",\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"}]}")
 		file.close()
 
 func _remove_repository_file(mirror_root: String) -> void:

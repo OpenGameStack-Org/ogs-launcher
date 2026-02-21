@@ -65,7 +65,12 @@ func _test_missing_archive_file(results: Dictionary) -> void:
 		"schema_version": 1,
 		"mirror_name": "OGS Remote",
 		"tools": [
-			{"id": "godot", "version": "4.3", "archive_url": missing_archive}
+			{
+				"id": "godot",
+				"version": "4.3",
+				"archive_url": missing_archive,
+				"sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			}
 		]
 	}
 	var file = FileAccess.open(repo_path, FileAccess.WRITE)

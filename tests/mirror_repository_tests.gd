@@ -12,6 +12,7 @@ func run() -> Dictionary:
 	_test_missing_required_fields(results)
 	_test_archive_url_repository(results)
 	_test_missing_archive_source(results)
+	_test_missing_sha256(results)
 	_test_invalid_sha256(results)
 	return results
 
@@ -29,7 +30,7 @@ func _test_valid_repository(results: Dictionary) -> void:
 		"schema_version": 1,
 		"mirror_name": "OGS Standard Profile",
 		"tools": [
-			{"id": "godot", "version": "4.3", "archive_path": "tools/godot/4.3/godot.zip"}
+			{"id": "godot", "version": "4.3", "archive_path": "tools/godot/4.3/godot.zip", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
 		]
 	}
 	var repo = MirrorRepositoryScript.from_dict(data)
@@ -48,7 +49,7 @@ func _test_archive_url_repository(results: Dictionary) -> void:
 		"schema_version": 1,
 		"mirror_name": "OGS Remote",
 		"tools": [
-			{"id": "godot", "version": "4.3", "archive_url": "https://example.com/godot.zip"}
+			{"id": "godot", "version": "4.3", "archive_url": "https://example.com/godot.zip", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
 		]
 	}
 	var repo = MirrorRepositoryScript.from_dict(data)
@@ -65,6 +66,18 @@ func _test_missing_archive_source(results: Dictionary) -> void:
 	}
 	var errors = MirrorRepositoryScript.validate_data(data)
 	_expect(errors.has("tool_archive_source_missing:0"), "should flag missing archive source", results)
+
+func _test_missing_sha256(results: Dictionary) -> void:
+	"""Missing sha256 should be rejected."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS",
+		"tools": [
+			{"id": "godot", "version": "4.3", "archive_path": "tools/godot/4.3/godot.zip"}
+		]
+	}
+	var errors = MirrorRepositoryScript.validate_data(data)
+	_expect(errors.has("tool_sha256_missing:0"), "should flag missing sha256", results)
 
 func _test_invalid_sha256(results: Dictionary) -> void:
 	"""Invalid sha256 should be rejected when present."""

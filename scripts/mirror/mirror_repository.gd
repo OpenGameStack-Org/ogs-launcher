@@ -148,7 +148,9 @@ static func _validate_tool_entry(tool_entry: Dictionary, index: int, found_error
 		if typeof(archive_url) != TYPE_STRING or String(archive_url).strip_edges() == "":
 			found_errors.append("tool_archive_url_invalid:%d" % index)
 
-	if tool_entry.has("sha256"):
+	if not tool_entry.has("sha256"):
+		found_errors.append("tool_sha256_missing:%d" % index)
+	else:
 		var sha_value = tool_entry["sha256"]
 		if typeof(sha_value) != TYPE_STRING or not _is_hex_sha256(String(sha_value)):
 			found_errors.append("tool_sha256_invalid:%d" % index)

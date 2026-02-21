@@ -41,7 +41,7 @@ mirror_root/
 | `version` | String | Yes | Tool version (e.g., `"4.3"`). |
 | `archive_path` | String | Conditional | Relative path to the tool archive inside a local mirror. Required if `archive_url` is not provided. |
 | `archive_url` | String | Conditional | Full URL to a remote archive. Required if `archive_path` is not provided. |
-| `sha256` | String | No | SHA-256 checksum (64 lowercase hex). Strongly recommended. |
+| `sha256` | String | Yes | SHA-256 checksum (64 lowercase hex). Required for all tool archives. |
 | `size` | Integer | No | Archive size in bytes (legacy field). |
 | `size_bytes` | Integer | No | Archive size in bytes (preferred). |
 
@@ -95,7 +95,7 @@ mirror_root/
 3. `tools` must be a non-empty array of objects.
 4. Each tool entry must include `id`, `version`, and one of `archive_path` or `archive_url`.
 5. `archive_path` must be a relative path inside the mirror root (no absolute paths or `..`).
-6. If `sha256` is provided, it must be 64 lowercase hex characters.
+6. `sha256` is required and must be 64 lowercase hex characters.
 7. If `size` or `size_bytes` is provided, it must be an integer greater than `0`.
 
 ## Operational Behavior
