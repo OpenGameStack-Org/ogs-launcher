@@ -145,6 +145,8 @@ The MVP is not complete until this full sequence works end to end:
 *   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18).
 *   **Test Suite:** Comprehensive coverage (~4.0-4.3 sec execution), all suites documented including startup verification tests.
 *   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.
+*   **Manual Testing:** Split into two tiers: Editor-mode (8 tests for rapid iteration) and Installed-Build (7 tests for real-world validation). See [MANUAL_TESTING.md](MANUAL_TESTING.md).
+
 ## Summary: Phase 1.5 + Phase 2 Complete
 
 **Mirror Infrastructure (Phase 2) Completed Feb 20, 2026:**
@@ -152,9 +154,14 @@ The MVP is not complete until this full sequence works end to end:
 - Settings UI for mirror root configuration with real-time status indicator
 - Remote repository.json support (GitHub Releases)
 - Onboarding wizard for first-run default stack bootstrap
-- Manual testing guide with 7 comprehensive test scenarios
-- Comprehensive test coverage (~4.0-4.3 sec execution time), including startup initialization verification
+- Allowlist policy (config-driven socket filtering for network security)
+- Comprehensive test coverage (205 unit + scene tests, ~3.4 sec execution time)
 - Full offline-only (air-gap safe) architecture
+
+**Manual Testing Framework (Phase 2+, Feb 21, 2026):**
+- Editor-mode testing guide: 8 tests for UI/logic validation in development
+- Installed-build testing guide: 7 tests for packaging/portability in production
+- Progressive disclosure: report findings after each test for iterative fixes
 
 **Next: Mirror Server Scale-Out (Post-MVP)**
 - S3/GitHub Releases for standard frozen stack binaries
