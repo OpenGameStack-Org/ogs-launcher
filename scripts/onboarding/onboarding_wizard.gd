@@ -8,7 +8,7 @@
 ##
 ## Usage:
 ##   var wizard = OnboardingWizard.new()
-##   wizard.setup(scene_tree, library_root)
+##   wizard.setup(scene_tree, library_root, onboarding_dialog, ogs_root_path)
 ##   if wizard.should_show_wizard():
 ##       wizard.show_wizard()
 
@@ -21,8 +21,6 @@ var wizard_complete_flag_path: String = ""
 var library_root: String = ""
 var dialog: AcceptDialog = null
 var status_label: Label = null
-var default_stack_label: Label = null
-var start_button: Button = null
 var skip_button: Button = null
 var scene_tree: SceneTree = null
 
@@ -30,11 +28,30 @@ var scene_tree: SceneTree = null
 ## Parameters:
 ##   tree (SceneTree): Scene tree for creating nodes
 ##   library_root_path (String): Path where libraries are stored
-func setup(tree: SceneTree, library_root_path: String) -> void:
+##   onboarding_dialog (AcceptDialog): The wizard dialog from the scene
+##   ogs_root_path (String): Base OGS data directory
+func setup(tree: SceneTree, library_root_path: String, onboarding_dialog: AcceptDialog, ogs_root_path: String) -> void:
 	"""Sets up the wizard with required references."""
 	scene_tree = tree
 	library_root = library_root_path
-	wizard_complete_flag_path = OS.get_user_data_dir().path_join("ogs_wizard_complete.txt")
+	dialog = onboarding_dialog
+	var resolved_root = ogs_root_path
+	if resolved_root.is_empty():
+		resolved_root = OS.get_user_data_dir().path_join("OGS")
+	wizard_complete_flag_path = resolved_root.path_join("ogs_wizard_complete.txt")
+	
+	# Get references to UI elements
+	if dialog:
+		status_label = dialog.get_node_or_null("VBoxContainer/StatusLabel")
+		skip_button = dialog.get_node_or_null("VBoxContainer/ButtonContainer/SkipButton")
+		Logger.debug("wizard_nodes", {"component": "onboarding", "status_label": status_label != null, "skip_button": skip_button != null})
+		
+		# Wire signal handlers
+		if skip_button:
+			skip_button.pressed.connect(_on_skip_pressed)
+		else:
+			Logger.warn("wizard_skip_button_missing", {"component": "onboarding"})
+		dialog.confirmed.connect(_on_start_pressed)
 
 ## Returns true if the wizard should be shown (first run).
 func should_show_wizard() -> bool:
@@ -58,12 +75,10 @@ func should_show_wizard() -> bool:
 
 ## Shows the wizard dialog.
 func show_wizard() -> void:
-	"""Creates and displays the wizard dialog."""
-	if dialog == null:
-		_create_wizard_dialog()
-	
+	"""Displays the wizard dialog."""
 	if dialog:
-		dialog.popup_centered_ratio(0.6)
+		dialog.popup_centered()
+		Logger.info("wizard_shown", {"component": "onboarding", "dialog_visible": dialog.visible})
 
 ## Marks the wizard as complete (won't show again).
 func mark_complete() -> void:
@@ -73,79 +88,19 @@ func mark_complete() -> void:
 		file.store_string("completed")
 		Logger.info("onboarding_wizard_completed", {"component": "onboarding"})
 
-# Private: Creates the wizard dialog UI.
-func _create_wizard_dialog() -> void:
-	"""Creates the wizard dialog with UI elements."""
-	dialog = AcceptDialog.new()
-	dialog.title = "Welcome to Open Game Stack"
-	dialog.size = Vector2i(600, 400)
-	dialog.ok_button_text = "Start"
-	
-	var vbox = VBoxContainer.new()
-	vbox.anchors_preset = Control.PRESET_FULL_RECT
-	dialog.add_child(vbox)
-	
-	# Title
-	var title = Label.new()
-	title.text = "Open Game Stack Launcher"
-	title.add_theme_font_size_override("font_size", 18)
-	vbox.add_child(title)
-	
-	# Subtitle
-	var subtitle = Label.new()
-	subtitle.text = "First-Run Setup"
-	subtitle.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(subtitle)
-	
-	# Welcome text
-	var welcome = Label.new()
-	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD
-	welcome.text = "Welcome! This wizard will help you set up the default frozen stack with essential tools."
-	vbox.add_child(welcome)
-	
-	# Default stack info
-	default_stack_label = Label.new()
-	default_stack_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	default_stack_label.text = "Default Stack:\n• Godot v4.3 (Game Engine)\n• Blender v4.2 LTS (3D Modeling)\n\nThese tools will be downloaded to your central library."
-	vbox.add_child(default_stack_label)
-	
-	# Spacer
-	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 20)
-	vbox.add_child(spacer)
-	
-	# Status label
-	status_label = Label.new()
-	status_label.text = "Ready to initialize."
-	status_label.modulate = Color.GRAY
-	vbox.add_child(status_label)
-	
-	# Buttons container
-	var button_hbox = HBoxContainer.new()
-	button_hbox.alignment = BoxContainer.ALIGNMENT_END
-	vbox.add_child(button_hbox)
-	
-	skip_button = Button.new()
-	skip_button.text = "Skip for Now"
-	skip_button.pressed.connect(_on_skip_pressed)
-	button_hbox.add_child(skip_button)
-	
-	# Wire the Start button through the dialog
-	var ok_button = dialog.get_ok_button()
-	ok_button.text = "Start"
-	ok_button.pressed.connect(_on_start_pressed)
-
 ## Signal handler: skip button pressed.
 func _on_skip_pressed() -> void:
 	"""User chose to skip wizard."""
 	if dialog:
 		dialog.hide()
 	mark_complete()
+	Logger.info("wizard_skipped", {"component": "onboarding"})
 	wizard_completed.emit(true, "Wizard skipped. You can always configure tools later.")
 
 ## Signal handler: start button pressed.
 func _on_start_pressed() -> void:
 	"""User chose to initialize default stack."""
+	Logger.info("wizard_start_pressed", {"component": "onboarding"})
 	if status_label:
 		status_label.text = "Initializing default stack..."
 		status_label.modulate = Color.YELLOW

@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://balmkuhwhh2py"]
+
+[node name="OnboardingWizardDialog" type="AcceptDialog"]
+title = "Welcome to Open Game Stack"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Start"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Open Game Stack Launcher"
+
+[node name="Subtitle" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "First-Run Setup"
+
+[node name="Welcome" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Welcome! This wizard will help you set up the default frozen stack with essential tools."
+autowrap_mode = 2
+
+[node name="DefaultStackInfo" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Default Stack:
+• Godot v4.3 (Game Engine)
+• Blender v4.2 LTS (3D Modeling)
+
+These tools will be downloaded to your central library."
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+modulate = Color(0.6, 0.6, 0.6, 1)
+layout_mode = 2
+text = "Ready to initialize."
+autowrap_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 2
+
+[node name="SkipButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Skip for Now"

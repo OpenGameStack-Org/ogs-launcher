@@ -28,6 +28,9 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 @onready var btn_repair_environment = $AppLayout/Content/PageProjects/RepairButton
 @onready var project_dir_dialog = $ProjectDirDialog
 
+# Onboarding dialog
+@onready var onboarding_dialog = $OnboardingWizardDialog
+
 # Seal dialog nodes
 @onready var seal_dialog = $SealDialog
 @onready var seal_status_label = $SealDialog/VBoxContainer/StatusLabel
@@ -58,16 +61,31 @@ var mirror_root_override: String = ""
 var mirror_repository_url: String = ""
 var settings_file_path: String = ""
 
+## Resolves the base OGS data directory.
+func _resolve_ogs_root_path() -> String:
+	"""Returns the OGS root path, preferring LOCALAPPDATA on Windows."""
+	var local_app_data = OS.get_environment("LOCALAPPDATA")
+	if not local_app_data.is_empty():
+		return local_app_data.path_join("OGS")
+	return OS.get_user_data_dir().path_join("OGS")
+
 func _ready():
 	Logger.enable_console(true)
 	Logger.set_level(Logger.Level.DEBUG)
 	Logger.info("launcher_started", {"component": "app"})
 	
 	# Set up onboarding wizard for first-run experience
-	var library_root_path = OS.get_user_data_dir().path_join("OGS").path_join("Library")
+	var ogs_root_path = _resolve_ogs_root_path()
+	var library_root_path = ogs_root_path.path_join("Library")
 	onboarding_wizard = OnboardingWizard.new()
-	onboarding_wizard.setup(get_tree(), library_root_path)
+	onboarding_wizard.setup(get_tree(), library_root_path, onboarding_dialog, ogs_root_path)
 	onboarding_wizard.wizard_completed.connect(_on_wizard_completed)
+	
+	# Show wizard on first run
+	var should_show = onboarding_wizard.should_show_wizard()
+	Logger.debug("onboarding_check", {"component": "onboarding", "should_show": should_show})
+	if should_show:
+		onboarding_wizard.show_wizard()
 	
 	# Set up layout controller for page navigation
 	layout_controller = LayoutController.new()

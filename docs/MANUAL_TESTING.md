@@ -40,6 +40,8 @@ Both samples have `stack.json` with Godot 4.3 and Blender 4.5.7.
 
 To ensure a clean slate for testing, delete all persistent launcher data:
 
+**IMPORTANT:** Back up any existing projects, tools, or settings you want to keep before deleting data. Fresh-state cleanup is destructive and cannot be undone.
+
 **Option A: Using PowerShell (Recommended)**
 ```powershell
 # Remove all OGS launcher data
@@ -60,9 +62,9 @@ if (-not (Test-Path "$env:LOCALAPPDATA\OGS")) {
 4. Close File Explorer
 
 **Option C: Inside Godot Editor**
-1. In Godot, click **Debug → Monitor** to open the File System tree
-2. Navigate to `user://`
-3. Delete the `OGS` directory and `ogs_launcher_settings.json` file (if they exist)
+1. In Godot, open the Output panel for logs
+2. Use PowerShell or File Explorer to delete `%LOCALAPPDATA%\OGS`
+3. Confirm the onboarding wizard appears on next launch
 
 ### Verifying Fresh State
 
@@ -88,7 +90,7 @@ if (Test-Path $ogsPath) {
 ```powershell
 # Check that launcher created default structure
 dir "$env:LOCALAPPDATA\OGS\"
-# Should show: Library, logs, ogs_launcher_settings.json
+# Should show: Library, logs, ogs_launcher_settings.json, ogs_wizard_complete.txt
 ```
 
 ### Editor Test 1: Launcher Startup & Onboarding
@@ -96,9 +98,12 @@ dir "$env:LOCALAPPDATA\OGS\"
 **Objective:** Verify that the launcher starts without errors and displays the onboarding wizard on first run.
 
 **Steps:**
-1. Delete or move `user://ogs_launcher_settings.json` (to simulate first run)
+1. Delete `%LOCALAPPDATA%\OGS` (to simulate first run)
 2. Press F5 or click Run Scene on main.tscn
 3. Observe the launcher window and any dialogs
+4. In the onboarding wizard, click **Start**
+5. Wait for the wizard to close and the main window to remain open
+6. Verify `%LOCALAPPDATA%\OGS` exists and contains `Library` and `ogs_wizard_complete.txt`
 
 **Expected Results:**
 - ✅ Launcher window appears without errors
@@ -106,12 +111,16 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ All page buttons visible in sidebar (Projects, Engine, Tools, Settings)
 - ✅ Projects page is default/active
 - ✅ Onboarding wizard appears (welcome dialog with default stack info)
+- ✅ Clicking **Start** completes onboarding and closes the dialog
+- ✅ `%LOCALAPPDATA%\OGS\Library` exists after onboarding completes
+- ✅ `%LOCALAPPDATA%\OGS\ogs_wizard_complete.txt` exists after onboarding completes
 - ✅ Output console shows no SCRIPT ERROR messages
 
 **Pass Criteria:**
 - Launcher starts cleanly
 - UI is responsive and no error dialogs block the main window
-- Onboarding wizard appears (first-run detection works)
+- Onboarding wizard appears and completes when **Start** is clicked
+- OGS data folder is created with expected files
 
 **If test fails:**
 - Check Godot Output panel for parser/script errors
@@ -362,6 +371,8 @@ After completing Editor Tests 1-8, fill in this table:
 ### Achieving Fresh State for Installed Tests
 
 Before running Installed Tests, clean up any previous launcher data to simulate a first-time user:
+
+**IMPORTANT:** Back up any existing projects, tools, or settings you want to keep before deleting data. Fresh-state cleanup is destructive and cannot be undone.
 
 **PowerShell One-Liner:**
 ```powershell
