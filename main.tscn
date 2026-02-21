@@ -170,6 +170,26 @@ text = "Browse"
 layout_mode = 2
 text = "Reset to Default"
 
+[node name="MirrorRepoContainer" type="HBoxContainer" parent="AppLayout/Content/PageSettings"]
+layout_mode = 2
+
+[node name="MirrorRepoLabel" type="Label" parent="AppLayout/Content/PageSettings/MirrorRepoContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Remote Repo URL:"
+vertical_alignment = 1
+
+[node name="MirrorRepoPath" type="LineEdit" parent="AppLayout/Content/PageSettings/MirrorRepoContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "https://raw.githubusercontent.com/.../repository.json"
+metadata/network_ui = true
+
+[node name="MirrorRepoClearButton" type="Button" parent="AppLayout/Content/PageSettings/MirrorRepoContainer"]
+layout_mode = 2
+text = "Clear"
+metadata/network_ui = true
+
 [node name="MirrorStatusLabel" type="Label" parent="AppLayout/Content/PageSettings"]
 modulate = Color(1, 0.8, 0.2, 1)
 layout_mode = 2

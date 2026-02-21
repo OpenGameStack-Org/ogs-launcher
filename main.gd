@@ -1,5 +1,8 @@
 extends Control
 
+const MirrorPathResolverScript = preload("res://scripts/mirror/mirror_path_resolver.gd")
+const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStack-Org/ogs-frozen-stacks/main/repository.json"
+
 
 # -- PRELOAD REFERENCES --
 # These allow us to talk to the nodes we created in the editor
@@ -40,6 +43,8 @@ extends Control
 @onready var mirror_root_path = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootPath
 @onready var mirror_root_browse_button = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootBrowseButton
 @onready var mirror_root_reset_button = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootResetButton
+@onready var mirror_repo_path = $AppLayout/Content/PageSettings/MirrorRepoContainer/MirrorRepoPath
+@onready var mirror_repo_clear_button = $AppLayout/Content/PageSettings/MirrorRepoContainer/MirrorRepoClearButton
 @onready var mirror_status_label = $AppLayout/Content/PageSettings/MirrorStatusLabel
 
 var network_ui_nodes: Array = []
@@ -50,6 +55,7 @@ var layout_controller: LayoutController
 var seal_controller: SealController
 var onboarding_wizard: OnboardingWizard
 var mirror_root_override: String = ""
+var mirror_repository_url: String = ""
 var settings_file_path: String = ""
 
 func _ready():
@@ -111,7 +117,8 @@ func _ready():
 		hydration_dialog.get_ok_button(),
 		"",  # mirror_url
 		get_tree(),  # Pass scene tree reference for timers
-		mirror_root_override
+		mirror_root_override,
+		mirror_repository_url
 	)
 	
 	# Wire hydration signals
@@ -130,10 +137,12 @@ func _ready():
 
 	# Settings for mirror configuration
 	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
-	_load_mirror_root_setting()
+	_load_mirror_settings()
 	mirror_root_path.text_changed.connect(_on_mirror_root_text_changed)
 	mirror_root_browse_button.pressed.connect(_on_mirror_root_browse_pressed)
 	mirror_root_reset_button.pressed.connect(_on_mirror_root_reset_pressed)
+	mirror_repo_path.text_changed.connect(_on_mirror_repo_text_changed)
+	mirror_repo_clear_button.pressed.connect(_on_mirror_repo_clear_pressed)
 	_update_mirror_status()
 
 	_collect_network_ui_nodes()
@@ -234,8 +243,8 @@ func _on_seal_completed(_success: bool, _zip_path: String) -> void:
 ## Settings Methods
 
 ## Loads the mirror root setting from disk.
-func _load_mirror_root_setting() -> void:
-	"""Loads saved mirror root path from settings file."""
+func _load_mirror_settings() -> void:
+	"""Loads saved mirror settings from the settings file."""
 	if FileAccess.file_exists(settings_file_path):
 		var file = FileAccess.open(settings_file_path, FileAccess.READ)
 		if file != null:
@@ -243,29 +252,38 @@ func _load_mirror_root_setting() -> void:
 			var data = JSON.parse_string(json_text)
 			if data != null and typeof(data) == TYPE_DICTIONARY:
 				mirror_root_override = String(data.get("mirror_root", ""))
+				if data.has("remote_repository_url"):
+					mirror_repository_url = String(data.get("remote_repository_url", ""))
+				else:
+					mirror_repository_url = DEFAULT_REMOTE_REPO_URL
 				mirror_root_path.text = mirror_root_override
+				mirror_repo_path.text = mirror_repository_url
 				return
-	# No saved setting found, use default
+	# No saved setting found, use defaults
 	mirror_root_override = ""
+	mirror_repository_url = DEFAULT_REMOTE_REPO_URL
 	mirror_root_path.text = ""
+	mirror_repo_path.text = mirror_repository_url
 
 ## Saves the mirror root setting to disk.
-func _save_mirror_root_setting() -> void:
-	"""Saves the current mirror root setting to disk."""
+func _save_mirror_settings() -> void:
+	"""Saves the current mirror settings to disk."""
 	var data = {
 		"mirror_root": mirror_root_override,
+		"remote_repository_url": mirror_repository_url,
 		"timestamp": Time.get_ticks_msec()
 	}
 	var json_text = JSON.stringify(data)
 	var file = FileAccess.open(settings_file_path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(json_text)
-		Logger.info("mirror_root_saved", {"component": "settings", "path": mirror_root_override})
+		Logger.info("mirror_settings_saved", {"component": "settings"})
 
 ## Called when mirror root text changes.
 func _on_mirror_root_text_changed(new_text: String) -> void:
 	"""Updates mirror root override when text changes."""
 	mirror_root_override = new_text
+	_save_mirror_settings()
 	_update_mirror_status()
 	# Update hydration controller with new mirror root
 	if hydration_controller != null:
@@ -281,7 +299,7 @@ func _on_mirror_root_browse_pressed() -> void:
 	dialog.dir_selected.connect(func(path: String):
 		mirror_root_override = path
 		mirror_root_path.text = path
-		_save_mirror_root_setting()
+		_save_mirror_settings()
 		_update_mirror_status()
 		if hydration_controller != null:
 			hydration_controller.update_mirror_root(mirror_root_override)
@@ -294,29 +312,62 @@ func _on_mirror_root_reset_pressed() -> void:
 	"""Resets mirror root to default."""
 	mirror_root_override = ""
 	mirror_root_path.text = ""
-	_save_mirror_root_setting()
+	_save_mirror_settings()
 	_update_mirror_status()
 	if hydration_controller != null:
 		hydration_controller.update_mirror_root("")
 
+## Called when mirror repository URL text changes.
+func _on_mirror_repo_text_changed(new_text: String) -> void:
+	"""Updates remote repository URL when text changes."""
+	mirror_repository_url = new_text.strip_edges()
+	_save_mirror_settings()
+	_update_mirror_status()
+	if hydration_controller != null:
+		hydration_controller.update_remote_repository_url(mirror_repository_url)
+
+## Called when mirror repository URL clear button is pressed.
+func _on_mirror_repo_clear_pressed() -> void:
+	"""Clears the remote repository URL setting."""
+	mirror_repository_url = ""
+	mirror_repo_path.text = ""
+	_save_mirror_settings()
+	_update_mirror_status()
+	if hydration_controller != null:
+		hydration_controller.update_remote_repository_url("")
+
 ## Updates the mirror status indicator.
 func _update_mirror_status() -> void:
 	"""Updates the mirror status label based on current settings."""
+	var resolver = MirrorPathResolverScript.new()
+	var effective_root = mirror_root_override if not mirror_root_override.is_empty() else resolver.get_mirror_root()
+	var has_local_repo = false
+	if not effective_root.is_empty() and DirAccess.dir_exists_absolute(effective_root):
+		var repo_path = effective_root.path_join("repository.json")
+		has_local_repo = FileAccess.file_exists(repo_path)
+
+	if has_local_repo:
+		mirror_status_label.text = "Mirror status: Local mirror ready"
+		mirror_status_label.modulate = Color.GREEN
+		return
+
+	if not mirror_repository_url.is_empty():
+		mirror_status_label.text = "Mirror status: Remote repository configured"
+		mirror_status_label.modulate = Color(0.3, 0.6, 1.0, 1.0)
+		return
+
 	if mirror_root_override.is_empty():
 		mirror_status_label.text = "Mirror status: Using default location"
 		mirror_status_label.modulate = Color.GRAY
-	else:
-		if DirAccess.dir_exists_absolute(mirror_root_override):
-			var repo_path = mirror_root_override.path_join("repository.json")
-			if FileAccess.file_exists(repo_path):
-				mirror_status_label.text = "Mirror status: Configured and ready"
-				mirror_status_label.modulate = Color.GREEN
-			else:
-				mirror_status_label.text = "Mirror status: Directory exists, but repository.json not found"
-				mirror_status_label.modulate = Color.YELLOW
-		else:
-			mirror_status_label.text = "Mirror status: Directory does not exist"
-			mirror_status_label.modulate = Color.RED
+		return
+
+	if DirAccess.dir_exists_absolute(mirror_root_override):
+		mirror_status_label.text = "Mirror status: Directory exists, but repository.json not found"
+		mirror_status_label.modulate = Color.YELLOW
+		return
+
+	mirror_status_label.text = "Mirror status: Directory does not exist"
+	mirror_status_label.modulate = Color.RED
 
 ## Signal handler: onboarding wizard completed.
 func _on_wizard_completed(success: bool, message: String) -> void:

@@ -28,11 +28,11 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 185
+tests passed: 191
 tests failed: 0
 ```
 
-The test runner automatically exits when complete (~3.2-3.4 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~4.0-4.3 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
@@ -44,7 +44,7 @@ The test runner automatically exits when complete (~3.2-3.4 seconds) without req
 
 Unit tests validate pure logic without instantiating UI nodes. These run quickly and focus on data validation, parsing, and business logic.
 
-**Current unit test suites (22 total, 185 tests):**
+**Current unit test suites (23 total, 191 tests):**
 
 - **[tests/stack_manifest_tests.gd](tests/stack_manifest_tests.gd)** — Validates `stack.json` loading, schema compliance, and error codes.
   - Valid manifests pass
@@ -159,7 +159,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Schema version enforcement (must be 1)
   - Mirror name validation (required, non-empty)
   - Tools array validation (required, non-empty)
-  - Tool entry validation (id, version, archive_path required)
+  - Tool entry validation (id, version, archive_path or archive_url required)
   - SHA-256 checksum format validation (64 lowercase hex chars)
   - Tool size validation (positive integer)
   - Error code generation for invalid schemas
@@ -179,6 +179,11 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Common-root prefix stripping for nested archives
   - Tool installation signals (started, completed)
   - Hydration lifecycle status updates
+
+- **[tests/remote_mirror_hydrator_tests.gd](tests/remote_mirror_hydrator_tests.gd)** — Validates remote mirror hydration behavior.
+  - Missing repository URL is rejected
+  - Invalid repository JSON fails validation
+  - Missing archive file reports failures
 
 - **[tests/library_hydration_controller_tests.gd](tests/library_hydration_controller_tests.gd)** — Validates mirror integration into repair workflow.
   - Mirror availability detection (repository.json presence check)
@@ -210,7 +215,7 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
 
 - **[tests/startup_tests.gd](tests/startup_tests.gd)** — Verifies launcher initialization without errors (3 tests).
   - Main scene loads and instantiates successfully
-  - All required UI nodes exist and are accessible (11 critical nodes)
+  - All required UI nodes exist and are accessible (13 critical nodes)
   - Script validation: main.gd is properly formed and instantiable
 
 ## Test Structure

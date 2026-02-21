@@ -61,11 +61,11 @@ The OGS-Launcher manages a "Standard OGS Profile" of tools known to be compliant
 | Tool | Version (Reference) | License | Role |
 | :--- | :--- | :--- | :--- |
 | **Godot Engine** | 4.3 (Hardened) | MIT | Simulation Core & Runtime |
-| **Blender** | 4.2 LTS | GPL | 3D Modeling & Animation |
-| **Krita** | 5.x | GPL | 2D Texture & UI Asset Creation |
-| **Audacity** | 3.x | GPL | Audio Processing |
+| **Blender** | 4.5.7 | GPL | 3D Modeling & Animation |
+| **Krita** | 5.2.15 | GPL | 2D Texture & UI Asset Creation |
+| **Audacity** | 3.7.7 | GPL | Audio Processing |
 
-*Note: The Launcher enforces "White Box" security by only downloading these tools from the official OGS Mirror, where they have been pre-validated and hashed.*
+*Note: The Launcher enforces "White Box" security by only downloading these tools from the official OGS Mirror (local or remote), where they have been pre-validated and hashed.*
 
 ---
 

@@ -1,7 +1,8 @@
-## MirrorRepository: Loader and validator for local mirror repository.json files.
+## MirrorRepository: Loader and validator for mirror repository.json files.
 ##
 ## Provides offline-safe parsing, validation, and lookup for tool archives
-## stored in a local mirror root. This class never performs network access.
+## stored in a local mirror root or remote repository. This class never
+## performs network access.
 
 extends RefCounted
 class_name MirrorRepository
@@ -134,26 +135,42 @@ static func _validate_tool_entry(tool_entry: Dictionary, index: int, found_error
 	elif typeof(tool_entry["version"]) != TYPE_STRING or String(tool_entry["version"]).strip_edges() == "":
 		found_errors.append("tool_version_invalid:%d" % index)
 
-	if not tool_entry.has("archive_path"):
-		found_errors.append("tool_archive_path_missing:%d" % index)
-	elif typeof(tool_entry["archive_path"]) != TYPE_STRING or String(tool_entry["archive_path"]).strip_edges() == "":
-		found_errors.append("tool_archive_path_invalid:%d" % index)
+	var has_archive_path = tool_entry.has("archive_path")
+	var has_archive_url = tool_entry.has("archive_url")
+	if not has_archive_path and not has_archive_url:
+		found_errors.append("tool_archive_source_missing:%d" % index)
+	elif has_archive_path:
+		var archive_path = tool_entry["archive_path"]
+		if typeof(archive_path) != TYPE_STRING or String(archive_path).strip_edges() == "":
+			found_errors.append("tool_archive_path_invalid:%d" % index)
+	elif has_archive_url:
+		var archive_url = tool_entry["archive_url"]
+		if typeof(archive_url) != TYPE_STRING or String(archive_url).strip_edges() == "":
+			found_errors.append("tool_archive_url_invalid:%d" % index)
 
 	if tool_entry.has("sha256"):
 		var sha_value = tool_entry["sha256"]
 		if typeof(sha_value) != TYPE_STRING or not _is_hex_sha256(String(sha_value)):
 			found_errors.append("tool_sha256_invalid:%d" % index)
 
-	if tool_entry.has("size"):
-		var size_value = tool_entry["size"]
-		if typeof(size_value) == TYPE_INT:
-			if int(size_value) <= 0:
-				found_errors.append("tool_size_invalid:%d" % index)
-		elif typeof(size_value) == TYPE_FLOAT:
-			if int(size_value) != size_value or int(size_value) <= 0:
-				found_errors.append("tool_size_invalid:%d" % index)
-		else:
+	_validate_size_field(tool_entry, "size", index, found_errors)
+	_validate_size_field(tool_entry, "size_bytes", index, found_errors)
+
+## Validates size fields for tool entries.
+static func _validate_size_field(tool_entry: Dictionary, field_name: String, index: int, found_errors: Array[String]) -> void:
+	"""Validates optional size fields for a tool entry."""
+	if not tool_entry.has(field_name):
+		return
+	var size_value = tool_entry[field_name]
+	if typeof(size_value) == TYPE_INT:
+		if int(size_value) <= 0:
 			found_errors.append("tool_size_invalid:%d" % index)
+		return
+	if typeof(size_value) == TYPE_FLOAT:
+		if int(size_value) != size_value or int(size_value) <= 0:
+			found_errors.append("tool_size_invalid:%d" % index)
+		return
+	found_errors.append("tool_size_invalid:%d" % index)
 
 ## Validates sha256 hex format (64 hex characters).
 static func _is_hex_sha256(value: String) -> bool:

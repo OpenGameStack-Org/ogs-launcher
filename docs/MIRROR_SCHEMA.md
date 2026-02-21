@@ -2,9 +2,9 @@
 
 ## Overview
 
-A local mirror is a portable, offline-only bundle of tool archives. The launcher reads a `repository.json` file from the mirror root to discover which tools and versions are available.
+A mirror is a portable bundle of tool archives. The launcher reads a `repository.json` file to discover which tools and versions are available.
 
-This schema is designed for air-gapped environments and contains only local paths. No network URLs are required.
+This schema supports both air-gapped local mirrors (archive paths) and remote repositories (archive URLs).
 
 ## File Location
 
@@ -39,9 +39,11 @@ mirror_root/
 |------|------|----------|-------------|
 | `id` | String | Yes | Tool identifier (e.g., `"godot"`, `"blender"`). |
 | `version` | String | Yes | Tool version (e.g., `"4.3"`). |
-| `archive_path` | String | Yes | Relative path to the tool archive inside the mirror. |
+| `archive_path` | String | Conditional | Relative path to the tool archive inside a local mirror. Required if `archive_url` is not provided. |
+| `archive_url` | String | Conditional | Full URL to a remote archive. Required if `archive_path` is not provided. |
 | `sha256` | String | No | SHA-256 checksum (64 lowercase hex). Strongly recommended. |
-| `size` | Integer | No | Archive size in bytes (informational). |
+| `size` | Integer | No | Archive size in bytes (legacy field). |
+| `size_bytes` | Integer | No | Archive size in bytes (preferred). |
 
 ## Example
 
@@ -55,14 +57,32 @@ mirror_root/
       "version": "4.3",
       "archive_path": "tools/godot/4.3/godot_4.3_win64.zip",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-      "size": 123456789
+      "size_bytes": 123456789
     },
     {
       "id": "blender",
       "version": "4.2",
       "archive_path": "tools/blender/4.2/blender_4.2_win64.zip",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-      "size": 987654321
+      "size_bytes": 987654321
+    }
+  ]
+}
+```
+
+### Remote Repository Example
+
+```json
+{
+  "schema_version": 1,
+  "mirror_name": "OGS Standard Frozen Stacks",
+  "tools": [
+    {
+      "id": "godot",
+      "version": "4.3",
+      "archive_url": "https://github.com/OpenGameStack-Org/ogs-frozen-stacks/releases/download/v1.0/godot-4.3-win64.zip",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size_bytes": 123456789
     }
   ]
 }
@@ -73,17 +93,17 @@ mirror_root/
 1. `schema_version` must be integer `1`.
 2. `mirror_name` must be a non-empty string.
 3. `tools` must be a non-empty array of objects.
-4. Each tool entry must include `id`, `version`, and `archive_path`.
+4. Each tool entry must include `id`, `version`, and one of `archive_path` or `archive_url`.
 5. `archive_path` must be a relative path inside the mirror root (no absolute paths or `..`).
 6. If `sha256` is provided, it must be 64 lowercase hex characters.
-7. If `size` is provided, it must be an integer greater than `0`.
+7. If `size` or `size_bytes` is provided, it must be an integer greater than `0`.
 
 ## Operational Behavior
 
-- The launcher reads `repository.json` from the mirror root.
+- The launcher reads `repository.json` from a local mirror root or remote repository URL.
 - Tool archives are verified by `sha256` when present.
 - Archives are extracted into the central library at `%LOCALAPPDATA%/OGS/Library/` (Windows) or `~/.config/ogs-launcher/library` (Linux/macOS).
-- No network connections are used during mirror hydration.
+- Remote repositories require network access and are blocked in offline mode.
 
 ---
 

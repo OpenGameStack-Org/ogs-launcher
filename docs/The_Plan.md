@@ -43,7 +43,7 @@ The MVP is not complete until this full sequence works end to end:
 ---
 
 ### Phase 1.5: The Showcase MVP (Windows)
-**Status:** **99% Complete — Seal Implementation Done** 🎯
+**Status:** **100% Complete** ✅
 *Focus: The "Hub" Logic, Library Management, and The Seal.*
 
 #### 📋 Critical Tasks (Must-Have for Showcase)
@@ -52,13 +52,13 @@ The MVP is not complete until this full sequence works end to end:
     *   *Tool Discovery:* PathResolver queries available tools and versions.
     *   *Library Validation:* LibraryManager validates tools exist and retrieves metadata.
     *   *Extraction:* ToolExtractor unzips archives into library structure (Phase 2: actual unzipping).
-    *   *Tests:* 19 unit tests validating all library operations.
+    *   *Tests:* Unit tests validating all library operations.
 *   [x] **Project Manager & Environment Validation** — 100% Complete ✅
     *   *Discovery:* ProjectsController loads and validates `stack.json`.
     *   *Validation:* ProjectEnvironmentValidator checks tools against library.
     *   *UI Integration:* Environment incomplete → shows "Repair Environment" button.
     *   *Repair Workflow:* LibraryHydrator orchestrates batch downloads (Phase 2: actual HTTP).
-    *   *Tests:* 13 unit + scene tests covering validation and repair flow.
+    *   *Tests:* Unit + scene tests covering validation and repair flow.
 *   [x] **The "Seal for Delivery" Utility (Export)** — 100% Complete ✅
     *   *ProjectSealer Class:* `seal_project(project_path)` implements full workflow.
     *   *Validation:* Validates manifest and checks tool availability.
@@ -66,8 +66,7 @@ The MVP is not complete until this full sequence works end to end:
     *   *Config Creation:* Writes `ogs_config.json` with `force_offline=true`.
     *   *Archive Packaging:* Creates a real `.zip` artifact using Godot `ZIPPacker`.
     *   *Packaging Logs:* Logs packaging start, file count, and completion/failure events.
-    *   *Tests:* 14 unit tests covering validation, copying, archive contents, and logging.
-    *   *Total Tests Now:* **167 passing, 0 failures** (17 test suites)
+    *   *Tests:* Unit tests covering validation, copying, archive contents, and logging.
 *   [x] **UI Integration: "Seal for Delivery" Button** — 100% Complete ✅
     *   *Scene Changes:* Added "Seal for Delivery" button to Projects page + SealDialog.
     *   *Wiring:* Connected button to ProjectSealer call in main.gd.
@@ -79,7 +78,7 @@ The MVP is not complete until this full sequence works end to end:
     *   *SealController:* Extracted seal dialog management from main.gd (120 lines).
     *   *main.gd:* Reduced from 220 → 197 lines (pure orchestration).
     *   *Code Quality:* Fixed all GDScript language server warnings (shadowed globals, unused params, static calls).
-    *   *Tests:* All 164 tests passing with zero warnings.
+    *   *Tests:* Comprehensive coverage with zero warnings.
 *   [x] **Mirror Infrastructure (Client)** — 100% Complete ✅
     *   *MirrorRepository:* Loads and validates repository.json manifests
     *   *MirrorPathResolver:* Safe path resolution with security checks
@@ -87,20 +86,22 @@ The MVP is not complete until this full sequence works end to end:
     *   *Settings UI:* Mirror root configuration with real-time status indicator
     *   *Onboarding Wizard:* First-run default stack bootstrap
     *   *Tests:* Comprehensive test coverage for all mirror functionality
-    *   *Note:* Server infrastructure (S3/GitHub hosting) is post-MVP backlog
+    *   *Remote Repo Support:* Optional GitHub Releases repository.json support
+    *   *Note:* Server infrastructure scale-out is post-MVP backlog
 *   [x] **Onboarding Wizard** — 100% Complete ✅
     *   *First Run Detection:* Checks if wizard has been completed and library is empty
-    *   *UI Dialog:* Welcoming screen with default stack information (Godot 4.3 + Blender 4.2)
+    *   *UI Dialog:* Welcoming screen with default stack information (Godot 4.3 + Blender 4.5.7)
     *   *Default Stack Bootstrap:* Creates library directory structure for default tools
     *   *Skip Option:* Users can skip wizard and configure manually
     *   *Completion Flag:* Persists to disk so wizard only shows once
 *   [x] **Mirror Root Settings** — 100% Complete ✅
     *   *Settings Page UI:* Mirror root configuration field with Browse and Reset buttons
     *   *Status Indicator:* Real-time badge showing mirror configuration status (gray/green/yellow/red)
-    *   *Persistence:* Mirror root saved to `ogs_launcher_settings.json` and restored on startup
+    *   *Persistence:* Mirror settings saved to `ogs_launcher_settings.json` and restored on startup
     *   *Dynamic Updates:* Mirror root changes immediately affect repair workflow
+    *   *Remote Repo URL:* Optional remote repository.json configuration
 *   [x] **Manual Testing Guide** — 100% Complete ✅
-    *   *6 Test Scenarios:* Load sample projects, verify UI state, test seal button, configure mirror, test repair, verify status updates
+    *   *7 Test Scenarios:* Load sample projects, verify UI state, test seal button, configure mirror, test repair, verify status updates, remote repo config
     *   *Mirror Workflow Tests:* Settings configuration, repair with mirror, status badge updates
     *   *Prerequisites & Setup:* Clear instructions for test environment setup
     *   *Results Tracking Table:* Template for recording test outcomes
@@ -108,7 +109,7 @@ The MVP is not complete until this full sequence works end to end:
 ---
 
 ### Phase 2: Offline Mirror Infrastructure
-**Status:** 100% Complete ✅ (Mirror Client Done, Server TBD)
+**Status:** 100% Complete ✅ (Mirror Client + Initial Server Done)
 *   [x] **Mirror Client Implementation** — 100% Complete ✅
     *   *MirrorRepository:* Loads and validates repository.json manifests
     *   *MirrorPathResolver:* Safe path resolution for Windows/Unix with security checks
@@ -116,9 +117,10 @@ The MVP is not complete until this full sequence works end to end:
     *   *ToolExtractor:* Real ZIP extraction with common-root stripping and path safety
     *   *LibraryHydrationController Integration:* Wired mirror hydration into repair workflow
     *   *Tests:* Comprehensive test coverage (schema validation, path safety, hydration, UI integration)
-*   [ ] **Mirror Server Infrastructure** — Backlog (Post-MVP)
-    *   *Hosting:* S3/GitHub Releases for "White Box" binaries
+*   [x] **Mirror Server Infrastructure (Initial)** — GitHub Releases (v1.0)
+    *   *Hosting:* GitHub Releases for "White Box" binaries
     *   *Master Manifest:* repository.json for standard frozen stack
+    *   *Repo:* OpenGameStack-Org/ogs-frozen-stacks
 *   [ ] **Git LFS Integration** — (Optional) Advanced workflow for teams.
 *   [ ] **Hash Verification** — (Security enhancement) SHA-256 validation for archives.
 *   [ ] **Allowlist Policy** — (Config-driven) Firewall rules for tool execution.
@@ -135,21 +137,23 @@ The MVP is not complete until this full sequence works end to end:
 ## Progress Tracking
 *   **Foundation:** Completed Feb 15.
 *   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18).
-*   **Test Suite:** Comprehensive coverage (~3.2-3.4 sec execution), all suites documented including startup verification tests.
+*   **Test Suite:** Comprehensive coverage (~4.0-4.3 sec execution), all suites documented including startup verification tests.
 *   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.
 ## Summary: Phase 1.5 + Phase 2 Complete
 
 **Mirror Infrastructure (Phase 2) Completed Feb 20, 2026:**
 - Mirror client implementation (MirrorRepository, MirrorPathResolver, MirrorHydrator)
 - Settings UI for mirror root configuration with real-time status indicator
+- Remote repository.json support (GitHub Releases)
 - Onboarding wizard for first-run default stack bootstrap
-- Manual testing guide with 6 comprehensive test scenarios
-- Comprehensive test coverage (~3.2-3.4 sec execution time), including startup initialization verification
+- Manual testing guide with 7 comprehensive test scenarios
+- Comprehensive test coverage (~4.0-4.3 sec execution time), including startup initialization verification
 - Full offline-only (air-gap safe) architecture
 
-**Next: Mirror Server Infrastructure (Post-MVP)**
+**Next: Mirror Server Scale-Out (Post-MVP)**
 - S3/GitHub Releases for standard frozen stack binaries
 - Master repository.json for Launcher to query
+ - Scale-out hosting and access controls
 
 **Post-Showcase: Phase 3 Hardening**
 - Godot hardened build with source stripping

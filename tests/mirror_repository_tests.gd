@@ -10,6 +10,8 @@ func run() -> Dictionary:
 	var results = {"passed": 0, "failed": 0, "failures": []}
 	_test_valid_repository(results)
 	_test_missing_required_fields(results)
+	_test_archive_url_repository(results)
+	_test_missing_archive_source(results)
 	_test_invalid_sha256(results)
 	return results
 
@@ -39,6 +41,30 @@ func _test_missing_required_fields(results: Dictionary) -> void:
 	var errors = MirrorRepositoryScript.validate_data(data)
 	_expect(errors.has("mirror_name_empty"), "should flag empty mirror_name", results)
 	_expect(errors.has("tools_empty"), "should flag empty tools array", results)
+
+func _test_archive_url_repository(results: Dictionary) -> void:
+	"""Repository with archive_url should pass validation."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS Remote",
+		"tools": [
+			{"id": "godot", "version": "4.3", "archive_url": "https://example.com/godot.zip"}
+		]
+	}
+	var repo = MirrorRepositoryScript.from_dict(data)
+	_expect(repo.is_valid(), "archive_url repository should pass", results)
+
+func _test_missing_archive_source(results: Dictionary) -> void:
+	"""Repository entries missing archive_path and archive_url should fail."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS",
+		"tools": [
+			{"id": "godot", "version": "4.3"}
+		]
+	}
+	var errors = MirrorRepositoryScript.validate_data(data)
+	_expect(errors.has("tool_archive_source_missing:0"), "should flag missing archive source", results)
 
 func _test_invalid_sha256(results: Dictionary) -> void:
 	"""Invalid sha256 should be rejected when present."""

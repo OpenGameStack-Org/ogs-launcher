@@ -123,9 +123,11 @@ Two sample projects are provided in `samples/`:
 - ✅ Selected mirror path is saved to disk (in `ogs_launcher_settings.json`)
 - ✅ Status indicator changes based on repository.json presence:
   - Gray = default location
-  - Green = configured with valid repository.json
+  - Green = local mirror ready (repository.json present)
   - Yellow = directory exists but no repository.json
   - Red = directory doesn't exist
+- ✅ Remote repository URL can be set and saved (optional)
+- ✅ Remote repo status shows "Remote repository configured" when URL is present
 - ✅ Setting persists after closing and reopening launcher
 
 **Pass Criteria:**
@@ -155,7 +157,7 @@ Two sample projects are provided in `samples/`:
 3. Click "Repair Environment" button
 4. In the "Repair Environment" dialog, observe:
    - List of missing tools (e.g., "godot v4.3", "blender v4.2")
-   - Status message shows: "Ready to install X tool(s) from mirror."
+  - Status message shows: "Ready to install X tool(s) from local mirror." (or remote if configured)
 5. Click "Download and Install" button
 6. Monitor the status label for progress:
    - "Installing godot v4.3..."
@@ -175,7 +177,7 @@ Two sample projects are provided in `samples/`:
 - Tools are extracted (if archives are available)
 
 **Common Issues:**
-- **"Mirror repository not found":** Ensure `repository.json` exists in the mirror root you configured
+- **"No mirror repository configured":** Ensure a local mirror root with `repository.json` or set a remote repository URL
 - **"Archive not found":** Verify the `archive_path` in `repository.json` matches actual ZIP file locations
 - **"SHA-256 mismatch":** If you created test archives, compute real SHA-256 hashes and update `repository.json`
 
@@ -192,7 +194,7 @@ Two sample projects are provided in `samples/`:
 4. Observe status immediately changes to yellow: "Mirror status: Directory exists, but repository.json not found"
 5. Using file explorer, create an empty file named `repository.json` in that directory
    - Or copy one from `examples/mirror_repository.json`
-6. Return to launcher and observe status changes to green: "Mirror status: Configured and ready"
+6. Return to launcher and observe status changes to green: "Mirror status: Local mirror ready"
 7. Delete the `repository.json` file from disk
 8. Return to launcher and observe status reverts to yellow
 
@@ -207,6 +209,29 @@ Two sample projects are provided in `samples/`:
 
 ---
 
+### Test 7: Remote Repository Configuration (GitHub Releases)
+
+**Objective:** Verify that the remote repository URL can be set and used for hydration when local mirrors are absent.
+
+**Steps:**
+1. Navigate to the Settings page
+2. In "Remote Repo URL," paste the raw repository.json URL
+3. Observe the mirror status changes to: "Mirror status: Remote repository configured" (blue)
+4. Ensure local mirror root does not contain a repository.json
+5. Load `sample_project` and click "Repair Environment"
+6. Observe status: "Ready to download X tool(s) from remote mirror."
+
+**Expected Results:**
+- ✅ Remote repo URL persists after restarting the launcher
+- ✅ Status label shows remote repository configured
+- ✅ Repair dialog indicates remote download mode
+
+**Pass Criteria:**
+- Remote repository can be configured without errors
+- Repair workflow enters remote download mode when local mirrors are missing
+
+---
+
 ## Reporting Results
 
 When running these manual tests, record:
@@ -218,6 +243,8 @@ When running these manual tests, record:
 | Test 3: Seal button state | ✅/❌ | Button transitions correctly? | Does tooltip appear? |
 | Test 4: Mirror configuration | ✅/❌ | Can set and reset mirror root? Status updates? | Settings persist? |
 | Test 5: Repair with mirror | ✅/❌ | Mirror tools install successfully? | Console errors or crashes? |
+| Test 6: Mirror status badge | ✅/❌ | Status reacts to repository.json changes? | Any delays or mismatches? |
+| Test 7: Remote repo config | ✅/❌ | URL persists and repair switches to remote? | Network errors? |
 | Test 6: Mirror status badge | ✅/❌ | Status updates in real-time? | Color coding correct? |
 
 ## Console Debugging

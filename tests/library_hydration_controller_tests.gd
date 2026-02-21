@@ -64,12 +64,12 @@ func _test_blocks_when_mirror_missing(results: Dictionary) -> void:
 	var controller = LibraryHydrationControllerScript.new()
 	var mirror_root = OS.get_user_data_dir().path_join("mirror_test_missing_repo")
 	_remove_repository_file(mirror_root)
-	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root)
+	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root, "")
 	controller.start_hydration([
 		{"tool_id": "godot", "version": "4.3"}
 	])
 	_expect(ui["button"].disabled == true, "button should be disabled when mirror missing", results)
-	_expect(ui["status"].text.find("Mirror repository not found") != -1, "status should mention mirror missing", results)
+	_expect(ui["status"].text.find("No mirror repository configured") != -1, "status should mention mirror missing", results)
 	_cleanup_nodes(ui["nodes"])
 
 func _test_enables_when_mirror_present(results: Dictionary) -> void:
@@ -78,7 +78,7 @@ func _test_enables_when_mirror_present(results: Dictionary) -> void:
 	var controller = LibraryHydrationControllerScript.new()
 	var mirror_root = OS.get_user_data_dir().path_join("mirror_test_present_repo")
 	_write_repository_file(mirror_root)
-	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root)
+	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root, "")
 	controller.start_hydration([
 		{"tool_id": "godot", "version": "4.3"}
 	])

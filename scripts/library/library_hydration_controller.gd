@@ -9,7 +9,7 @@
 ##
 ## Usage:
 ##   var controller = LibraryHydrationController.new()
-##   controller.setup(dialog_node, tools_list, status_label, download_button)
+##   controller.setup(dialog_node, tools_list, status_label, download_button, "", null, "", "")
 ##   controller.start_hydration(missing_tools)
 
 extends RefCounted
@@ -17,6 +17,7 @@ class_name LibraryHydrationController
 
 const MirrorHydratorScript = preload("res://scripts/mirror/mirror_hydrator.gd")
 const MirrorPathResolverScript = preload("res://scripts/mirror/mirror_path_resolver.gd")
+const RemoteMirrorHydratorScript = preload("res://scripts/mirror/remote_mirror_hydrator.gd")
 
 ## Emitted when hydration completes (success or failure).
 signal hydration_finished(success: bool, message: String)
@@ -25,6 +26,8 @@ var hydrator: LibraryHydrator
 var mirror_hydrator
 var mirror_resolver
 var mirror_root: String = ""
+var remote_repository_url: String = ""
+var remote_hydrator
 var dialog: Node
 var tools_list_control: ItemList
 var status_label: Label
@@ -33,6 +36,7 @@ var scene_tree: SceneTree
 var active_hydration := false
 var current_missing_tools: Array = []
 var using_mirror := false
+var using_remote := false
 
 func setup(
 	hydration_dialog: Node,
@@ -41,7 +45,8 @@ func setup(
 	btn_download: Button,
 	mirror_url: String = "",
 	tree: SceneTree = null,
-	mirror_root_override: String = ""
+	mirror_root_override: String = "",
+	remote_repo_url: String = ""
 ) -> void:
 	"""Wires the hydration UI controls to the controller.
 	Parameters:
@@ -52,6 +57,7 @@ func setup(
 	  mirror_url (String): Mirror URL for downloads
 	  tree (SceneTree): Scene tree reference for timers (auto-detected if null)
 	  mirror_root_override (String): Optional mirror root path for offline hydration
+	  remote_repo_url (String): Optional remote repository.json URL
 	"""
 	dialog = hydration_dialog
 	tools_list_control = tools_list
@@ -63,6 +69,9 @@ func setup(
 	mirror_resolver = MirrorPathResolverScript.new()
 	mirror_root = mirror_root_override if not mirror_root_override.is_empty() else mirror_resolver.get_mirror_root()
 	mirror_hydrator = MirrorHydratorScript.new(mirror_root)
+	remote_repository_url = remote_repo_url
+	if not remote_repository_url.is_empty():
+		remote_hydrator = RemoteMirrorHydratorScript.new(remote_repository_url)
 	
 	# Wire signals
 	hydrator.tool_download_started.connect(_on_tool_download_started)
@@ -72,6 +81,10 @@ func setup(
 	mirror_hydrator.tool_install_started.connect(_on_tool_install_started)
 	mirror_hydrator.tool_install_complete.connect(_on_tool_install_complete)
 	mirror_hydrator.hydration_complete.connect(_on_hydration_complete)
+	if remote_hydrator != null:
+		remote_hydrator.tool_install_started.connect(_on_tool_install_started)
+		remote_hydrator.tool_install_complete.connect(_on_tool_install_complete)
+		remote_hydrator.hydration_complete.connect(_on_hydration_complete)
 	
 	download_button.pressed.connect(_on_download_button_pressed)
 	
@@ -96,22 +109,28 @@ func start_hydration(missing_tools: Array) -> void:
 	# Populate tools list
 	_populate_tools_list(missing_tools)
 
-	using_mirror = _is_mirror_available()
+	using_mirror = _is_local_mirror_available()
+	using_remote = false
 	if not using_mirror:
-		_update_status("Error: Mirror repository not found. Cannot install tools.")
-		_disable_download_button()
-		Logger.warn("hydration_blocked", {
-			"component": "library",
-			"reason": "mirror repository missing"
-		})
-		return
+		using_remote = _is_remote_mirror_available()
+		if not using_remote:
+			_update_status("Error: No mirror repository configured. Cannot install tools.")
+			_disable_download_button()
+			Logger.warn("hydration_blocked", {
+				"component": "library",
+				"reason": "mirror repository missing"
+			})
+			return
 	
 	# Show count of tools
 	var already_count = hydrator.count_already_installed(missing_tools)
 	var to_download = missing_tools.size() - already_count
 	
 	if to_download > 0:
-		_update_status("Ready to install %d tool(s) from mirror." % to_download)
+		if using_remote:
+			_update_status("Ready to download %d tool(s) from remote mirror." % to_download)
+		else:
+			_update_status("Ready to install %d tool(s) from local mirror." % to_download)
 		_enable_download_button()
 	else:
 		_update_status("All tools already in library!")
@@ -136,6 +155,18 @@ func update_mirror_root(new_mirror_root: String) -> void:
 	mirror_hydrator.tool_install_complete.connect(_on_tool_install_complete)
 	mirror_hydrator.hydration_complete.connect(_on_hydration_complete)
 	Logger.info("mirror_root_updated", {"component": "library", "path": mirror_root})
+
+## Updates the remote repository URL dynamically.
+func update_remote_repository_url(new_repo_url: String) -> void:
+	"""Updates the remote repository URL and recreates the remote hydrator."""
+	remote_repository_url = new_repo_url
+	remote_hydrator = null
+	if not remote_repository_url.is_empty():
+		remote_hydrator = RemoteMirrorHydratorScript.new(remote_repository_url)
+		remote_hydrator.tool_install_started.connect(_on_tool_install_started)
+		remote_hydrator.tool_install_complete.connect(_on_tool_install_complete)
+		remote_hydrator.hydration_complete.connect(_on_hydration_complete)
+	Logger.info("remote_repo_updated", {"component": "library"})
 
 # Private: Populates the tools list UI with missing tools.
 func _populate_tools_list(tools: Array) -> void:
@@ -191,7 +222,11 @@ func _on_download_button_pressed() -> void:
 	})
 
 	# Non-blocking: start hydration
-	var _result = mirror_hydrator.hydrate(current_missing_tools)
+	if using_remote and remote_hydrator != null:
+		_update_status("Starting remote mirror download...")
+		remote_hydrator.hydrate(current_missing_tools)
+		return
+	mirror_hydrator.hydrate(current_missing_tools)
 	# Note: Signals will update UI as progress happens
 
 # Private: Tool download started signal handler.
@@ -214,7 +249,10 @@ func _on_tool_download_complete(tool_id: String, version: String, success: bool,
 
 func _on_tool_install_started(tool_id: String, version: String) -> void:
 	"""Called when a mirror install starts."""
-	_update_status("Installing %s v%s from mirror..." % [tool_id, version])
+	if using_remote:
+		_update_status("Downloading %s v%s from remote mirror..." % [tool_id, version])
+	else:
+		_update_status("Installing %s v%s from local mirror..." % [tool_id, version])
 	Logger.debug("mirror_install_started", {
 		"component": "mirror",
 		"tool_id": tool_id,
@@ -264,9 +302,17 @@ func _get_status_message(success: bool, failed_tools: Array) -> String:
 		var fail_count = failed_tools.size()
 		return "Library hydration completed with %d failure(s)." % fail_count
 
-func _is_mirror_available() -> bool:
+func _is_local_mirror_available() -> bool:
 	"""Returns true when repository.json exists in the mirror root."""
 	if mirror_root.is_empty():
 		return false
 	var repo_path = mirror_root.path_join("repository.json")
 	return FileAccess.file_exists(repo_path)
+
+func _is_remote_mirror_available() -> bool:
+	"""Returns true when remote repository is configured and online is allowed."""
+	if remote_repository_url.is_empty():
+		return false
+	if OfflineEnforcer.is_offline():
+		return false
+	return true
