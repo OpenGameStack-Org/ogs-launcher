@@ -17,6 +17,7 @@ extends RefCounted
 class_name OfflineEnforcer
 
 const BLOCKED_ERROR_CODE := "network_blocked_offline"
+const SOCKET_BLOCKER = preload("res://scripts/network/socket_blocker.gd")
 
 static var _offline_active := false
 static var _reason := "unknown"
@@ -27,8 +28,10 @@ static func apply_config(config: OgsConfig) -> void:
 	  config (OgsConfig): Loaded config or null
 	"""
 	if config == null:
+		SOCKET_BLOCKER.reset_allowlist()
 		_set_offline(false, "unknown")
 		return
+	_apply_allowlist_config(config)
 	if config.force_offline:
 		_set_offline(true, "force_offline")
 		return
@@ -66,7 +69,18 @@ static func guard_network_call(context: String) -> Dictionary:
 
 static func reset() -> void:
 	"""Resets offline enforcement state for tests."""
+	SOCKET_BLOCKER.reset_allowlist()
 	_set_offline(false, "reset")
+
+static func _apply_allowlist_config(config: OgsConfig) -> void:
+	"""Applies config-based socket allowlist with secure defaults.
+	Parameters:
+	  config (OgsConfig): Loaded config containing allowed hosts/ports
+	"""
+	if config.allowed_hosts.is_empty() and config.allowed_ports.is_empty():
+		SOCKET_BLOCKER.reset_allowlist()
+		return
+	SOCKET_BLOCKER.set_allowlist(config.allowed_hosts, config.allowed_ports)
 
 static func _set_offline(active: bool, reason: String) -> void:
 	"""Updates internal state and environment flag.

@@ -30,6 +30,8 @@ Alternatively, for system-wide configuration:
 | `schema_version` | Integer | 1 | No | Must be `1` if present. |
 | `offline_mode` | Boolean | `false` | No | User-triggered air-gap activation. When true, disables network features. |
 | `force_offline` | Boolean | `false` | No | Immutable flag set during "Seal for Delivery". When true, enforces offline mode. |
+| `allowed_hosts` | Array[String] | `[]` | No | Optional host allowlist applied by launcher socket policy. Empty+no ports falls back to secure localhost defaults. |
+| `allowed_ports` | Array[Integer] | `[]` | No | Optional port allowlist (`1..65535`) applied by launcher socket policy. |
 
 ## Example
 
@@ -38,7 +40,9 @@ Alternatively, for system-wide configuration:
 {
   "schema_version": 1,
   "offline_mode": false,
-  "force_offline": false
+  "force_offline": false,
+  "allowed_hosts": ["github.com", "objects.githubusercontent.com"],
+  "allowed_ports": [443]
 }
 ```
 
@@ -64,7 +68,10 @@ Alternatively, for system-wide configuration:
 
 1. **All fields are optional** — Missing config file returns defaults with no error
 2. **Boolean-only for flags** — `offline_mode` and `force_offline` must be booleans if present
-3. **Schema version** — Only `1` is supported currently
+3. **Allowlist host format** — `allowed_hosts` must be an array of strings if present
+4. **Allowlist port format** — `allowed_ports` must be an array of integers if present
+5. **Allowlist port range** — each `allowed_ports` entry must be between `1` and `65535`
+6. **Schema version** — Only `1` is supported currently
 
 ### Validation Error Codes
 
@@ -77,6 +84,11 @@ Alternatively, for system-wide configuration:
 | `schema_version_unsupported` | schema_version is not 1 |
 | `offline_mode_not_bool` | offline_mode is not a boolean |
 | `force_offline_not_bool` | force_offline is not a boolean |
+| `allowed_hosts_not_array` | allowed_hosts is not an array |
+| `allowed_hosts_contains_non_string` | allowed_hosts has non-string entries |
+| `allowed_ports_not_array` | allowed_ports is not an array |
+| `allowed_ports_contains_non_int` | allowed_ports has non-integer entries |
+| `allowed_ports_out_of_range` | allowed_ports contains values outside 1..65535 |
 
 ## Operational Semantics
 
@@ -153,5 +165,4 @@ Logs are intended for operational events and avoid sensitive data such as full f
 Future versions may add:
 - `cache_dir` — Custom cache location for offline downloads
 - `log_file` — Path to persistent logs for debugging
-- `allowed_hosts` — Whitelist of allowed domains (even in offline mode)
 - `tool_config_overrides` — Per-tool environment variable injection

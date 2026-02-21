@@ -39,8 +39,10 @@ func _test_offline_blocks_socket(results: Dictionary) -> void:
 func _test_online_allows_socket_creation(results: Dictionary) -> void:
 	"""Verifies online mode creates sockets without connecting."""
 	OfflineEnforcer.reset()
-	SocketBlocker.set_allowlist(["example.com"])
-	var config = OgsConfigScript.from_dict({"offline_mode": false})
+	var config = OgsConfigScript.from_dict({
+		"offline_mode": false,
+		"allowed_hosts": ["example.com"]
+	})
 	OfflineEnforcer.apply_config(config)
 	var result = SocketBlocker.open_tcp_client("example.com", 80, false)
 	_expect(result["success"], "online socket creation should succeed", results)
@@ -50,8 +52,10 @@ func _test_online_allows_socket_creation(results: Dictionary) -> void:
 func _test_online_blocks_disallowed_host(results: Dictionary) -> void:
 	"""Verifies online mode blocks hosts not on the allowlist."""
 	OfflineEnforcer.reset()
-	SocketBlocker.set_allowlist(["example.com"])
-	var config = OgsConfigScript.from_dict({"offline_mode": false})
+	var config = OgsConfigScript.from_dict({
+		"offline_mode": false,
+		"allowed_hosts": ["example.com"]
+	})
 	OfflineEnforcer.apply_config(config)
 	var result = SocketBlocker.open_tcp_client("not-allowed.com", 80, false)
 	_expect(not result["success"], "disallowed host should be blocked", results)

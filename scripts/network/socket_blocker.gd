@@ -8,8 +8,10 @@ extends RefCounted
 class_name SocketBlocker
 
 ## Default allowlist for outbound connections.
-static var _allowed_hosts: Array[String] = ["localhost", "127.0.0.1"]
-static var _allowed_ports: Array[int] = []
+const DEFAULT_ALLOWED_HOSTS: Array[String] = ["localhost", "127.0.0.1"]
+const DEFAULT_ALLOWED_PORTS: Array[int] = []
+static var _allowed_hosts: Array[String] = DEFAULT_ALLOWED_HOSTS.duplicate()
+static var _allowed_ports: Array[int] = DEFAULT_ALLOWED_PORTS.duplicate()
 
 ## Error codes for socket operations.
 enum SocketError {
@@ -72,13 +74,17 @@ static func open_tcp_client(host: String, port: int, auto_connect: bool = true) 
 
 ## Sets an explicit allowlist for outbound connections.
 static func set_allowlist(hosts: Array[String], ports: Array[int] = []) -> void:
-	_allowed_hosts = hosts
-	_allowed_ports = ports
+	_allowed_hosts.clear()
+	for host in hosts:
+		_allowed_hosts.append(String(host).strip_edges().to_lower())
+	_allowed_ports.clear()
+	for port in ports:
+		_allowed_ports.append(int(port))
 
 ## Resets the allowlist to defaults.
 static func reset_allowlist() -> void:
-	_allowed_hosts = ["localhost", "127.0.0.1"]
-	_allowed_ports = []
+	_allowed_hosts = DEFAULT_ALLOWED_HOSTS.duplicate()
+	_allowed_ports = DEFAULT_ALLOWED_PORTS.duplicate()
 
 static func _is_allowed(host: String, port: int) -> Dictionary:
 	var normalized_host = host.strip_edges().to_lower()

@@ -28,11 +28,11 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
-tests passed: 192
+tests passed: 205
 tests failed: 0
 ```
 
-The test runner automatically exits when complete (~4.0-4.3 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~3.4-4.3 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
@@ -44,7 +44,7 @@ The test runner automatically exits when complete (~4.0-4.3 seconds) without req
 
 Unit tests validate pure logic without instantiating UI nodes. These run quickly and focus on data validation, parsing, and business logic.
 
-**Current unit test suites (23 total, 192 tests):**
+**Current unit test suites (23 total, 205 tests):**
 
 - **[tests/stack_manifest_tests.gd](tests/stack_manifest_tests.gd)** — Validates `stack.json` loading, schema compliance, and error codes.
   - Valid manifests pass
@@ -60,6 +60,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Float schema_version handling
   - Invalid JSON rejected
   - Boolean type enforcement for offline flags
+  - Allowlist parsing and validation (`allowed_hosts`, `allowed_ports`)
 
 - **[tests/stack_generator_tests.gd](tests/stack_generator_tests.gd)** — Validates manifest generation and serialization.
   - Default manifest contains standard tools
@@ -80,6 +81,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - offline_mode and force_offline enable enforcement
   - Disabled config keeps enforcement off
   - Guard allows when online and blocks when offline
+  - Config-driven allowlist application and secure default fallback
 
 - **[tests/tool_downloader_tests.gd](tests/tool_downloader_tests.gd)** — Validates that download attempts are blocked in offline mode and library integration.
   - Downloader initialization with mirror URL
@@ -95,7 +97,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
 
 - **[tests/socket_blocker_tests.gd](tests/socket_blocker_tests.gd)** — Validates socket blocking behavior.
   - Offline blocks socket creation
-  - Online creates sockets without connecting
+  - Online creates sockets without connecting (when allowlisted)
   - Online blocks hosts not on the allowlist
 
 - **[tests/logger_tests.gd](tests/logger_tests.gd)** — Validates structured logging behavior.

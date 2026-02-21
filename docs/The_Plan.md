@@ -125,7 +125,10 @@ The MVP is not complete until this full sequence works end to end:
     *   *Manifest Enforcement:* `sha256` is required for each tool entry in `repository.json`
     *   *Hydration Validation:* Local and remote mirror hydration verify archive SHA-256 before extraction
     *   *Failure Handling:* Hash mismatch blocks installation with explicit status/logging
-*   [ ] **Allowlist Policy** — (Config-driven) Firewall rules for tool execution.
+*   [x] **Allowlist Policy** — 100% Complete ✅
+    *   *Config Support:* `ogs_config.json` accepts `allowed_hosts` and `allowed_ports`
+    *   *Enforcement Wiring:* `OfflineEnforcer` applies config allowlists to `SocketBlocker`
+    *   *Secure Defaults:* Empty allowlist falls back to localhost-only policy
 
 ---
 

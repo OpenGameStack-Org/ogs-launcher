@@ -16,6 +16,8 @@ func run() -> Dictionary:
 	_test_force_offline(results)
 	_test_disabled(results)
 	_test_guard_allows_when_online(results)
+	_test_apply_allowlist_defaults(results)
+	_test_apply_allowlist_from_config(results)
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -70,3 +72,29 @@ func _test_guard_allows_when_online(results: Dictionary) -> void:
 	var result = OfflineEnforcer.guard_network_call("unit_test")
 	_expect(result["allowed"], "online guard should allow network", results)
 	_expect(result["error_code"] == "", "online guard should return no error code", results)
+
+func _test_apply_allowlist_defaults(results: Dictionary) -> void:
+	"""Verifies reset/default config restores localhost-only allowlist."""
+	OfflineEnforcer.reset()
+	SocketBlocker.set_allowlist(["example.com"])
+	OfflineEnforcer.apply_config(null)
+	var localhost_result = SocketBlocker.open_tcp_client("localhost", 80, false)
+	var external_result = SocketBlocker.open_tcp_client("example.com", 80, false)
+	_expect(localhost_result["success"], "default allowlist should permit localhost", results)
+	_expect(not external_result["success"], "default allowlist should block external hosts", results)
+
+func _test_apply_allowlist_from_config(results: Dictionary) -> void:
+	"""Verifies config allowlist is applied to socket policy."""
+	OfflineEnforcer.reset()
+	var config = OgsConfigScript.from_dict({
+		"offline_mode": false,
+		"allowed_hosts": ["example.com"],
+		"allowed_ports": [443]
+	})
+	OfflineEnforcer.apply_config(config)
+	var allowed_result = SocketBlocker.open_tcp_client("example.com", 443, false)
+	var blocked_port_result = SocketBlocker.open_tcp_client("example.com", 80, false)
+	var blocked_host_result = SocketBlocker.open_tcp_client("localhost", 443, false)
+	_expect(allowed_result["success"], "config allowlist should allow listed host/port", results)
+	_expect(not blocked_port_result["success"], "config allowlist should block unlisted port", results)
+	_expect(not blocked_host_result["success"], "config allowlist should block unlisted host", results)

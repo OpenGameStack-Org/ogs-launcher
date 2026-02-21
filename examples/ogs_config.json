@@ -1,5 +1,12 @@
 {
   "schema_version": 1,
   "offline_mode": false,
-  "force_offline": false
+  "force_offline": false,
+  "allowed_hosts": [
+    "github.com",
+    "objects.githubusercontent.com"
+  ],
+  "allowed_ports": [
+    443
+  ]
 }
