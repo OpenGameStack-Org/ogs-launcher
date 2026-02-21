@@ -197,7 +197,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 **Steps:**
 1. Click "Settings" button in sidebar to navigate to Settings page
 2. In "Mirror Settings" section, observe the "Mirror Root:" field
-3. Note current status in "Mirror status:" label (should say "Using default location" or show a path)
+3. Note current status in "Mirror status:" label (should say "Remote repository configured" unless the remote URL was cleared)
 4. Click "Reset to Default" button
 5. Observe status changes; field should clear or show default path
 
@@ -205,7 +205,9 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ Settings page loads without errors
 - ✅ "Mirror Root:" field is visible and editable
 - ✅ "Reset to Default" button sets field to default/empty
-- ✅ "Mirror status:" label updates to: **"Mirror status: Using default location"** (gray text)
+- ✅ "Mirror status:" label updates to:
+  - **"Mirror status: Remote repository configured"** if the default remote URL is present
+  - **"Mirror status: Using default location"** if the remote URL is cleared
 - ✅ Changes persist if you close and reopen the launcher (check settings later)
 
 **Pass Criteria:**
@@ -236,6 +238,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ "Remote Repo URL:" field accepts text input
 - ✅ "Mirror status:" label updates to show: **"Mirror status: Remote repository configured"** (blue or distinct color)
 - ✅ URL persists after closing/reopening launcher
+- ✅ Clicking **"Reset to Default"** restores the default repository URL
 
 **Pass Criteria:**
 - Remote repository field is wired and functional

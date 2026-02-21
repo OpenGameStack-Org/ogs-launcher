@@ -351,15 +351,15 @@ func _on_mirror_repo_text_changed(new_text: String) -> void:
 	if hydration_controller != null:
 		hydration_controller.update_remote_repository_url(mirror_repository_url)
 
-## Called when mirror repository URL clear button is pressed.
+## Called when mirror repository URL reset button is pressed.
 func _on_mirror_repo_clear_pressed() -> void:
-	"""Clears the remote repository URL setting."""
-	mirror_repository_url = ""
-	mirror_repo_path.text = ""
+	"""Resets the remote repository URL setting to the default."""
+	mirror_repository_url = DEFAULT_REMOTE_REPO_URL
+	mirror_repo_path.text = mirror_repository_url
 	_save_mirror_settings()
 	_update_mirror_status()
 	if hydration_controller != null:
-		hydration_controller.update_remote_repository_url("")
+		hydration_controller.update_remote_repository_url(mirror_repository_url)
 
 ## Updates the mirror status indicator.
 func _update_mirror_status() -> void:
