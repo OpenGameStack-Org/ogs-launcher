@@ -9,8 +9,8 @@
     },
     {
       "id": "blender",
-      "version": "4.2",
-      "path": "tools/blender_4.2/blender.exe"
+      "version": "4.5.7",
+      "path": "tools/blender_4.5.7/blender.exe"
     }
   ]
 }

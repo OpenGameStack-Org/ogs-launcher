@@ -15,7 +15,7 @@ Two sample projects are provided in `samples/`:
 
 - **sample_project_sealed:** Sealed-style sample (self-contained archive reference)
   - `force_offline=true` (offline mode enforced)
-  - Tools in sealed subdirectories: `tools/godot_4.3/`, `tools/blender_4.2/`
+  - Tools in sealed subdirectories: `tools/godot_4.3/`, `tools/blender_4.5.7/`
   - Demonstrates how sealed projects behave
 
 ## Running Manual Tests
@@ -38,7 +38,7 @@ Two sample projects are provided in `samples/`:
 5. Observe the tools list and button states
 
 **Expected Results:**
-- ✅ Tools list populates with "godot v4.3" and "blender v4.2"
+- ✅ Tools list populates with "godot v4.3" and "blender v4.5.7"
 - ✅ "Repair Environment" button appears and is **orange** (indicating action needed)
 - ✅ "Seal for Delivery" button is **disabled** (grayed out with tooltip: "Repair environment first to seal project.")
 - ✅ Status label shows: "Manifest loaded (X tool(s) missing - use 'Repair Environment' to download)."
@@ -63,7 +63,7 @@ Two sample projects are provided in `samples/`:
 5. Observe the tools list and button states
 
 **Expected Results:**
-- ✅ Tools list populates with "godot v4.3" and "blender v4.2"
+- ✅ Tools list populates with "godot v4.3" and "blender v4.5.7"
 - ✅ "Repair Environment" button appears and is **orange** (offline mode doesn't suppress missing-tool detection)
 - ✅ Online-only buttons (if any) remain disabled due to `force_offline=true`
 - ✅ Offline status shows: "Offline: Forced (force_offline=true)"
@@ -156,7 +156,7 @@ Two sample projects are provided in `samples/`:
 2. Load `sample_project` from Projects page (should show missing tools)
 3. Click "Repair Environment" button
 4. In the "Repair Environment" dialog, observe:
-   - List of missing tools (e.g., "godot v4.3", "blender v4.2")
+  - List of missing tools (e.g., "godot v4.3", "blender v4.5.7")
   - Status message shows: "Ready to install X tool(s) from local mirror." (or remote if configured)
 5. Click "Download and Install" button
 6. Monitor the status label for progress:
