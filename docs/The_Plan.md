@@ -132,22 +132,108 @@ The MVP is not complete until this full sequence works end to end:
 
 ---
 
-### Phase 3: Hardening (Future / Post-Conference)
-**Status:** Post-MVP
-*   [ ] **Git LFS Integration** — (Optional) Advanced workflow for Git-based teams.
-*   [ ] **Godot Hardened Build** (Source Stripping).
-*   [ ] **RMF Evidence Generation**.
+### Phase 2.5: UX Refinement - Per-Tool Download Workflow
+**Status:** 🔄 In Progress (Sprint: Feb 22-28, 2026)
+*Focus: Replace batch "Repair Environment" with granular per-tool discovery and download.*
+
+#### 📋 Short-Term Tasks (Current Sprint)
+Granular, actionable items for the Tools/Projects page redesign:
+
+**Schema & Data Layer:**
+*   [ ] Add `category` field to repository.json schema (values: "Engine", "2D", "3D", "Audio")
+*   [ ] Update MirrorRepository.validate_data() to accept optional category field
+*   [ ] Add hardcoded category fallback in launcher (godot→Engine, blender→3D, krita→2D, audacity→Audio)
+*   [ ] Update MIRROR_SCHEMA.md documentation for category field
+*   [ ] Add unit tests for category validation and fallback logic
+
+**Tools Page Redesign (UI):**
+*   [ ] Create new Tools page scene structure:
+    *   [ ] "Installed" section with category grouping (Engine/2D/3D/Audio)
+    *   [ ] "Available" section with category grouping + Download buttons
+    *   [ ] Offline fallback message ("Connect online or visit GitHub to see available tools")
+*   [ ] Build ToolsController class:
+    *   [ ] Fetch remote repository.json on startup (with offline fallback)
+    *   [ ] Cross-reference remote tools with library to determine installed vs available
+    *   [ ] Categorize and sort tools by category + version
+    *   [ ] Handle individual tool download button clicks
+    *   [ ] Add "Refresh" button to manually re-fetch repository.json
+*   [ ] Wire ToolsController to existing MirrorHydrator/RemoteMirrorHydrator for downloads
+
+**Projects Page Updates:**
+*   [ ] Add visual indicators to project tool list:
+    *   [ ] ⚠️ Yellow warning triangle: tool not installed but available in repository
+    *   [ ] ❌ Red X: tool not installed and not available
+    *   [ ] Tooltip on hover: "Tool not installed. Click to download."
+*   [ ] Implement click-through navigation: clicking tool → jump to Tools page + highlight tool
+*   [ ] Remove "Repair Environment" button from Projects page
+*   [ ] Remove LibraryHydrationController integration from Projects page
+
+**Progress Dialog Modularity:**
+*   [ ] Refactor progress dialog to support:
+    *   [ ] Single download (current requirement)
+    *   [ ] Extensible architecture for future batch/queue operations
+    *   [ ] Reusable component design (can be called from Tools or Projects page)
+
+**Testing & Documentation:**
+*   [ ] Update unit tests: remove repair workflow tests, add per-tool download tests
+*   [ ] Update scene tests: new Tools page structure and Projects page indicators
+*   [ ] Rewrite MANUAL_TESTING.md: replace repair scenario with per-tool download workflow
+*   [ ] Update Design_Doc.md: remove references to "Repair Environment" button
+*   [ ] Migration note: document deprecation of batch repair in favor of per-tool downloads
+
+---
+
+### Phase 3: Mid-Term Enhancements (March-May 2026)
+**Status:** Planned
+*Focus: Multi-tool operations, advanced UI, and performance optimization.*
+
+**Multi-Tool Operations:**
+*   Multi-select downloads (select multiple tools in Available section, "Download All Selected" button)
+*   "Download All for Project" button on Projects page (one-click install all missing tools)
+*   Download queue management (queue multiple tools, download sequentially with unified progress)
+
+**Advanced UI:**
+*   Collapsible category/tool/version sections (avoid overwhelming UI as repository grows)
+*   Version filtering (show only latest, show all, show only versions needed by projects)
+*   Tool search and filtering (find tools by name, category, or version)
+
+**Library Management:**
+*   Tool uninstall capability (remove unused tools from library to reclaim disk space)
+*   Library disk usage analytics (show space used per tool, total library size)
+*   Cleanup recommendations (identify unused tools across all projects)
+
+**Performance & Caching:**
+*   Cache remote repository.json locally (reduce network calls, faster startup)
+*   Lazy-load tool metadata (only fetch details when user expands category)
+*   Background refresh (check for repository updates without blocking UI)
+
+---
+
+### Phase 4: Long-Term Vision (Post-Showcase/Backlog)
+**Status:** Future
+*Focus: Advanced workflows, compliance, and ecosystem expansion.*
+
+*   **Git LFS Integration** — Advanced workflow for Git-based teams to version-control tool binaries
+*   **Custom Repository Support** — Allow users to configure additional tool sources beyond GitHub Releases
+*   **Tool Update Notifications** — Alert users when newer versions of installed tools are available
+*   **Godot Hardened Build** — Source stripping and security hardening for defense simulation environments
+*   **RMF Evidence Generation** — Automated compliance reporting for defense/simulation standards
+*   **Multi-Platform Support** — Expand beyond Windows to Linux and macOS builds
+*   **Plugin System** — Allow community-contributed tool integrations and custom workflows
 
 ---
 
 ## Progress Tracking
-*   **Foundation:** Completed Feb 15.
-*   **Showcase MVP:** Central Library, Hydration, and Seal for Delivery complete (Feb 18).
-*   **Test Suite:** Comprehensive coverage (~4.0-4.3 sec execution), all suites documented including startup verification tests.
-*   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal). Clean separation of concerns across codebase.
-*   **Manual Testing:** Split into two tiers: Editor-mode (8 tests for rapid iteration) and Installed-Build (7 tests for real-world validation). See [MANUAL_TESTING.md](MANUAL_TESTING.md).
+*   **Foundation (Phase 1):** Completed Feb 15, 2026
+*   **Showcase MVP (Phase 1.5):** Central Library, Hydration, and Seal for Delivery complete Feb 18, 2026
+*   **Mirror Infrastructure (Phase 2):** Mirror client + GitHub Releases complete Feb 20, 2026
+*   **Path Field Refactor:** Made optional in stack.json, library-based resolution complete Feb 22, 2026
+*   **Current Sprint (Phase 2.5):** UX Refinement - Per-Tool Download Workflow (Feb 22-29, 2026)
+*   **Test Suite:** 207 tests passing (~3.5 sec execution), comprehensive coverage across all components
+*   **Refactoring:** Controller pattern established (Projects, Hydration, Layout, Seal, Tools)
+*   **Manual Testing:** Split into two tiers: Editor-mode (8 tests) and Installed-Build (7 tests). See [MANUAL_TESTING.md](MANUAL_TESTING.md).
 
-## Summary: Phase 1.5 + Phase 2 Complete
+## Summary: Phase 1.5 + Phase 2 Complete, Phase 2.5 In Progress
 
 **Mirror Infrastructure (Phase 2) Completed Feb 20, 2026:**
 - Mirror client implementation (MirrorRepository, MirrorPathResolver, MirrorHydrator)
@@ -155,19 +241,32 @@ The MVP is not complete until this full sequence works end to end:
 - Remote repository.json support (GitHub Releases)
 - Onboarding wizard for first-run default stack bootstrap
 - Allowlist policy (config-driven socket filtering for network security)
-- Comprehensive test coverage (205 unit + scene tests, ~3.4 sec execution time)
+- Comprehensive test coverage (207 unit + scene tests, ~3.5 sec execution time)
 - Full offline-only (air-gap safe) architecture
 
-**Manual Testing Framework (Phase 2+, Feb 21, 2026):**
-- Editor-mode testing guide: 8 tests for UI/logic validation in development
-- Installed-build testing guide: 7 tests for packaging/portability in production
-- Progressive disclosure: report findings after each test for iterative fixes
+**Path Field Made Optional (Feb 22, 2026):**
+- stack.json `path` field is now optional (library-based resolution by default)
+- ToolLauncher resolves executables from central library when path omitted
+- Backward compatible: existing manifests with paths still work
+- Migration notes added to MANIFEST_SCHEMA.md
 
-**Next: Mirror Server Scale-Out (Post-MVP)**
-- S3/GitHub Releases for standard frozen stack binaries
-- Master repository.json for Launcher to query
- - Scale-out hosting and access controls
+**Current Sprint (Phase 2.5) - Feb 22-29, 2026:**
+- UX Refinement: Replacing batch "Repair Environment" with per-tool discovery and download
+- Tools page split into Installed/Available sections with category grouping
+- Projects page adds visual indicators (⚠️/❌) for missing tools
+- Click-through navigation from project tools to Tools page
+- Remote repository.json fetching on startup with offline fallback
 
-**Post-Showcase: Phase 3 Hardening**
+**Next: Mid-Term Enhancements (Phase 3 - March-May 2026)**
+- Multi-select downloads and download queue management
+- Collapsible UI sections for scalability
+- Tool uninstall and library cleanup capabilities
+- Performance optimizations and caching
+
+**Post-Showcase: Long-Term Vision (Phase 4)**
+- Git LFS integration for team workflows
+- Custom repository support beyond GitHub Releases
+- Tool update notifications and version management
 - Godot hardened build with source stripping
 - RMF evidence generation for defense simulation compliance
+- Multi-platform support (Linux, macOS)
