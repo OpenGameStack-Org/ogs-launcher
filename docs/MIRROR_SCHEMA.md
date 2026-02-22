@@ -78,7 +78,7 @@ mirror_root/
 ```json
 {
   "schema_version": 1,
-  "mirror_name": "OGS Standard Frozen Stacks",
+  "mirror_name": "OGS Tool Catalog",
   "tools": [
     {
       "id": "godot",

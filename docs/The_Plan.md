@@ -119,7 +119,7 @@ The MVP is not complete until this full sequence works end to end:
     *   *Tests:* Comprehensive test coverage (schema validation, path safety, hydration, UI integration)
 *   [x] **Mirror Server Infrastructure (Initial)** — GitHub Releases (v1.0)
     *   *Hosting:* GitHub Releases for "White Box" binaries
-    *   *Master Manifest:* repository.json for standard frozen stack
+    *   *Master Manifest:* repository.json for the Tool Catalog (standard profile)
     *   *Repo:* OpenGameStack-Org/ogs-frozen-stacks
 *   [x] **Hash Verification** — 100% Complete ✅
     *   *Manifest Enforcement:* `sha256` is required for each tool entry in `repository.json`

@@ -5,6 +5,41 @@ The **Open Game Stack (OGS) Launcher** is a standalone application designed to b
 
 ---
 
+## 1.5. Terminology & Architecture
+To avoid confusion, the OGS ecosystem operates on a three-tier architecture:
+
+### 1.5.1 Tool Catalog (Remote)
+*   **What:** The [ogs-frozen-stacks](https://github.com/OpenGameStack-Org/ogs-frozen-stacks) GitHub repository.
+*   **Contains:** A `repository.json` manifest listing available tool versions with download URLs, SHA-256 hashes, and metadata.
+*   **Purpose:** Acts as the **authoritative source** for tool discovery. The Launcher fetches this manifest to show users what tools are available for download.
+*   **Analogy:** Like a package registry (npm, PyPI) but for pre-validated simulation tools.
+
+### 1.5.2 Central Library (Local)
+*   **What:** A machine-wide tool storage directory managed by the Launcher.
+*   **Location:** `%LOCALAPPDATA%/OGS/Library` (Windows) or `~/.config/ogs-launcher/library` (Unix).
+*   **Contains:** Extracted tool binaries organized by `[tool_id]/[version]/` (e.g., `Library/godot/4.3/`).
+*   **Purpose:** Shared storage for tool installations. Multiple projects can reference the same Godot 4.3 installation without duplicating gigabytes of binaries.
+*   **Analogy:** Like `~/.nvm` (Node Version Manager) or Unity Hub's installation directory.
+
+### 1.5.3 Frozen Stack (Per-Project)
+*   **What:** A **version-pinned toolchain specification** defined in each project's `stack.json`.
+*   **Contains:** Exact tool IDs and versions required to build/run that specific project (e.g., `"godot": "4.3"`, `"blender": "4.5.7"`).
+*   **Purpose:** Guarantees reproducibility. A project's stack is "frozen" in time—tools never auto-update unless the developer explicitly modifies `stack.json`.
+*   **Two Forms:**
+    *   **Linked (Development):** `stack.json` references tools in the Central Library. The `./tools/` folder is empty.
+    *   **Sealed (Delivery):** `stack.json` + embedded binaries in `./tools/`. Fully self-contained for air-gapped deployment.
+*   **Analogy:** Like `package-lock.json` (npm) or `Pipfile.lock` (Python) but for simulation toolchains.
+
+### 1.5.4 Mirror (Optional Offline Distribution)
+*   **What:** A portable directory containing tool archives (`.zip` files) and a `repository.json` manifest.
+*   **Location:** User-configurable local path (e.g., USB drive, network share).
+*   **Purpose:** Enables tool installation in disconnected environments. Instead of downloading from GitHub, the Launcher can hydrate the Central Library from a local mirror.
+*   **Analogy:** Like an offline Debian repository mirror or a vendored `node_modules` folder.
+
+**Key Distinction:** The **ogs-frozen-stacks repository** is the **Tool Catalog** (what's available), while a project's **Frozen Stack** is a **version-locked subset** of those tools (what this project uses).
+
+---
+
 ## 2. Core Philosophy: The Two States of a Simulation
 To support both modern CI/CD workflows and long-term archiving, OGS defines two distinct states for a simulation project:
 
@@ -111,7 +146,7 @@ This is the critical utility that converts a **State 1 (Linked)** project into a
 For high-security deployments, the OGS-Launcher is paired with a **"Hardened Build"** of the Godot Engine.
 
 ### 7.1 Compilation Flags (SCons)
-When compiling the "Frozen Stack" version of Godot 4.3 for Sovereign Mode:
+When compiling the **Hardened Build** of Godot 4.3 for Sovereign Mode:
 *   `module_upnp_enabled=no` (Disables Universal Plug and Play)
 *   `module_webrtc_enabled=no` (Disables WebRTC)
 *   `module_websocket_enabled=no` (Disables WebSocket)
