@@ -56,6 +56,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="PageProjects" type="VBoxContainer" parent="AppLayout/Content"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -114,6 +115,7 @@ layout_mode = 2
 text = "Repair Environment"
 
 [node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
+visible = false
 layout_mode = 2
 
 [node name="Label" type="Label" parent="AppLayout/Content/PageEngine"]
@@ -122,12 +124,150 @@ text = "Engine Manager"
 
 [node name="PageTools" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="AppLayout/Content/PageTools"]
+[node name="ToolsToolbar" type="HBoxContainer" parent="AppLayout/Content/PageTools"]
 layout_mode = 2
-text = "Tools Manager"
+
+[node name="ToolsTitle" type="Label" parent="AppLayout/Content/PageTools/ToolsToolbar"]
+layout_mode = 2
+text = "Tools"
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="AppLayout/Content/PageTools/ToolsToolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RefreshButton" type="Button" parent="AppLayout/Content/PageTools/ToolsToolbar"]
+layout_mode = 2
+text = "Refresh"
+
+[node name="ToolsStatusLabel" type="Label" parent="AppLayout/Content/PageTools"]
+modulate = Color(1, 0.8, 0.2, 1)
+layout_mode = 2
+text = "Status: Loading..."
+
+[node name="OfflineMessage" type="Label" parent="AppLayout/Content/PageTools"]
+visible = false
+modulate = Color(1, 0.6, 0.2, 1)
+layout_mode = 2
+text = "⚠️ Offline Mode: Connect online or visit GitHub to download tools"
+horizontal_alignment = 1
+
+[node name="ToolsTabs" type="TabContainer" parent="AppLayout/Content/PageTools"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Installed" type="ScrollContainer" parent="AppLayout/Content/PageTools/ToolsTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="InstalledContent" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="EngineSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent"]
+layout_mode = 2
+
+[node name="EngineHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/EngineSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Engine"
+
+[node name="EngineTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/EngineSection"]
+layout_mode = 2
+
+[node name="2DSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent"]
+layout_mode = 2
+
+[node name="2DHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/2DSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2D Tools"
+
+[node name="2DTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/2DSection"]
+layout_mode = 2
+
+[node name="3DSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent"]
+layout_mode = 2
+
+[node name="3DHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/3DSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "3D Tools"
+
+[node name="3DTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/3DSection"]
+layout_mode = 2
+
+[node name="AudioSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent"]
+layout_mode = 2
+
+[node name="AudioHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/AudioSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Audio Tools"
+
+[node name="AudioTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/AudioSection"]
+layout_mode = 2
+
+[node name="Download" type="ScrollContainer" parent="AppLayout/Content/PageTools/ToolsTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="DownloadContent" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="EngineSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent"]
+layout_mode = 2
+
+[node name="EngineHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/EngineSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Engine"
+
+[node name="EngineTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/EngineSection"]
+layout_mode = 2
+
+[node name="2DSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent"]
+layout_mode = 2
+
+[node name="2DHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/2DSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2D Tools"
+
+[node name="2DTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/2DSection"]
+layout_mode = 2
+
+[node name="3DSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent"]
+layout_mode = 2
+
+[node name="3DHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/3DSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "3D Tools"
+
+[node name="3DTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/3DSection"]
+layout_mode = 2
+
+[node name="AudioSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent"]
+layout_mode = 2
+
+[node name="AudioHeader" type="Label" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/AudioSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Audio Tools"
+
+[node name="AudioTools" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/AudioSection"]
+layout_mode = 2
 
 [node name="PageSettings" type="VBoxContainer" parent="AppLayout/Content"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 

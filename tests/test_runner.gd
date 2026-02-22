@@ -53,6 +53,7 @@ func _process(_delta: float) -> bool:
 	load("res://scripts/library/library_hydration_controller.gd")
 	load("res://scripts/onboarding/onboarding_wizard.gd")
 	load("res://scripts/tools/tool_category_mapper.gd")
+	load("res://scripts/tools/tools_controller.gd")
 	
 	var summary := {
 		"passed": 0,
@@ -68,6 +69,7 @@ func _process(_delta: float) -> bool:
 		"res://tests/stack_generator_tests.gd",
 		"res://tests/projects_controller_scene_tests.gd",
 		"res://tests/main_scene_tests.gd",
+		"res://tests/tools_page_scene_tests.gd",
 		"res://tests/tool_launcher_tests.gd",
 		"res://tests/offline_enforcer_tests.gd",
 		"res://tests/tool_downloader_tests.gd",
@@ -86,6 +88,7 @@ func _process(_delta: float) -> bool:
 		"res://tests/mirror_hydrator_tests.gd",
 		"res://tests/remote_mirror_hydrator_tests.gd",
 		"res://tests/tool_category_mapper_tests.gd",
+		"res://tests/tools_controller_tests.gd",
 		"res://tests/startup_tests.gd",
 	]
 	

@@ -228,6 +228,12 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Invalid repository JSON fails validation
   - Missing archive file reports failures
 
+- **[tests/tools_controller_tests.gd](tests/tools_controller_tests.gd)** — Validates Tools page controller tracking.
+  - Download tracking state (active/inactive)
+  - Missing tool download rejection
+  - Duplicate download suppression
+  - Repository data availability flag
+
 - **[tests/library_hydration_controller_tests.gd](tests/library_hydration_controller_tests.gd)** — Validates mirror integration into repair workflow.
   - Mirror availability detection (repository.json presence check)
   - Button state management (disable when mirror missing, enable when ready)
@@ -253,6 +259,11 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - main.tscn loads without errors
   - All page nodes exist (Projects, Engine, Tools, Settings)
   - New Project button exists
+
+- **[tests/tools_page_scene_tests.gd](tests/tools_page_scene_tests.gd)** — Scene tests for Tools page UI.
+  - Tools/Download tab nodes exist
+  - Online/offline status label updates
+  - Download button disablement during active download
 
 ### Startup Tests (Initialization Verification)
 

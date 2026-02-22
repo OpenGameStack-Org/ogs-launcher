@@ -16,6 +16,25 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 @onready var btn_tools = $AppLayout/Sidebar/VBoxContainer/BtnTools
 @onready var btn_settings = $AppLayout/Sidebar/VBoxContainer/BtnSettings
 
+# Tools page UI nodes
+@onready var tools_toolbar = $AppLayout/Content/PageTools/ToolsToolbar
+@onready var tools_refresh_button = $AppLayout/Content/PageTools/ToolsToolbar/RefreshButton
+@onready var tools_status_label = $AppLayout/Content/PageTools/ToolsStatusLabel
+@onready var tools_offline_message = $AppLayout/Content/PageTools/OfflineMessage
+@onready var tools_tabs = $AppLayout/Content/PageTools/ToolsTabs
+
+# Installed tab containers
+@onready var installed_engine_tools = $AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/EngineSection/EngineTools
+@onready var installed_2d_tools = $AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/"2DSection"/"2DTools"
+@onready var installed_3d_tools = $AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/"3DSection"/"3DTools"
+@onready var installed_audio_tools = $AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent/AudioSection/AudioTools
+
+# Download tab containers
+@onready var download_engine_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/EngineSection/EngineTools
+@onready var download_2d_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/"2DSection"/"2DTools"
+@onready var download_3d_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/"3DSection"/"3DTools"
+@onready var download_audio_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/AudioSection/AudioTools
+
 @onready var project_path_line_edit = $AppLayout/Content/PageProjects/ProjectsControls/ProjectPathLineEdit
 @onready var btn_browse_project = $AppLayout/Content/PageProjects/ProjectsControls/BrowseButton
 @onready var btn_load_project = $AppLayout/Content/PageProjects/ProjectsControls/LoadButton
@@ -66,10 +85,12 @@ var projects_controller: ProjectsController
 var hydration_controller: LibraryHydrationController
 var layout_controller: LayoutController
 var seal_controller: SealController
+var tools_controller: ToolsController
 var onboarding_wizard: OnboardingWizard
 var mirror_root_override: String = ""
 var mirror_repository_url: String = ""
 var settings_file_path: String = ""
+var tool_cards: Dictionary = {}  # {"tool_id_version": {panel, button, progress_bar}}
 
 ## Resolves the base OGS data directory.
 func _resolve_ogs_root_path() -> String:
@@ -181,6 +202,20 @@ func _ready():
 	mirror_repo_path.text_changed.connect(_on_mirror_repo_text_changed)
 	mirror_repo_clear_button.pressed.connect(_on_mirror_repo_clear_pressed)
 	_update_mirror_status()
+	
+	# Set up tools controller for tools page
+	var repo_url = mirror_repository_url if not mirror_repository_url.is_empty() else DEFAULT_REMOTE_REPO_URL
+	tools_controller = ToolsController.new(get_tree(), repo_url)
+	tools_controller.tool_list_updated.connect(_on_tools_list_updated)
+	tools_controller.tool_list_refresh_failed.connect(_on_tools_refresh_failed)
+	tools_controller.tool_download_started.connect(_on_tool_download_started)
+	tools_controller.tool_download_complete.connect(_on_tool_download_complete)
+	tools_controller.tool_download_progress.connect(_on_tool_download_progress)
+	tools_controller.connectivity_checked.connect(_on_connectivity_checked)
+	tools_refresh_button.pressed.connect(_on_tools_refresh_pressed)
+	
+	# Initial tools refresh will happen when user navigates to tools page
+	layout_controller.page_changed.connect(_on_layout_page_changed)
 
 	_collect_network_ui_nodes()
 	_apply_offline_ui(false)
@@ -192,10 +227,9 @@ func _ready():
 	if onboarding_wizard.should_show_wizard():
 		onboarding_wizard.show_wizard()
 
-func _on_page_changed(_page_name: String) -> void:
+func _on_page_changed(page_name: String) -> void:
 	"""Called when LayoutController changes pages."""
-	# Page visibility is handled by LayoutController
-	pass
+	_on_layout_page_changed(page_name)
 
 func _collect_network_ui_nodes() -> void:
 	"""Collects all UI nodes tagged as network-related."""
@@ -420,3 +454,352 @@ func _on_wizard_completed(success: bool, message: String) -> void:
 		Logger.info("wizard_startup_complete", {"component": "onboarding", "message": message})
 	else:
 		Logger.warn("wizard_startup_failed", {"component": "onboarding", "message": message})
+
+##============================================================
+## TOOLS PAGE HANDLERS
+##============================================================
+
+## Signal handler: page navigation changed.
+func _on_layout_page_changed(page_name: String) -> void:
+	"""Refreshes tools list when navigating to tools page."""
+	if page_name == "tools" and tools_controller != null:
+		# Check connectivity first
+		tools_controller.check_connectivity()
+		
+		if not tools_controller.has_repository_data():
+			tools_controller.refresh_tool_list()
+
+## Signal handler: connectivity check completed.
+func _on_connectivity_checked(is_online: bool) -> void:
+	"""Updates status label based on connectivity."""
+	_update_tools_connectivity_status(is_online)
+
+## Updates Tools status label to Online/Offline only.
+func _update_tools_connectivity_status(is_online: bool) -> void:
+	"""Applies online/offline status to the Tools status label."""
+	if is_online:
+		tools_status_label.text = "Status: Online ✓"
+		tools_status_label.modulate = Color.GREEN
+		tools_offline_message.visible = false
+	else:
+		tools_status_label.text = "Status: Offline ⚠️"
+		tools_status_label.modulate = Color(1, 0.6, 0.2, 1)
+		tools_offline_message.visible = true
+
+## Signal handler: tools refresh button pressed.
+func _on_tools_refresh_pressed() -> void:
+	"""Manually refreshes the tools list."""
+	if tools_controller != null:
+		tools_controller.refresh_tool_list()
+
+## Signal handler: tools list updated successfully.
+func _on_tools_list_updated() -> void:
+	"""Repopulates UI when tools data is refreshed."""
+	_update_tools_connectivity_status(tools_controller.is_online())
+	_populate_tools_ui()
+
+## Signal handler: tools refresh failed.
+func _on_tools_refresh_failed(_error_message: String) -> void:
+	"""Shows error or offline message."""
+	_update_tools_connectivity_status(tools_controller.is_online())
+	# Keep offline message synced with connectivity only
+
+## Signal handler: tool download completed.
+func _on_tool_download_complete(tool_id: String, version: String, success: bool) -> void:
+	"""Refreshes UI after tool download."""
+	if success:
+		Logger.info("tool_download_complete_ui", {
+			"component": "tools",
+			"tool_id": tool_id,
+			"version": version
+		})
+		_populate_tools_ui()  # Refresh to move tool from Download to Installed
+	_update_tools_connectivity_status(tools_controller.is_online())
+	_update_download_button_states()
+
+## Signal handler: tool install started (after download).
+func _on_tool_download_started(tool_id: String, version: String) -> void:
+	"""Shows install phase after download completes."""
+	var key = "%s_%s" % [tool_id, version]
+	var card_data = tool_cards.get(key)
+	
+	if card_data != null:
+		var tool_progress_bar = card_data.get("progress_bar")
+		var progress_label = card_data.get("progress_label")
+		var progress_container = card_data.get("progress_container")
+		
+		if progress_container != null:
+			progress_container.visible = true
+		if tool_progress_bar != null:
+			tool_progress_bar.indeterminate = true
+			tool_progress_bar.value = 0
+		if progress_label != null:
+			progress_label.text = "Installing..."
+			progress_label.visible = true
+
+## Signal handler: tool download progress updated.
+func _on_tool_download_progress(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int) -> void:
+	"""Updates progress bar for downloading tool."""
+	var key = "%s_%s" % [tool_id, version]
+	var card_data = tool_cards.get(key)
+	
+	if card_data != null and card_data.has("progress_bar"):
+		var tool_progress_bar = card_data["progress_bar"]
+		var progress_label = card_data.get("progress_label")
+		var progress_container = card_data.get("progress_container")
+		var phase = card_data.get("phase", "download")
+		
+		if progress_container != null:
+			progress_container.visible = true
+		if tool_progress_bar != null:
+			tool_progress_bar.visible = true
+			if phase == "download" and total_bytes > 0:
+				tool_progress_bar.indeterminate = false
+				tool_progress_bar.value = (bytes_downloaded * 100.0) / total_bytes
+				
+				if bytes_downloaded >= total_bytes:
+					card_data["phase"] = "install"
+					tool_progress_bar.indeterminate = true
+					tool_progress_bar.value = 0
+					if progress_label != null:
+						progress_label.text = "Installing..."
+						progress_label.visible = true
+					return
+		
+		if progress_label != null and phase == "download":
+			var downloaded_mb = bytes_downloaded / (1024.0 * 1024.0)
+			var total_mb = total_bytes / (1024.0 * 1024.0)
+			progress_label.text = "%.1f / %.1f MB" % [downloaded_mb, total_mb]
+			progress_label.visible = true
+
+## Populates the tools UI with categorized tools.
+func _populate_tools_ui() -> void:
+	"""Builds tool cards from controller data."""
+	if tools_controller == null:
+		return
+	
+	# Clear existing tool cards and tracking
+	tool_cards.clear()
+	_clear_tool_containers()
+	
+	var categorized_tools = tools_controller.get_categorized_tools()
+	
+	# Populate each category
+	for category in categorized_tools.keys():
+		var tools = categorized_tools[category]
+		if tools.is_empty():
+			continue
+		
+		for tool in tools:
+			if tool["installed"]:
+				_add_tool_card_to_category(category, tool, true)
+			else:
+				_add_tool_card_to_category(category, tool, false)
+
+	_update_download_button_states()
+
+## Clears all tool card containers.
+func _clear_tool_containers() -> void:
+	"""Removes all children from tool containers."""
+	for container in [
+		installed_engine_tools, installed_2d_tools, installed_3d_tools, installed_audio_tools,
+		download_engine_tools, download_2d_tools, download_3d_tools, download_audio_tools
+	]:
+		if container != null:
+			for child in container.get_children():
+				child.queue_free()
+
+## Adds a tool card to the appropriate category container.
+func _add_tool_card_to_category(category: String, tool: Dictionary, is_installed: bool) -> void:
+	"""Creates and adds a tool card to a category section.
+	Parameters:
+	  category (String): "Engine", "2D", "3D", or "Audio"
+	  tool (Dictionary): Tool data from controller
+	  is_installed (bool): Whether to use installed or available section
+	"""
+	var container: VBoxContainer = null
+	
+	# Determine which container to use
+	if is_installed:
+		match category:
+			"Engine": container = installed_engine_tools
+			"2D": container = installed_2d_tools
+			"3D": container = installed_3d_tools
+			"Audio": container = installed_audio_tools
+	else:
+		match category:
+			"Engine": container = download_engine_tools
+			"2D": container = download_2d_tools
+			"3D": container = download_3d_tools
+			"Audio": container = download_audio_tools
+	
+	if container == null:
+		return
+	
+	# Create tool card
+	var card = _create_tool_card(tool, is_installed)
+	container.add_child(card)
+
+## Creates a tool card UI element.
+func _create_tool_card(tool: Dictionary, is_installed: bool) -> PanelContainer:
+	"""Builds a tool card with info and action button.
+	Parameters:
+	  tool (Dictionary): Tool data
+	  is_installed (bool): Whether tool is installed
+	Returns:
+	  PanelContainer: The tool card UI element
+	"""
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 80)
+	
+	var main_vbox = VBoxContainer.new()
+	card.add_child(main_vbox)
+	
+	# Top row: Tool info and button
+	var hbox = HBoxContainer.new()
+	main_vbox.add_child(hbox)
+	
+	# Tool info section
+	var vbox = VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(vbox)
+	
+	# Tool name and version
+	var name_label = Label.new()
+	name_label.text = "%s %s" % [tool["id"].capitalize(), tool["version"]]
+	name_label.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(name_label)
+	
+	# Size info
+	var size_label = Label.new()
+	if tool.get("size_bytes", 0) > 0:
+		var size_mb = tool["size_bytes"] / (1024.0 * 1024.0)
+		size_label.text = "Size: %.1f MB" % size_mb
+		size_label.modulate = Color(0.7, 0.7, 0.7, 1.0)
+	vbox.add_child(size_label)
+	
+	# Action button
+	var button = Button.new()
+	if is_installed:
+		button.text = "Installed ✓"
+		button.disabled = true
+	else:
+		# Check if currently downloading
+		var is_downloading = tools_controller.is_downloading(tool["id"], tool["version"])
+		if is_downloading:
+			button.text = "Cancel"
+			button.pressed.connect(_on_cancel_tool_download.bind(tool["id"], tool["version"]))
+		else:
+			button.text = "Download"
+			button.pressed.connect(_on_download_tool_pressed.bind(tool["id"], tool["version"]))
+	
+	hbox.add_child(button)
+	
+	# Progress bar (initially hidden, shown during download)
+	var progress_container = HBoxContainer.new()
+	progress_container.visible = false
+	main_vbox.add_child(progress_container)
+	
+	var tool_progress_bar = ProgressBar.new()
+	tool_progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tool_progress_bar.show_percentage = false
+	progress_container.add_child(tool_progress_bar)
+	
+	var progress_label = Label.new()
+	progress_label.text = "0 / 0 MB"
+	progress_label.custom_minimum_size = Vector2(100, 0)
+	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	progress_container.add_child(progress_label)
+	
+	# Store card references for progress updates
+	if not is_installed:
+		var key = "%s_%s" % [tool["id"], tool["version"]]
+		tool_cards[key] = {
+			"panel": card,
+			"button": button,
+			"tool_id": tool["id"],
+			"version": tool["version"],
+			"progress_bar": tool_progress_bar,
+			"progress_label": progress_label,
+			"progress_container": progress_container,
+			"phase": "download"
+		}
+		
+		# Show progress if already downloading
+		var is_downloading = tools_controller.is_downloading(tool["id"], tool["version"])
+		if is_downloading:
+			progress_container.visible = true
+	
+	return card
+
+## Signal handler: download tool button pressed.
+func _on_download_tool_pressed(tool_id: String, version: String) -> void:
+	"""Initiates tool download."""
+	Logger.info("tool_download_initiated", {
+		"component": "tools",
+		"tool_id": tool_id,
+		"version": version
+	})
+	
+	if tools_controller != null:
+		tools_controller.download_tool(tool_id, version)
+		_update_tools_connectivity_status(tools_controller.is_online())
+		_update_download_button_states()
+		
+		# Update the button to Cancel and show progress bar
+		var key = "%s_%s" % [tool_id, version]
+		var card_data = tool_cards.get(key)
+		if card_data != null:
+			var button = card_data.get("button")
+			var progress_container = card_data.get("progress_container")
+			
+			if button != null:
+				button.text = "Cancel"
+				# Disconnect old signal and connect cancel handler
+				for connection in button.pressed.get_connections():
+					button.pressed.disconnect(connection["callable"])
+				button.pressed.connect(_on_cancel_tool_download.bind(tool_id, version))
+			
+			if progress_container != null:
+				progress_container.visible = true
+
+## Signal handler: cancel tool download button pressed.
+func _on_cancel_tool_download(tool_id: String, version: String) -> void:
+	"""Cancels an ongoing tool download."""
+	Logger.info("tool_download_cancel_requested", {
+		"component": "tools",
+		"tool_id": tool_id,
+		"version": version
+	})
+	
+	if tools_controller != null:
+		tools_controller.cancel_download(tool_id, version)
+		_update_tools_connectivity_status(tools_controller.is_online())
+		
+		# Refresh UI to reset button state
+		_populate_tools_ui()
+
+## Updates download button states based on active downloads.
+func _update_download_button_states() -> void:
+	"""Disables other download buttons while one is active."""
+	if tools_controller == null:
+		return
+	
+	var any_active = tools_controller.has_active_downloads()
+	for card_data in tool_cards.values():
+		var button = card_data.get("button")
+		if button == null:
+			continue
+		
+		var tool_id = card_data.get("tool_id", "")
+		var version = card_data.get("version", "")
+		var is_active = tools_controller.is_downloading(tool_id, version)
+		
+		if is_active:
+			button.disabled = false
+			button.tooltip_text = ""
+			button.text = "Cancel"
+		else:
+			button.text = "Download"
+			button.disabled = any_active
+			button.tooltip_text = "Wait for the current download to finish." if any_active else ""
