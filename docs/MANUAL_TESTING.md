@@ -42,6 +42,8 @@ To ensure a clean slate for testing, delete all persistent launcher data:
 
 **IMPORTANT:** Back up any existing projects, tools, or settings you want to keep before deleting data. Fresh-state cleanup is destructive and cannot be undone.
 
+**NOTE ON AUTOMATED TESTS:** The automated test suite uses a completely isolated test library (`%LOCALAPPDATA%\OGS_TEST\Library`) and does not affect your production data at `%LOCALAPPDATA%\OGS`. You can safely run automated tests at any time without impacting manual testing data. See [TESTING.md](TESTING.md#test-library-isolation) for details.
+
 **Option A: Using PowerShell (Recommended)**
 ```powershell
 # Remove all OGS launcher data
@@ -280,42 +282,116 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 ---
 
-### Editor Test 7: Repair Environment Dialog — UI Structure
+### Editor Test 7: Repair Environment — Real Repair Workflow
 
-**Objective:** Verify repair environment dialog displays correctly and allows interaction (without actually downloading).
+**Objective:** Perform a real repair by downloading/extracting tools and verify the process completes successfully.
+
+**Prerequisites (IMPORTANT — Check Before Starting):**
+1. Verify tool archives are available via **EITHER**:
+   - **Local Mirror:** Tool ZIP files exist in `%LOCALAPPDATA%\OGS\Mirror\` with correct structure:
+     ```
+     %LOCALAPPDATA%\OGS\Mirror\
+     ├── godot/4.3/godot_4.3.zip
+     └── blender/4.5.7/blender_4.5.7.zip
+     ```
+   - **Remote Repository:** Remote URL is configured in Settings and points to a valid `repository.json` with downloadable tool links
+   - **Check Settings page:** Mirror status should show "Local mirror ready" OR "Remote repository configured"
+2. If neither is available, SKIP to Test 9 (offline enforcement); Test 7 requires actual tool archives
 
 **Steps:**
-1. Load sample_project (development state)
+1. Load sample_project (development state with missing tools)
 2. Click "Repair Environment" button
 3. Observe the repair dialog that opens
-4. Read the status message and tools list
-5. DO NOT click "Download and Install" button (skip actual download for editor testing)
-6. Close the dialog by clicking the X or "Cancel"
+4. Verify status message:
+   - "Ready to install 2 tool(s) from local mirror." (if local archives exist)
+   - "Ready to download 2 tool(s) from remote mirror." (if remote configured)
+5. Click "Download and Install" button
+6. Watch progress as tools are extracted/downloaded to `%LOCALAPPDATA%\OGS\Library\`
+7. Wait for dialog to complete (may take 30+ seconds depending on archive sizes)
+8. Observe final status when complete
+9. Close repair dialog by clicking OK or X
 
 **Expected Results:**
 - ✅ Repair dialog appears without errors
-- ✅ Dialog title indicates "Repair Environment"
-- ✅ Tools list shows the 2 missing tools: "godot v4.3" and "blender v4.5.7"
-- ✅ Status message shows: **"Ready to install 2 tool(s) from local mirror."** (or remote if configured)
-  - If no local mirror: "No local mirror repository found."
-  - If remote configured: "Ready to download 2 tool(s) from remote mirror."
-- ✅ "Download and Install" button is visible and enabled
-- ✅ Dialog closes cleanly when dismissed
+- ✅ Dialog title: "Repair Environment"
+- ✅ Tools list shows: "godot v4.3" and "blender v4.5.7"
+- ✅ Status message correctly identifies mirror availability
+- ✅ Repair progresses without crashes (status updates during process)
+- ✅ Tools are extracted to `%LOCALAPPDATA%\OGS\Library\` correctly:
+  - `%LOCALAPPDATA%\OGS\Library\godot\4.3\` contains tool files
+  - `%LOCALAPPDATA%\OGS\Library\blender\4.5.7\` contains tool files
+- ✅ Repair completes and dialog closes
+- ✅ No unhandled exceptions in console output
 
 **Pass Criteria:**
-- Repair dialog UI is complete and responsive
-- Status message correctly identifies mirror availability
-- Tools list is accurate
+- Repair workflow executes without crashes
+- Tools are properly extracted/installed to library
+- Progress is visible during operation
+- Process completes successfully
 
 **If test fails:**
-- Check HydrationDialog scene structure
-- Verify hydration_tools_list nodes exist in scene
-- Confirm hydration_status_label is wired in main.gd
-- Check LibraryHydrationController setup() logic
+- Check that tool archives exist in expected location
+- Verify Settings shows "Local mirror ready" or "Remote repository configured"
+- Check console for extraction/download errors
+- Verify write permissions to `%LOCALAPPDATA%\OGS\Library\`
+- If using remote, confirm network is accessible
+- Check hydration_status_label output for specific error messages
 
 ---
 
-### Editor Test 8: Offline Mode Enforcement — Launch Tool with Offline Active
+### Editor Test 8: Seal Button Enabled & Real Seal Operation
+
+**Objective:** Verify seal button enables after successful repair and perform a real seal operation.
+
+**Prerequisites:**
+- Editor Test 7 completed successfully (tools now present in library)
+- sample_project still loaded from Test 7
+
+**Steps:**
+1. Reload sample_project to refresh environment state (click Browse, navigate to sample_project, click Load)
+2. Observe that the "Seal for Delivery" button is now **enabled** (green, no longer grayed out)
+3. Verify seal button tooltip is cleared (should not say "Repair environment first")
+4. Click "Seal for Delivery" button
+5. Observe seal dialog that opens
+6. Monitor seal progress through stages:
+   - "Validating project..."
+   - "Copying tools..."
+   - "Creating archive..."
+   - Final status
+7. When complete, note the sealed archive location and filename
+8. (Optional) Click "Open Sealed Folder" to verify archive was created
+9. Close seal dialog
+
+**Expected Results:**
+- ✅ Seal button transitions from disabled → enabled (green color)
+- ✅ Seal button tooltip is empty or cleared
+- ✅ Clicking seal button opens seal dialog without errors
+- ✅ Seal dialog displays:
+  - Title: "Seal for Delivery"
+  - Status label progressing through stages
+  - Output/log area showing operations
+- ✅ Seal process completes without crashes
+- ✅ Final status shows: **"✓ Sealed successfully!"** (or similar success message)
+- ✅ Sealed .zip archive is created with substantial size (>5 MB, confirming tools embedded)
+- ✅ Archive filename includes timestamp or project name (e.g., `sample_project_sealed_20260221.zip`)
+- ✅ Dialog closes cleanly
+
+**Pass Criteria:**
+- Seal button correctly transitions to enabled state
+- Seal dialog renders and responds without errors
+- Seal operation completes successfully
+- Archive is created and accessible
+
+**If test fails:**
+- Verify `%LOCALAPPDATA%\OGS\Library\godot\4.3\` and `%LOCALAPPDATA%\OGS\Library\blender\4.5.7\` contain files
+- Check console for seal operation errors
+- Confirm write permissions to output directory (typically user's home)
+- Verify SealController.seal_for_delivery() logic
+- Check seal_dialog scene structure in main.tscn
+
+---
+
+### Editor Test 9: Offline Mode Enforcement — Launch Tool with Offline Active
 
 **Objective:** Verify that launching a tool when offline is prevented with clear error messaging.
 
@@ -356,8 +432,9 @@ After completing Editor Tests 1-8, fill in this table:
 | 4: Mirror Config UI | ✅/⚠️/❌ | | |
 | 5: Remote Repo Config | ✅/⚠️/❌ | | |
 | 6: Seal Button States | ✅/⚠️/❌ | | |
-| 7: Repair Dialog UI | ✅/⚠️/❌ | | |
-| 8: Offline Tool Launch | ✅/⚠️/❌ | | |
+| 7: Real Repair Workflow | ✅/⚠️/❌ | | |
+| 8: Seal Button & Real Seal | ✅/⚠️/❌ | | |
+| 9: Offline Tool Launch | ✅/⚠️/❌ | | |
 
 ---
 

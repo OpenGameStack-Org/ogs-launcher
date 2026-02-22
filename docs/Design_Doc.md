@@ -11,8 +11,9 @@ To support both modern CI/CD workflows and long-term archiving, OGS defines two 
 ### 2.1 State 1: The "Linked" Project (Development)
 *   **Context:** Connected Developer Workstation.
 *   **Structure:** A lightweight root folder containing a `stack.json` manifest and the source assets.
-*   **Binaries:** The project does *not* contain heavy tool binaries. Instead, it "links" to a **Central Tool Library** managed by the Launcher (located in `%LOCALAPPDATA%/OGS/Library`).
+*   **Binaries:** The project does *not* contain heavy tool binaries. Instead, it "links" to a **Central Tool Library** managed by the Launcher (located in `%LOCALAPPDATA%/OGS/Library` on Windows, or `~/.config/ogs-launcher/library` on Unix).
 *   **Efficiency:** Multiple projects using "Godot 4.3" share the same single installation, mimicking the efficiency of Unity Hub or NVM.
+*   **Testing Note:** For automated testing, this path can be overridden via the `OGS_LIBRARY_ROOT` environment variable to isolate tests from production data. See [TESTING.md](TESTING.md#test-library-isolation).
 
 ### 2.2 State 2: The "Sealed" Artifact (Delivery)
 *   **Context:** Air-Gapped / Sovereign Sustainment.

@@ -17,6 +17,8 @@ func run() -> Dictionary:
 		"failures": []
 	}
 	
+	_cleanup_library()
+	
 	var tests = [
 		{"name": "test_downloader_initializes", "func": test_downloader_initializes},
 		{"name": "test_offline_blocks_download", "func": test_offline_blocks_download},
@@ -35,7 +37,37 @@ func run() -> Dictionary:
 				results.failures.append("%s: %s" % [test.name, result["error"]])
 			else:
 				results.failures.append("%s: unknown error" % test.name)
+	
+	_cleanup_library()
 	return results
+
+func _cleanup_library() -> void:
+	"""Removes test tool directories from the library."""
+	var appdata = OS.get_environment("LOCALAPPDATA")
+	if appdata.is_empty():
+		appdata = OS.get_user_data_dir()
+	# Use test-isolated library path set by test_runner
+	var library_root = appdata.path_join("OGS_TEST").path_join("Library")
+	if DirAccess.dir_exists_absolute(library_root):
+		for tool_id in ["godot", "blender", "krita", "audacity", "nonexistent_tool_xyz"]:
+			var tool_dir = library_root.path_join(tool_id)
+			if DirAccess.dir_exists_absolute(tool_dir):
+				_recursive_remove_dir(tool_dir)
+
+func _recursive_remove_dir(path: String) -> void:
+	"""Recursively removes a directory and all its contents."""
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			var full_path = path.path_join(file_name)
+			if dir.current_is_dir():
+				_recursive_remove_dir(full_path)
+			else:
+				DirAccess.remove_absolute(full_path)
+			file_name = dir.get_next()
+	DirAccess.remove_absolute(path)
 
 func test_downloader_initializes() -> Dictionary:
 	"""Verifies downloader initializes with proper default state."""
@@ -54,6 +86,7 @@ func test_downloader_initializes() -> Dictionary:
 
 func test_offline_blocks_download() -> Dictionary:
 	"""Verifies offline mode blocks download attempts."""
+	_cleanup_library()
 	OfflineEnforcer.reset()
 	var config = OgsConfigScript.from_dict({"offline_mode": true})
 	OfflineEnforcer.apply_config(config)
@@ -71,6 +104,7 @@ func test_offline_blocks_download() -> Dictionary:
 
 func test_mirror_not_configured_fails() -> Dictionary:
 	"""Verifies download fails when mirror is not configured."""
+	_cleanup_library()
 	OfflineEnforcer.reset()
 	var config = OgsConfigScript.from_dict({"offline_mode": false})
 	OfflineEnforcer.apply_config(config)

@@ -110,7 +110,7 @@ func extract_to_library(archive_path: String, tool_id: String, version: String) 
 	
 	# Create target directory if it doesn't exist
 	if not DirAccess.dir_exists_absolute(target_dir):
-		var err = DirAccess.make_dir_absolute(target_dir)
+		var err = DirAccess.make_dir_recursive_absolute(target_dir)
 		if err != OK:
 			result["error_code"] = ExtractionError.EXTRACTION_FAILED
 			result["error_message"] = "Failed to create target directory"

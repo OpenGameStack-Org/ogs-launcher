@@ -8,8 +8,10 @@ const LibraryHydrationControllerScript = preload("res://scripts/library/library_
 func run() -> Dictionary:
 	"""Runs LibraryHydrationController unit tests."""
 	var results = {"passed": 0, "failed": 0, "failures": []}
+	_cleanup_library_root()
 	_test_blocks_when_mirror_missing(results)
 	_test_enables_when_mirror_present(results)
+	_cleanup_library_root()
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -40,14 +42,55 @@ func _cleanup_nodes(nodes: Array) -> void:
 		if node:
 			node.free()
 
+func _cleanup_library_root() -> void:
+	"""Removes test tool directories from the library to start fresh."""
+	var appdata = OS.get_environment("LOCALAPPDATA")
+	if appdata.is_empty():
+		appdata = OS.get_user_data_dir()
+	# Use test-isolated library path set by test_runner
+	var library_root = appdata.path_join("OGS_TEST").path_join("Library")
+	if DirAccess.dir_exists_absolute(library_root):
+		# Remove test tool directories
+		for tool_id in ["godot", "blender", "krita", "audacity"]:
+			var tool_dir = library_root.path_join(tool_id)
+			if DirAccess.dir_exists_absolute(tool_dir):
+				_recursive_remove_dir(tool_dir)
+
+func _recursive_remove_dir(path: String) -> void:
+	"""Recursively removes a directory and all its contents."""
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			var full_path = path.path_join(file_name)
+			if dir.current_is_dir():
+				_recursive_remove_dir(full_path)
+			else:
+				DirAccess.remove_absolute(full_path)
+			file_name = dir.get_next()
+	DirAccess.remove_absolute(path)
+
 func _write_repository_file(mirror_root: String) -> void:
 	"""Writes a minimal valid repository.json file to the mirror root."""
 	if not DirAccess.dir_exists_absolute(mirror_root):
 		DirAccess.make_dir_recursive_absolute(mirror_root)
 	var repo_path = mirror_root.path_join("repository.json")
+	var repo_data = {
+		"schema_version": 1,
+		"mirror_name": "Test",
+		"tools": [
+			{
+				"id": "godot",
+				"version": "4.3",
+				"archive_path": "tools/godot/4.3/godot.zip",
+				"sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			}
+		]
+	}
 	var file = FileAccess.open(repo_path, FileAccess.WRITE)
 	if file:
-		file.store_string("{\"schema_version\":1,\"mirror_name\":\"Test\",\"tools\":[{\"id\":\"godot\",\"version\":\"4.3\",\"archive_path\":\"tools/godot/4.3/godot.zip\",\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"}]}")
+		file.store_string(JSON.stringify(repo_data))
 		file.close()
 
 func _remove_repository_file(mirror_root: String) -> void:

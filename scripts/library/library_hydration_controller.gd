@@ -35,6 +35,7 @@ var download_button: Button
 var scene_tree: SceneTree
 var active_hydration := false
 var current_missing_tools: Array = []
+var tools_index_map: Array = []
 var using_mirror := false
 var using_remote := false
 
@@ -102,8 +103,8 @@ func start_hydration(missing_tools: Array) -> void:
 	
 	current_missing_tools = missing_tools
 	
-	# Show dialog
-	if dialog and not dialog.visible:
+	# Show dialog (only if in tree, e.g., not in unit tests)
+	if dialog and not dialog.visible and dialog.is_inside_tree():
 		dialog.popup_centered_ratio(0.5)
 	
 	# Populate tools list
@@ -172,6 +173,7 @@ func update_remote_repository_url(new_repo_url: String) -> void:
 func _populate_tools_list(tools: Array) -> void:
 	"""Shows the missing tools in the list control."""
 	tools_list_control.clear()
+	tools_index_map.clear()
 	
 	for tool_entry in tools:
 		var tool_id = tool_entry.get("tool_id", "unknown")
@@ -182,6 +184,7 @@ func _populate_tools_list(tools: Array) -> void:
 			label += " (already installed)"
 		
 		tools_list_control.add_item(label)
+		tools_index_map.append(tool_entry)
 
 # Private: Updates the status label.
 func _update_status(message: String) -> void:
@@ -211,6 +214,21 @@ func _on_download_button_pressed() -> void:
 	if current_missing_tools.is_empty():
 		_update_status("No tools to download.")
 		return
+
+	var selected_tools: Array = []
+	if tools_list_control:
+		var selected_indices = tools_list_control.get_selected_items()
+		if not selected_indices.is_empty():
+			for index in selected_indices:
+				if index >= 0 and index < tools_index_map.size():
+					selected_tools.append(tools_index_map[index])
+			if selected_tools.is_empty():
+				_update_status("No valid tools selected.")
+				return
+		else:
+			selected_tools = current_missing_tools
+	else:
+		selected_tools = current_missing_tools
 	
 	active_hydration = true
 	_disable_download_button()
@@ -218,15 +236,15 @@ func _on_download_button_pressed() -> void:
 	
 	Logger.info("hydration_started", {
 		"component": "library",
-		"tool_count": current_missing_tools.size()
+		"tool_count": selected_tools.size()
 	})
 
 	# Non-blocking: start hydration
 	if using_remote and remote_hydrator != null:
 		_update_status("Starting remote mirror download...")
-		remote_hydrator.hydrate(current_missing_tools)
+		remote_hydrator.hydrate(selected_tools)
 		return
-	mirror_hydrator.hydrate(current_missing_tools)
+	mirror_hydrator.hydrate(selected_tools)
 	# Note: Signals will update UI as progress happens
 
 # Private: Tool download started signal handler.

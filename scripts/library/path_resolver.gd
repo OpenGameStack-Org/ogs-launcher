@@ -21,9 +21,22 @@ extends RefCounted
 class_name PathResolver
 
 ## Returns the root directory for the central library.
-## On Windows: %LOCALAPPDATA%/OGS/Library
-## On Unix:    ~/.config/ogs-launcher/library
+## On Windows: %LOCALAPPDATA%/OGS/Library (or %OGS_LIBRARY_ROOT% if set)
+## On Unix:    ~/.config/ogs-launcher/library (or $OGS_LIBRARY_ROOT if set)
+## 
+## OGS_LIBRARY_ROOT environment variable can override the default path,
+## useful for test isolation.
 func get_library_root() -> String:
+	# Check for test override first
+	var override_root = OS.get_environment("OGS_LIBRARY_ROOT")
+	if not override_root.is_empty():
+		Logger.debug("library_root_override", {
+			"component": "library",
+			"path": override_root,
+			"reason": "OGS_LIBRARY_ROOT env var set"
+		})
+		return override_root
+	
 	var root: String
 	
 	if OS.get_name() == "Windows":

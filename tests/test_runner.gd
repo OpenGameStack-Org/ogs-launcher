@@ -23,6 +23,10 @@ func _process(_delta: float) -> bool:
 		return true
 	
 	should_quit = true
+	
+	# Set up test-isolated library path to prevent test/production conflicts
+	_setup_test_library()
+	
 	print("TestRunner: Starting test execution...")
 	
 	# Pre-load classes to register class_name
@@ -108,6 +112,47 @@ func _process(_delta: float) -> bool:
 	exit_code = 1 if summary["failed"] > 0 else 0
 	print("TestRunner: Tests complete, exiting with code %d" % exit_code)
 	
+	# Clean up test library
+	_cleanup_test_library()
+	
 	# Exit on the next frame
 	quit(exit_code)
 	return true
+
+func _setup_test_library() -> void:
+	"""Sets up an isolated test library directory and sets OGS_LIBRARY_ROOT env var."""
+	var appdata = OS.get_environment("LOCALAPPDATA")
+	if appdata.is_empty():
+		# Fall back to user data dir on non-Windows
+		appdata = OS.get_user_data_dir()
+	var test_library_root = appdata.path_join("OGS_TEST").path_join("Library")
+	
+	# Set environment variable so PathResolver uses test path
+	OS.set_environment("OGS_LIBRARY_ROOT", test_library_root)
+	print("TestRunner: Test library isolated to %s" % test_library_root)
+
+func _cleanup_test_library() -> void:
+	"""Removes test library directory after tests complete."""
+	var appdata = OS.get_environment("LOCALAPPDATA")
+	if appdata.is_empty():
+		appdata = OS.get_user_data_dir()
+	var test_library_root = appdata.path_join("OGS_TEST").path_join("Library")
+	
+	if DirAccess.dir_exists_absolute(test_library_root):
+		_recursive_remove_dir(test_library_root)
+		print("TestRunner: Cleaned up test library at %s" % test_library_root)
+
+func _recursive_remove_dir(path: String) -> void:
+	"""Recursively removes a directory and all its contents."""
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			var full_path = path.path_join(file_name)
+			if dir.current_is_dir():
+				_recursive_remove_dir(full_path)
+			else:
+				DirAccess.remove_absolute(full_path)
+			file_name = dir.get_next()
+	DirAccess.remove_absolute(path)

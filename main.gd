@@ -126,6 +126,11 @@ func _ready():
 	)
 	seal_controller.seal_completed.connect(_on_seal_completed)
 	
+	# Load mirror settings BEFORE setting up hydration controller
+	# so that remote repository URL is available
+	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
+	_load_mirror_settings()
+	
 	# Set up hydration controller and wire signals
 	hydration_controller = LibraryHydrationController.new()
 	hydration_controller.setup(
@@ -153,9 +158,7 @@ func _ready():
 	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
 	projects_controller.environment_ready.connect(_on_environment_ready)
 
-	# Settings for mirror configuration
-	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
-	_load_mirror_settings()
+	# Wire settings UI controls for mirror configuration
 	mirror_root_path.text_changed.connect(_on_mirror_root_text_changed)
 	mirror_root_browse_button.pressed.connect(_on_mirror_root_browse_pressed)
 	mirror_root_reset_button.pressed.connect(_on_mirror_root_reset_pressed)

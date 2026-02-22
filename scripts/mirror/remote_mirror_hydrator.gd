@@ -306,7 +306,8 @@ func _http_download_to_file(url: String, dest_path: String, redirect_count: int 
 	if not parsed["success"]:
 		return {"success": false, "error": "invalid_url"}
 	var client = HTTPClient.new()
-	var err = client.connect_to_host(parsed["host"], parsed["port"], parsed["use_tls"])
+	var tls_options = TLSOptions.client() if parsed["use_tls"] else null
+	var err = client.connect_to_host(parsed["host"], parsed["port"], tls_options)
 	if err != OK:
 		return {"success": false, "error": "connect_failed"}
 	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
@@ -369,21 +370,65 @@ func _http_request(url: String) -> Dictionary:
 	var parsed = _parse_url(url)
 	if not parsed["success"]:
 		return {"success": false, "error": "invalid_url"}
+	
 	var client = HTTPClient.new()
-	var err = client.connect_to_host(parsed["host"], parsed["port"], parsed["use_tls"])
+	var tls_options = TLSOptions.client() if parsed["use_tls"] else null
+	
+	Logger.debug("http_connecting", {
+		"component": "mirror",
+		"host": parsed["host"],
+		"port": parsed["port"],
+		"use_tls": parsed["use_tls"]
+	})
+	
+	var err = client.connect_to_host(parsed["host"], parsed["port"], tls_options)
 	if err != OK:
+		Logger.error("http_connect_error", {
+			"component": "mirror",
+			"error_code": err,
+			"host": parsed["host"],
+			"port": parsed["port"]
+		})
 		return {"success": false, "error": "connect_failed"}
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
+	
+	# Wait for connection with timeout
+	var max_polls = 100  # ~1 second with 10ms delays
+	var poll_count = 0
+	while (client.get_status() == HTTPClient.STATUS_CONNECTING or 
+		   client.get_status() == HTTPClient.STATUS_RESOLVING) and poll_count < max_polls:
 		client.poll()
 		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
+		poll_count += 1
+	
+	var final_status = client.get_status()
+	Logger.debug("http_after_connect", {
+		"component": "mirror",
+		"status": _status_name(final_status),
+		"poll_count": poll_count
+	})
+	
+	if final_status != HTTPClient.STATUS_CONNECTED:
+		Logger.error("http_connection_failed", {
+			"component": "mirror",
+			"status": _status_name(final_status),
+			"host": parsed["host"],
+			"port": parsed["port"]
+		})
 		return {"success": false, "error": "connection_failed"}
+	
 	var request_err = client.request(HTTPClient.METHOD_GET, parsed["path"], ["User-Agent: OGS-Launcher"])
 	if request_err != OK:
+		Logger.error("http_request_error", {
+			"component": "mirror",
+			"error_code": request_err,
+			"path": parsed["path"]
+		})
 		return {"success": false, "error": "request_failed"}
+	
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
+	
 	var status_code = client.get_response_code()
 	var headers = _parse_headers(client.get_response_headers())
 	var chunks: Array = []
@@ -394,6 +439,13 @@ func _http_request(url: String) -> Dictionary:
 			OS.delay_msec(10)
 			continue
 		chunks.append(chunk)
+	
+	Logger.debug("http_response_received", {
+		"component": "mirror",
+		"status_code": status_code,
+		"chunk_count": chunks.size()
+	})
+	
 	return {"success": true, "status_code": status_code, "headers": headers, "body_chunks": chunks}
 
 ## Parses response headers into a dictionary.
@@ -405,6 +457,19 @@ func _parse_headers(headers: Array) -> Dictionary:
 		if parts.size() == 2:
 			result[parts[0].strip_edges().to_lower()] = parts[1].strip_edges()
 	return result
+
+## Helper to convert HTTPClient status code to name.
+func _status_name(status: int) -> String:
+	"""Converts HTTPClient status constant to readable name."""
+	match status:
+		HTTPClient.STATUS_DISCONNECTED: return "DISCONNECTED"
+		HTTPClient.STATUS_RESOLVING: return "RESOLVING"
+		HTTPClient.STATUS_CONNECTING: return "CONNECTING"
+		HTTPClient.STATUS_CONNECTED: return "CONNECTED"
+		HTTPClient.STATUS_REQUESTING: return "REQUESTING"
+		HTTPClient.STATUS_BODY: return "BODY"
+		HTTPClient.STATUS_CONNECTION_ERROR: return "CONNECTION_ERROR"
+		_: return "UNKNOWN(%d)" % status
 
 ## Parses a URL into host/port/path fields.
 func _parse_url(url: String) -> Dictionary:

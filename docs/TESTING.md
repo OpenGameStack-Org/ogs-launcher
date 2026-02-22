@@ -28,15 +28,55 @@ godot --headless --script res://tests/test_runner.gd
 
 Expected output:
 ```
+TestRunner: Test library isolated to C:\Users\[user]\AppData\Local/OGS_TEST/Library
 tests passed: 205
 tests failed: 0
+TestRunner: Cleaned up test library at C:\Users\[user]\AppData\Local/OGS_TEST/Library
 ```
 
-The test runner automatically exits when complete (~3.4-4.3 seconds) without requiring manual termination.
+The test runner automatically exits when complete (~3.4-4.6 seconds) without requiring manual termination.
 
 **Notes:**
 - You may see `ERROR: Parse JSON failed` messages during test runs. These are expected from tests that validate invalid JSON handling.
 - The test runner uses `_process()` callback to ensure proper scene tree initialization before calling `quit()`, allowing clean process termination on all platforms.
+
+## Test Library Isolation
+
+**Important:** Tests use a completely isolated library directory to prevent any conflicts with production data or other running instances of OGS Launcher.
+
+### How It Works
+
+1. **test_runner.gd** automatically sets environment variable `OGS_LIBRARY_ROOT` to an isolated test path before running any tests
+2. **PathResolver.get_library_root()** checks for this environment variable first:
+   - If `OGS_LIBRARY_ROOT` is set → all tests use that path
+   - If not set → falls back to normal production paths
+3. All tests operate within this isolated directory (typically `LOCALAPPDATA/OGS_TEST/Library` on Windows)
+4. After all tests complete, **test_runner.gd automatically cleans up** the entire test library directory
+
+### Production Safety
+
+✅ **Your production `LOCALAPPDATA/OGS/Library` is never touched by tests**
+✅ **Can safely run tests while the real OGS Launcher is running**
+✅ **No resource conflicts or data loss risk**
+✅ **Each test run starts with a clean slate and leaves no residue**
+
+### Custom Test Library Path
+
+For advanced scenarios, you can override the test library path with your own:
+
+**PowerShell:**
+```powershell
+$env:OGS_LIBRARY_ROOT = "C:\MyTestLibrary"
+& "C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe" --headless --script res://tests/test_runner.gd
+```
+
+**Bash:**
+```bash
+export OGS_LIBRARY_ROOT=/tmp/ogs_test_lib
+godot --headless --script res://tests/test_runner.gd
+```
+
+The test runner will clean up this custom path after tests complete.
 
 ## Test Categories
 
@@ -106,6 +146,7 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
 
 - **[tests/path_resolver_tests.gd](tests/path_resolver_tests.gd)** — Validates cross-platform path resolution for the library system.
   - Library root path resolution (Windows %LOCALAPPDATA%, Unix ~/.config)
+  - Environment variable override (`OGS_LIBRARY_ROOT` for test isolation)
   - Tool path construction
   - Path normalization (backslash handling)
   - Tool existence checking
