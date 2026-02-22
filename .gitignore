@@ -8,3 +8,7 @@ export_presets.cfg
 
 # VS Code workspace files
 *.code-workspace
+.vscode/
+
+# Notes folder
+notes/*

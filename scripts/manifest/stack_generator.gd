@@ -31,23 +31,19 @@ static func create_default() -> StackManifest:
 	manifest.tools.clear()
 	manifest.tools.append({
 		"id": "godot",
-		"version": "4.3",
-		"path": "tools/godot/Godot_v4.3-stable_win64.exe"
+		"version": "4.3"
 	})
 	manifest.tools.append({
 		"id": "blender",
-		"version": "4.2",
-		"path": "tools/blender/blender.exe"
+		"version": "4.2"
 	})
 	manifest.tools.append({
 		"id": "krita",
-		"version": "5.2",
-		"path": "tools/krita/bin/krita.exe"
+		"version": "5.2"
 	})
 	manifest.tools.append({
 		"id": "audacity",
-		"version": "3.7",
-		"path": "tools/audacity/audacity.exe"
+		"version": "3.7"
 	})
 	Logger.info("manifest_generated", {"component": "manifest", "stack_name": manifest.stack_name})
 	return manifest

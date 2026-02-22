@@ -161,10 +161,10 @@ static func _validate_tool_entry(tool_entry: Dictionary, index: int, found_error
 	elif typeof(tool_entry["version"]) != TYPE_STRING or String(tool_entry["version"]).strip_edges() == "":
 		found_errors.append("tool_version_invalid:%d" % index)
 
-	if not tool_entry.has("path"):
-		found_errors.append("tool_path_missing:%d" % index)
-	elif typeof(tool_entry["path"]) != TYPE_STRING or String(tool_entry["path"]).strip_edges() == "":
-		found_errors.append("tool_path_invalid:%d" % index)
+	# Path is now optional - if omitted, launcher will resolve from library
+	if tool_entry.has("path"):
+		if typeof(tool_entry["path"]) != TYPE_STRING or String(tool_entry["path"]).strip_edges() == "":
+			found_errors.append("tool_path_invalid:%d" % index)
 
 	if tool_entry.has("sha256"):
 		var sha_value = tool_entry["sha256"]

@@ -33,6 +33,7 @@
 * **Logging:** Use the `Logger` in `scripts/logging/logger.gd` for operational events; avoid raw prints. Include context (component, project, tool) and avoid sensitive data. Logs live under user:// with rotation.
 * **User Experience:** Prioritize a simple, intuitive user interface for the OGS Launcher that abstracts away complexity while providing necessary controls for both indie developers and enterprise users.
 * **Security Best Practices:** Ensure that all code adheres to security best practices, especially when handling file operations or user input, to prevent vulnerabilities in the launcher or tool management scripts.
+* **Session Continuity (Local Notes):** To preserve context across long chats, periodically save short handoff summaries to `notes/` (local-only, ignored by git). Use `notes/tools/save_session_note.ps1` and append to the daily note file.
 
 ### **4. Development Tracking**
 
@@ -43,3 +44,11 @@
   - **Windows:** `$start = Get-Date; & "C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe" --headless --script res://tests/test_runner.gd 2>&1 | Select-Object -Last 10; $elapsed = ((Get-Date) - $start).TotalSeconds; Write-Host "Exit code: $LASTEXITCODE (execution time: $elapsed seconds)"`
   - **Linux/macOS:** `godot --headless --script res://tests/test_runner.gd`
   - Note: The Windows command includes output piping (`2>&1 | Select-Object`) to ensure proper stdout/stderr handling and prevent terminal hangs.
+
+### **5. Session Handoff Practice (Copilot Workflow)**
+
+* For long sessions, create a short handoff note at logical milestones (feature completion, blocker discovery, or before context gets crowded).
+* Use the VS Code task **"Notes: Save Session Snapshot"** or run:
+  - `powershell -ExecutionPolicy Bypass -File .\notes\tools\save_session_note.ps1 -AppendToDaily -Title "<milestone title>"`
+* Keep each snapshot brief: what changed, key decisions, next step, open items.
+* In a new session, read `notes/*.md` first to regain context quickly.

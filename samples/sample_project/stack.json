@@ -4,13 +4,12 @@
   "tools": [
     {
       "id": "godot",
-      "version": "4.3",
-      "path": "tools/godot/Godot_v4.3-stable_win64.exe"
+      "version": "4.3"
     },
     {
       "id": "blender",
-      "version": "4.5.7",
-      "path": "tools/blender/blender.exe"
+      "version": "4.5.7"
     }
   ]
 }
+

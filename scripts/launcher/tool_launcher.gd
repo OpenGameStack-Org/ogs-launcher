@@ -19,7 +19,7 @@ class_name ToolLauncher
 ## Error codes for launch failures
 enum LaunchError {
 	SUCCESS = 0,
-	TOOL_PATH_MISSING = 1,   ## Tool entry lacks "path" field
+	TOOL_PATH_MISSING = 1,   ## Tool path field provided but empty
 	TOOL_NOT_FOUND = 2,      ## Executable file not found at resolved path
 	INVALID_PROJECT_DIR = 3, ## Project directory is empty or invalid
 	SPAWN_FAILED = 4,        ## OS.create_process() returned error
@@ -33,7 +33,7 @@ enum LaunchError {
 
 ## Launches a tool from the manifest with the project directory as working context.
 ##
-## @param tool_entry: Dictionary with keys: id, version, path
+## @param tool_entry: Dictionary with keys: id, version, (optional) path
 ## @param project_dir: Absolute path to the project root (where stack.json lives)
 ## @return: Dictionary with keys: success (bool), error_code (int), error_message (String), pid (int, -1 if failed)
 static func launch(tool_entry: Dictionary, project_dir: String) -> Dictionary:
@@ -42,24 +42,33 @@ static func launch(tool_entry: Dictionary, project_dir: String) -> Dictionary:
 		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "empty_project_dir"})
 		return _error_result(LaunchError.INVALID_PROJECT_DIR, "Project directory path is empty.")
 	
-	if not tool_entry.has("path"):
-		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "missing_path"})
-		return _error_result(LaunchError.TOOL_PATH_MISSING, "Tool entry is missing 'path' field.")
-	
-	var tool_path = String(tool_entry["path"])
-	if tool_path.is_empty():
-		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "empty_path"})
-		return _error_result(LaunchError.TOOL_PATH_MISSING, "Tool path is empty.")
 	var tool_id = String(tool_entry.get("id", "unknown"))
+	var tool_version = String(tool_entry.get("version", ""))
+	var full_tool_path := ""
 	
-	# Resolve tool path (relative paths only, within project root)
-	if tool_path.is_absolute_path():
-		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "absolute_path"})
-		return _error_result(LaunchError.TOOL_PATH_ABSOLUTE, "Tool path must be project-relative.")
-	var full_tool_path = project_dir.path_join(tool_path)
-	if not _is_path_under_root(full_tool_path, project_dir):
-		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "path_escape"})
-		return _error_result(LaunchError.TOOL_PATH_OUTSIDE_ROOT, "Tool path escapes project root.")
+	# Check if path is provided (legacy support for project-relative paths)
+	if tool_entry.has("path"):
+		var tool_path = String(tool_entry["path"])
+		if tool_path.is_empty():
+			Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "empty_path"})
+			return _error_result(LaunchError.TOOL_PATH_MISSING, "Tool path is empty.")
+		
+		# Resolve tool path (relative paths only, within project root)
+		if tool_path.is_absolute_path():
+			Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "absolute_path"})
+			return _error_result(LaunchError.TOOL_PATH_ABSOLUTE, "Tool path must be project-relative.")
+		full_tool_path = project_dir.path_join(tool_path)
+		if not _is_path_under_root(full_tool_path, project_dir):
+			Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "path_escape"})
+			return _error_result(LaunchError.TOOL_PATH_OUTSIDE_ROOT, "Tool path escapes project root.")
+	else:
+		# Path not provided - resolve from library
+		var library = LibraryManager.new()
+		var library_result = _resolve_tool_from_library(library, tool_id, tool_version)
+		if not library_result["success"]:
+			Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "library_resolution_failed", "tool": tool_id})
+			return _error_result(library_result["error_code"], library_result["error_message"])
+		full_tool_path = library_result["executable_path"]
 	
 	if not FileAccess.file_exists(full_tool_path):
 		Logger.warn("tool_launch_failed", {"component": "launcher", "reason": "not_found", "tool": tool_id})
@@ -134,6 +143,107 @@ static func _is_path_under_root(full_path: String, project_root: String) -> bool
 	if normalized_path == normalized_root:
 		return true
 	return normalized_path.begins_with(normalized_root + "/")
+
+## Resolves tool executable path from the library.
+## Parameters:
+##   library (LibraryManager): Library manager instance
+##   tool_id (String): Tool identifier (e.g., "godot", "blender")
+##   tool_version (String): Tool version (e.g., "4.3", "4.2")
+## Returns:
+##   Dictionary: {success: bool, error_code: int, error_message: String, executable_path: String}
+static func _resolve_tool_from_library(library: LibraryManager, tool_id: String, tool_version: String) -> Dictionary:
+	if not library.tool_exists(tool_id, tool_version):
+		return {
+			"success": false,
+			"error_code": LaunchError.TOOL_NOT_FOUND,
+			"error_message": "Tool %s v%s not found in library" % [tool_id, tool_version],
+			"executable_path": ""
+		}
+	
+	var tool_dir = library.get_tool_path(tool_id, tool_version)
+	if tool_dir.is_empty():
+		return {
+			"success": false,
+			"error_code": LaunchError.TOOL_NOT_FOUND,
+			"error_message": "Failed to resolve library path for %s v%s" % [tool_id, tool_version],
+			"executable_path": ""
+		}
+	
+	# Find executable within tool directory
+	var executable_path = _find_executable_in_directory(tool_dir, tool_id)
+	if executable_path.is_empty():
+		return {
+			"success": false,
+			"error_code": LaunchError.TOOL_NOT_FOUND,
+			"error_message": "No executable found in tool directory: %s" % tool_dir,
+			"executable_path": ""
+		}
+	
+	return {
+		"success": true,
+		"error_code": LaunchError.SUCCESS,
+		"error_message": "",
+		"executable_path": executable_path
+	}
+
+## Finds the main executable within a tool directory.
+## Uses tool-specific conventions to locate the executable.
+## Parameters:
+##   directory (String): Absolute path to tool directory
+##   tool_id (String): Tool identifier for convention-based search
+## Returns:
+##   String: Absolute path to executable, or empty string if not found
+static func _find_executable_in_directory(directory: String, tool_id: String) -> String:
+	var dir = DirAccess.open(directory)
+	if dir == null:
+		return ""
+	
+	# Tool-specific executable naming conventions
+	match tool_id:
+		"godot":
+			# Look for Godot_*.exe or godot.exe
+			dir.list_dir_begin()
+			var godot_file = dir.get_next()
+			while godot_file != "":
+				if godot_file.to_lower().begins_with("godot") and godot_file.to_lower().ends_with(".exe"):
+					var exe_path = directory.path_join(godot_file)
+					if FileAccess.file_exists(exe_path):
+						return exe_path
+				godot_file = dir.get_next()
+			dir.list_dir_end()
+		"blender":
+			# Look for blender.exe
+			var blender_exe = directory.path_join("blender.exe")
+			if FileAccess.file_exists(blender_exe):
+				return blender_exe
+		"krita":
+			# Look for bin/krita.exe or krita.exe
+			var krita_bin = directory.path_join("bin").path_join("krita.exe")
+			if FileAccess.file_exists(krita_bin):
+				return krita_bin
+			var krita_exe = directory.path_join("krita.exe")
+			if FileAccess.file_exists(krita_exe):
+				return krita_exe
+		"audacity":
+			# Look for audacity.exe
+			var audacity_exe = directory.path_join("audacity.exe")
+			if FileAccess.file_exists(audacity_exe):
+				return audacity_exe
+	
+	# Fallback: find first .exe file in directory
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.to_lower().ends_with(".exe"):
+			var exe_path = directory.path_join(file_name)
+			if FileAccess.file_exists(exe_path):
+				dir.list_dir_end()
+				return exe_path
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	
+	return ""
+
 
 ## Validates sha256 when present in the tool entry.
 static func _validate_tool_hash(tool_entry: Dictionary, full_tool_path: String) -> Dictionary:

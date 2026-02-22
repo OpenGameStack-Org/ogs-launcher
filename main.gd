@@ -39,8 +39,18 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 
 # Hydration dialog nodes
 @onready var hydration_dialog = $HydrationDialog
+@onready var hydration_download_button = $HydrationDialog/ButtonContainer/DownloadButton
+@onready var hydration_close_button = $HydrationDialog/ButtonContainer/CloseButton
 @onready var hydration_tools_list = $HydrationDialog/VBoxContainer/ToolsList
 @onready var hydration_status_label = $HydrationDialog/VBoxContainer/StatusLabel
+@onready var hydration_progress_bar = $HydrationDialog/VBoxContainer/ProgressBar
+
+# Progress dialog nodes (modal for downloads)
+@onready var progress_dialog = $ProgressDialog
+@onready var progress_status_label = $ProgressDialog/VBoxContainer/StatusLabel
+@onready var progress_bar = $ProgressDialog/VBoxContainer/ProgressBar
+@onready var progress_cancel_button = $ProgressDialog/ButtonContainer/CancelButton
+@onready var progress_ok_button = $ProgressDialog/ButtonContainer/OKButton
 
 # Settings nodes
 @onready var mirror_root_path = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootPath
@@ -137,7 +147,13 @@ func _ready():
 		hydration_dialog,
 		hydration_tools_list,
 		hydration_status_label,
-		hydration_dialog.get_ok_button(),
+		hydration_download_button,
+		hydration_close_button,
+		progress_dialog,
+		progress_status_label,
+		progress_bar,
+		progress_cancel_button,
+		progress_ok_button,
 		"",  # mirror_url
 		get_tree(),  # Pass scene tree reference for timers
 		mirror_root_override,

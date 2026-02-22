@@ -11,6 +11,7 @@ func run() -> Dictionary:
 	_cleanup_library_root()
 	_test_blocks_when_mirror_missing(results)
 	_test_enables_when_mirror_present(results)
+	_test_progress_updates(results)
 	_cleanup_library_root()
 	return results
 
@@ -28,12 +29,24 @@ func _build_ui_nodes() -> Dictionary:
 	var tools_list = ItemList.new()
 	var status_label = Label.new()
 	var download_button = Button.new()
+	var close_button = Button.new()
+	var progress_dialog = Control.new()  #Simplified for tests
+	var progress_status = Label.new()
+	var progress_bar = ProgressBar.new()
+	var cancel_btn = Button.new()
+	var ok_btn = Button.new()
 	return {
 		"dialog": dialog,
 		"list": tools_list,
 		"status": status_label,
-		"button": download_button,
-		"nodes": [dialog, tools_list, status_label, download_button]
+		"download_btn": download_button,
+		"close_btn": close_button,
+		"progress_dialog": progress_dialog,
+		"progress_status": progress_status,
+		"progress_bar": progress_bar,
+		"cancel_btn": cancel_btn,
+		"ok_btn": ok_btn,
+		"nodes": [dialog, tools_list, status_label, download_button, close_button, progress_dialog, progress_status, progress_bar, cancel_btn, ok_btn]
 	}
 
 func _cleanup_nodes(nodes: Array) -> void:
@@ -107,11 +120,11 @@ func _test_blocks_when_mirror_missing(results: Dictionary) -> void:
 	var controller = LibraryHydrationControllerScript.new()
 	var mirror_root = OS.get_user_data_dir().path_join("mirror_test_missing_repo")
 	_remove_repository_file(mirror_root)
-	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root, "")
+	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["download_btn"], ui["close_btn"], ui["progress_dialog"], ui["progress_status"], ui["progress_bar"], ui["cancel_btn"], ui["ok_btn"], "", null, mirror_root, "")
 	controller.start_hydration([
 		{"tool_id": "godot", "version": "4.3"}
 	])
-	_expect(ui["button"].disabled == true, "button should be disabled when mirror missing", results)
+	_expect(ui["download_btn"].disabled == true, "button should be disabled when mirror missing", results)
 	_expect(ui["status"].text.find("No mirror repository configured") != -1, "status should mention mirror missing", results)
 	_cleanup_nodes(ui["nodes"])
 
@@ -121,11 +134,29 @@ func _test_enables_when_mirror_present(results: Dictionary) -> void:
 	var controller = LibraryHydrationControllerScript.new()
 	var mirror_root = OS.get_user_data_dir().path_join("mirror_test_present_repo")
 	_write_repository_file(mirror_root)
-	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["button"], "", null, mirror_root, "")
+	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["download_btn"], ui["close_btn"], ui["progress_dialog"], ui["progress_status"], ui["progress_bar"], ui["cancel_btn"], ui["ok_btn"], "", null, mirror_root, "")
 	controller.start_hydration([
 		{"tool_id": "godot", "version": "4.3"}
 	])
-	_expect(ui["button"].disabled == false, "button should be enabled when mirror is present", results)
+	_expect(ui["download_btn"].disabled == false, "button should be enabled when mirror is present", results)
 	_expect(ui["status"].text.find("Ready to install") != -1, "status should indicate ready to install", results)
 	_cleanup_nodes(ui["nodes"])
 	_remove_repository_file(mirror_root)
+
+func _test_progress_updates(results: Dictionary) -> void:
+	"""Progress bar should advance when tool installs complete."""
+	var ui = _build_ui_nodes()
+	var controller = LibraryHydrationControllerScript.new()
+	controller.setup(ui["dialog"], ui["list"], ui["status"], ui["download_btn"], ui["close_btn"], ui["progress_dialog"], ui["progress_status"], ui["progress_bar"], ui["cancel_btn"], ui["ok_btn"], "", null, "", "")
+	controller.active_tool_total = 2
+	controller.active_tool_completed = 0
+	controller.progress_progress_bar = ui["progress_bar"]
+	controller.progress_progress_bar.min_value = 0
+	controller.progress_progress_bar.max_value = 2
+	controller.progress_progress_bar.value = 0
+	
+	controller._on_tool_install_complete("godot", "4.3", true, "")
+	_expect(int(ui["progress_bar"].value) == 1, "progress bar should advance to 1 after first tool", results)
+	controller._on_tool_install_complete("blender", "4.5.7", true, "")
+	_expect(int(ui["progress_bar"].value) == 2, "progress bar should advance to 2 after second tool", results)
+	_cleanup_nodes(ui["nodes"])

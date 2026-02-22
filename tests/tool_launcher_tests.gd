@@ -34,13 +34,15 @@ func _expect(condition: bool, message: String, results: Dictionary) -> void:
 		results["failures"].append(message)
 
 func _test_missing_path_field(results: Dictionary) -> void:
-	"""Validates that missing 'path' field returns TOOL_PATH_MISSING error."""
+	"""Validates that missing 'path' field resolves from library (and fails if not in library)."""
 	var tool_entry = {"id": "godot", "version": "4.3"}
 	var result = ToolLauncher.launch(tool_entry, "C:/Projects/test")
 	
-	_expect(not result["success"], "missing path should fail", results)
-	_expect(result["error_code"] == ToolLauncher.LaunchError.TOOL_PATH_MISSING, 
-		"missing path should return TOOL_PATH_MISSING", results)
+	# Since path is omitted, launcher attempts library resolution
+	# In test environment with no library, this should return TOOL_NOT_FOUND
+	_expect(not result["success"], "missing path with no library should fail", results)
+	_expect(result["error_code"] == ToolLauncher.LaunchError.TOOL_NOT_FOUND, 
+		"missing path should attempt library resolution and return TOOL_NOT_FOUND", results)
 	_expect(result["pid"] == -1, "failed launch should return pid -1", results)
 
 func _test_empty_path_field(results: Dictionary) -> void:

@@ -9,6 +9,7 @@ class_name RemoteMirrorHydrator
 
 signal tool_install_started(tool_id: String, version: String)
 signal tool_install_complete(tool_id: String, version: String, success: bool, error_message: String)
+signal tool_download_progress(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int)
 signal hydration_complete(success: bool, failed_tools: Array)
 
 const MirrorRepositoryScript = preload("res://scripts/mirror/mirror_repository.gd")
@@ -17,10 +18,17 @@ var repository_url: String = ""
 var repository: MirrorRepository
 var extractor: ToolExtractor
 var library: LibraryManager
+var worker_thread: Thread
+var scene_tree: SceneTree = null
 
-func _init(repo_url: String = ""):
-	"""Initializes the remote mirror hydrator with a repository URL."""
+func _init(repo_url: String = "", tree: SceneTree = null):
+	"""Initializes the remote mirror hydrator with a repository URL.
+	Parameters:
+	  repo_url (String): URL to the remote repository.json
+	  tree (SceneTree): Optional scene tree for safe signal emission from threads
+	"""
 	repository_url = repo_url
+	scene_tree = tree
 	repository = MirrorRepositoryScript.new()
 	extractor = ToolExtractor.new()
 	library = LibraryManager.new()
@@ -37,6 +45,32 @@ func set_repository_url(repo_url: String) -> void:
 ##   Dictionary: {"success": bool, "installed_count": int, "failed_count": int, "failed_tools": Array}
 func hydrate(tools_to_install: Array) -> Dictionary:
 	"""Installs tools from remote mirror archives into the library."""
+	return _hydrate_internal(tools_to_install)
+
+## Starts hydration in a background thread to keep the UI responsive.
+func hydrate_async(tools_to_install: Array) -> void:
+	"""Starts remote hydration in a background thread."""
+	if worker_thread != null and worker_thread.is_alive():
+		return
+	worker_thread = Thread.new()
+	worker_thread.start(Callable(self, "_hydrate_thread").bind(tools_to_install))
+
+## Internal thread entry for hydration.
+func _hydrate_thread(tools_to_install: Array) -> void:
+	"""Runs hydration in a worker thread."""
+	_hydrate_internal(tools_to_install)
+	call_deferred("_finish_async")
+
+## Finalizes the async hydration thread.
+func _finish_async() -> void:
+	"""Joins and clears the hydration worker thread."""
+	if worker_thread != null:
+		worker_thread.wait_to_finish()
+		worker_thread = null
+
+## Performs the hydration workflow synchronously.
+func _hydrate_internal(tools_to_install: Array) -> Dictionary:
+	"""Installs tools from remote mirror archives into the library."""
 	var result = {
 		"success": true,
 		"installed_count": 0,
@@ -49,7 +83,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			"component": "mirror",
 			"reason": "no tools to install"
 		})
-		hydration_complete.emit(true, [])
+		_emit_hydration_complete(true, [])
 		return result
 
 	var guard = OfflineEnforcer.guard_network_call("remote_mirror_hydration")
@@ -61,7 +95,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			"component": "mirror",
 			"reason": guard["error_message"]
 		})
-		hydration_complete.emit(false, tools_to_install)
+		_emit_hydration_complete(false, tools_to_install)
 		return result
 
 	if repository_url.is_empty():
@@ -72,7 +106,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			"component": "mirror",
 			"reason": "repository_url_not_set"
 		})
-		hydration_complete.emit(false, tools_to_install)
+		_emit_hydration_complete(false, tools_to_install)
 		return result
 
 	var repo_result = _load_repository()
@@ -84,7 +118,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			"component": "mirror",
 			"reason": repo_result.get("error", "unknown")
 		})
-		hydration_complete.emit(false, tools_to_install)
+		_emit_hydration_complete(false, tools_to_install)
 		return result
 
 	repository = repo_result["repository"]
@@ -96,7 +130,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			"component": "mirror",
 			"error_count": repository.errors.size()
 		})
-		hydration_complete.emit(false, tools_to_install)
+		_emit_hydration_complete(false, tools_to_install)
 		return result
 
 	Logger.info("remote_hydration_started", {
@@ -112,7 +146,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			result["failed_tools"].append(tool_entry)
 			continue
 
-		tool_install_started.emit(tool_id, version)
+		_emit_tool_install_started(tool_id, version)
 
 		if library.tool_exists(tool_id, version):
 			Logger.debug("remote_tool_skip", {
@@ -122,7 +156,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 				"reason": "already in library"
 			})
 			result["installed_count"] += 1
-			tool_install_complete.emit(tool_id, version, true, "")
+			_emit_tool_install_complete(tool_id, version, true, "")
 			continue
 
 		var repo_entry = repository.get_tool_entry(tool_id, version)
@@ -135,7 +169,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			})
 			result["failed_count"] += 1
 			result["failed_tools"].append(tool_entry)
-			tool_install_complete.emit(tool_id, version, false, missing_msg)
+			_emit_tool_install_complete(tool_id, version, false, missing_msg)
 			continue
 
 		var archive_url = String(repo_entry.get("archive_url", ""))
@@ -143,7 +177,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			var archive_error = "Remote archive_url missing"
 			result["failed_count"] += 1
 			result["failed_tools"].append(tool_entry)
-			tool_install_complete.emit(tool_id, version, false, archive_error)
+			_emit_tool_install_complete(tool_id, version, false, archive_error)
 			continue
 
 		var temp_archive = _stage_archive(archive_url, tool_id, version)
@@ -151,7 +185,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			var download_error = "Failed to download remote archive"
 			result["failed_count"] += 1
 			result["failed_tools"].append(tool_entry)
-			tool_install_complete.emit(tool_id, version, false, download_error)
+			_emit_tool_install_complete(tool_id, version, false, download_error)
 			continue
 
 		var sha_value = String(repo_entry.get("sha256", "")).strip_edges().to_lower()
@@ -160,7 +194,7 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 			if not hash_result["success"]:
 				result["failed_count"] += 1
 				result["failed_tools"].append(tool_entry)
-				tool_install_complete.emit(tool_id, version, false, hash_result["error_message"])
+				_emit_tool_install_complete(tool_id, version, false, hash_result["error_message"])
 				continue
 			if hash_result["sha256"] != sha_value:
 				var mismatch = "Archive sha256 does not match repository"
@@ -171,25 +205,25 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 				})
 				result["failed_count"] += 1
 				result["failed_tools"].append(tool_entry)
-				tool_install_complete.emit(tool_id, version, false, mismatch)
+				_emit_tool_install_complete(tool_id, version, false, mismatch)
 				continue
 
 		var extract_result = extractor.extract_to_library(temp_archive, tool_id, version)
 		if not extract_result["success"]:
 			result["failed_count"] += 1
 			result["failed_tools"].append(tool_entry)
-			tool_install_complete.emit(tool_id, version, false, extract_result["error_message"])
+			_emit_tool_install_complete(tool_id, version, false, extract_result["error_message"])
 			continue
 
 		if not library.tool_exists(tool_id, version):
 			var validation_error = "Tool not found in library after extraction"
 			result["failed_count"] += 1
 			result["failed_tools"].append(tool_entry)
-			tool_install_complete.emit(tool_id, version, false, validation_error)
+			_emit_tool_install_complete(tool_id, version, false, validation_error)
 			continue
 
 		result["installed_count"] += 1
-		tool_install_complete.emit(tool_id, version, true, "")
+		_emit_tool_install_complete(tool_id, version, true, "")
 
 	result["success"] = result["failed_count"] == 0
 	Logger.info("remote_hydration_complete", {
@@ -198,8 +232,53 @@ func hydrate(tools_to_install: Array) -> Dictionary:
 		"failed": result["failed_count"]
 	})
 
-	hydration_complete.emit(result["success"], result["failed_tools"])
+	_emit_hydration_complete(result["success"], result["failed_tools"])
 	return result
+
+## Thread-safe signal helpers.
+func _emit_tool_install_started(tool_id: String, version: String) -> void:
+	"""Emits tool_install_started safely across threads."""
+	if scene_tree != null:
+		call_deferred("_emit_tool_install_started_now", tool_id, version)
+	else:
+		tool_install_started.emit(tool_id, version)
+
+func _emit_tool_install_started_now(tool_id: String, version: String) -> void:
+	"""Deferred emit for tool_install_started."""
+	tool_install_started.emit(tool_id, version)
+
+func _emit_tool_install_complete(tool_id: String, version: String, success: bool, error_message: String) -> void:
+	"""Emits tool_install_complete safely across threads."""
+	if scene_tree != null:
+		call_deferred("_emit_tool_install_complete_now", tool_id, version, success, error_message)
+	else:
+		tool_install_complete.emit(tool_id, version, success, error_message)
+
+func _emit_tool_install_complete_now(tool_id: String, version: String, success: bool, error_message: String) -> void:
+	"""Deferred emit for tool_install_complete."""
+	tool_install_complete.emit(tool_id, version, success, error_message)
+
+func _emit_hydration_complete(success: bool, failed_tools: Array) -> void:
+	"""Emits hydration_complete safely across threads."""
+	if scene_tree != null:
+		call_deferred("_emit_hydration_complete_now", success, failed_tools)
+	else:
+		hydration_complete.emit(success, failed_tools)
+
+func _emit_hydration_complete_now(success: bool, failed_tools: Array) -> void:
+	"""Deferred emit for hydration_complete."""
+	hydration_complete.emit(success, failed_tools)
+
+func _emit_tool_download_progress(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int) -> void:
+	"""Emits tool_download_progress safely across threads."""
+	if scene_tree != null:
+		call_deferred("_emit_tool_download_progress_now", tool_id, version, bytes_downloaded, total_bytes)
+	else:
+		tool_download_progress.emit(tool_id, version, bytes_downloaded, total_bytes)
+
+func _emit_tool_download_progress_now(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int) -> void:
+	"""Deferred emit for tool_download_progress."""
+	tool_download_progress.emit(tool_id, version, bytes_downloaded, total_bytes)
 
 ## Loads repository.json from the configured URL.
 func _load_repository() -> Dictionary:
@@ -244,7 +323,7 @@ func _stage_archive(archive_url: String, tool_id: String, version: String) -> St
 			return ""
 		return _copy_archive_to_temp(local_path, temp_path)
 
-	var download_result = _http_download_to_file(archive_url, temp_path)
+	var download_result = _http_download_to_file(archive_url, temp_path, "", 0, tool_id, version)
 	if not download_result["success"]:
 		Logger.error("remote_archive_download_failed", {
 			"component": "mirror",
@@ -298,8 +377,16 @@ func _http_get_text(url: String) -> Dictionary:
 	return {"success": true, "text": byte_result["bytes"].get_string_from_utf8()}
 
 ## Downloads a URL to a local file.
-func _http_download_to_file(url: String, dest_path: String, redirect_count: int = 0) -> Dictionary:
-	"""Downloads a URL to a local file, following redirects."""
+func _http_download_to_file(url: String, dest_path: String, _redirect_url: String = "", redirect_count: int = 0, tool_id: String = "", version: String = "") -> Dictionary:
+	"""Downloads a URL to a local file, following redirects.
+	Parameters:
+	  url: URL to download from
+	  dest_path: Destination file path
+	  _redirect_url: Internal parameter for recursion (unused, kept for compatibility)
+	  redirect_count: Current redirect count
+	  tool_id: Tool ID for progress signal emission
+	  version: Tool version for progress signal emission
+	"""
 	if redirect_count > 5:
 		return {"success": false, "error": "redirect_limit"}
 	var parsed = _parse_url(url)
@@ -327,12 +414,21 @@ func _http_download_to_file(url: String, dest_path: String, redirect_count: int 
 		var location = String(headers.get("location", ""))
 		if location.is_empty():
 			return {"success": false, "error": "redirect_missing_location"}
-		return _http_download_to_file(location, dest_path, redirect_count + 1)
+		return _http_download_to_file(location, dest_path, "", redirect_count + 1, tool_id, version)
 	if status_code < 200 or status_code >= 300:
 		return {"success": false, "error": "http_status_%d" % status_code}
 	var file = FileAccess.open(dest_path, FileAccess.WRITE)
 	if file == null:
 		return {"success": false, "error": "write_failed"}
+	
+	# Extract content-length from headers for progress tracking
+	var total_bytes = -1
+	if "content-length" in headers:
+		var content_length_str = String(headers.get("content-length", ""))
+		if content_length_str.is_valid_int():
+			total_bytes = int(content_length_str)
+	
+	var bytes_downloaded = 0
 	while client.get_status() == HTTPClient.STATUS_BODY:
 		client.poll()
 		var chunk = client.read_response_body_chunk()
@@ -340,6 +436,12 @@ func _http_download_to_file(url: String, dest_path: String, redirect_count: int 
 			OS.delay_msec(10)
 			continue
 		file.store_buffer(chunk)
+		bytes_downloaded += chunk.size()
+		
+		# Emit progress signal if we have tool_id and version
+		if not tool_id.is_empty() and not version.is_empty():
+			_emit_tool_download_progress(tool_id, version, bytes_downloaded, total_bytes if total_bytes > 0 else bytes_downloaded)
+	
 	file.close()
 	return {"success": true}
 
