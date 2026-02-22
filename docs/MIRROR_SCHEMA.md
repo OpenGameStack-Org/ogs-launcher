@@ -39,6 +39,7 @@ mirror_root/
 |------|------|----------|-------------|
 | `id` | String | Yes | Tool identifier (e.g., `"godot"`, `"blender"`). |
 | `version` | String | Yes | Tool version (e.g., `"4.3"`). |
+| `category` | String | No | Tool category for UI organization (e.g., `"Engine"`, `"2D"`, `"3D"`, `"Audio"`). Launcher provides fallback mapping if omitted. |
 | `archive_path` | String | Conditional | Relative path to the tool archive inside a local mirror. Required if `archive_url` is not provided. |
 | `archive_url` | String | Conditional | Full URL to a remote archive. Required if `archive_path` is not provided. |
 | `sha256` | String | Yes | SHA-256 checksum (64 lowercase hex). Required for all tool archives. |
@@ -55,6 +56,7 @@ mirror_root/
     {
       "id": "godot",
       "version": "4.3",
+      "category": "Engine",
       "archive_path": "tools/godot/4.3/godot_4.3_win64.zip",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size_bytes": 123456789
@@ -62,6 +64,7 @@ mirror_root/
     {
       "id": "blender",
       "version": "4.2",
+      "category": "3D",
       "archive_path": "tools/blender/4.2/blender_4.2_win64.zip",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size_bytes": 987654321
@@ -80,6 +83,7 @@ mirror_root/
     {
       "id": "godot",
       "version": "4.3",
+      "category": "Engine",
       "archive_url": "https://github.com/OpenGameStack-Org/ogs-frozen-stacks/releases/download/v1.0/godot-4.3-win64.zip",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size_bytes": 123456789
@@ -94,9 +98,30 @@ mirror_root/
 2. `mirror_name` must be a non-empty string.
 3. `tools` must be a non-empty array of objects.
 4. Each tool entry must include `id`, `version`, and one of `archive_path` or `archive_url`.
-5. `archive_path` must be a relative path inside the mirror root (no absolute paths or `..`).
-6. `sha256` is required and must be 64 lowercase hex characters.
-7. If `size` or `size_bytes` is provided, it must be an integer greater than `0`.
+5. `category` is optional. If provided, it must be a non-empty string.
+6. `archive_path` must be a relative path inside the mirror root (no absolute paths or `..`).
+7. `sha256` is required and must be 64 lowercase hex characters.
+8. If `size` or `size_bytes` is provided, it must be an integer greater than `0`.
+
+## Tool Categories
+
+The launcher organizes tools by category for UI presentation. Supported categories:
+
+- **Engine**: Game engines and runtime environments (e.g., Godot)
+- **2D**: 2D art, texture, and UI tools (e.g., Krita)
+- **3D**: 3D modeling and animation tools (e.g., Blender)
+- **Audio**: Audio editing and processing tools (e.g., Audacity)
+
+If the `category` field is omitted, the launcher provides fallback mappings:
+
+| Tool ID | Default Category |
+|---------|------------------|
+| `godot` | Engine |
+| `blender` | 3D |
+| `krita` | 2D |
+| `audacity` | Audio |
+
+New tools without a category field will display as "Unknown" in the UI.
 
 ## Operational Behavior
 

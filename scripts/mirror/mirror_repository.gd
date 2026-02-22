@@ -135,6 +135,12 @@ static func _validate_tool_entry(tool_entry: Dictionary, index: int, found_error
 	elif typeof(tool_entry["version"]) != TYPE_STRING or String(tool_entry["version"]).strip_edges() == "":
 		found_errors.append("tool_version_invalid:%d" % index)
 
+	# Category is optional, but if present must be a non-empty string
+	if tool_entry.has("category"):
+		var category_value = tool_entry["category"]
+		if typeof(category_value) != TYPE_STRING or String(category_value).strip_edges() == "":
+			found_errors.append("tool_category_invalid:%d" % index)
+
 	var has_archive_path = tool_entry.has("archive_path")
 	var has_archive_url = tool_entry.has("archive_url")
 	if not has_archive_path and not has_archive_url:

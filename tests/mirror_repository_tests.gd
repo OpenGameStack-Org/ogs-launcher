@@ -14,6 +14,9 @@ func run() -> Dictionary:
 	_test_missing_archive_source(results)
 	_test_missing_sha256(results)
 	_test_invalid_sha256(results)
+	_test_valid_category(results)
+	_test_invalid_category(results)
+	_test_missing_category(results)
 	return results
 
 func _expect(condition: bool, message: String, results: Dictionary) -> void:
@@ -90,3 +93,39 @@ func _test_invalid_sha256(results: Dictionary) -> void:
 	}
 	var errors = MirrorRepositoryScript.validate_data(data)
 	_expect(errors.has("tool_sha256_invalid:0"), "should flag invalid sha256", results)
+
+func _test_valid_category(results: Dictionary) -> void:
+	"""Valid category field should be accepted."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS",
+		"tools": [
+			{"id": "godot", "version": "4.3", "category": "Engine", "archive_path": "tools/godot/4.3/godot.zip", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+		]
+	}
+	var repo = MirrorRepositoryScript.from_dict(data)
+	_expect(repo.is_valid(), "valid category should be accepted", results)
+
+func _test_invalid_category(results: Dictionary) -> void:
+	"""Empty category string should be rejected."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS",
+		"tools": [
+			{"id": "godot", "version": "4.3", "category": "", "archive_path": "tools/godot/4.3/godot.zip", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+		]
+	}
+	var errors = MirrorRepositoryScript.validate_data(data)
+	_expect(errors.has("tool_category_invalid:0"), "should flag empty category", results)
+
+func _test_missing_category(results: Dictionary) -> void:
+	"""Missing category field should be allowed (optional field)."""
+	var data = {
+		"schema_version": 1,
+		"mirror_name": "OGS",
+		"tools": [
+			{"id": "godot", "version": "4.3", "archive_path": "tools/godot/4.3/godot.zip", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+		]
+	}
+	var repo = MirrorRepositoryScript.from_dict(data)
+	_expect(repo.is_valid(), "missing category should be allowed", results)
