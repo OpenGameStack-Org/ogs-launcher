@@ -132,7 +132,23 @@ func _ready():
 	)
 	layout_controller.page_changed.connect(_on_page_changed)
 
-	# Projects page controller
+	# Load mirror settings BEFORE setting up controllers
+	# so that remote repository URL is available
+	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
+	_load_mirror_settings()
+
+	# Set up tools controller FIRST (needed by ProjectsController)
+	var repo_url = mirror_repository_url if not mirror_repository_url.is_empty() else DEFAULT_REMOTE_REPO_URL
+	tools_controller = ToolsController.new(get_tree(), repo_url)
+	tools_controller.tool_list_updated.connect(_on_tools_list_updated)
+	tools_controller.tool_list_refresh_failed.connect(_on_tools_refresh_failed)
+	tools_controller.tool_download_started.connect(_on_tool_download_started)
+	tools_controller.tool_download_complete.connect(_on_tool_download_complete)
+	tools_controller.tool_download_progress.connect(_on_tool_download_progress)
+	tools_controller.connectivity_checked.connect(_on_connectivity_checked)
+	tools_refresh_button.pressed.connect(_on_tools_refresh_pressed)
+
+	# Projects page controller (now ToolsController is available to pass)
 	projects_controller = ProjectsController.new()
 	projects_controller.setup(
 		project_path_line_edit,
@@ -143,9 +159,13 @@ func _ready():
 		lbl_offline_status,
 		tools_list,
 		btn_launch_tool,
-		project_dir_dialog
+		project_dir_dialog,
+		tools_controller
 	)
 	projects_controller.offline_state_changed.connect(_on_offline_state_changed)
+	projects_controller.tool_view_requested.connect(_on_tool_view_requested)
+	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
+	projects_controller.environment_ready.connect(_on_environment_ready)
 	
 	# Set up seal controller for seal dialog
 	seal_controller = SealController.new()
@@ -156,11 +176,6 @@ func _ready():
 		seal_open_folder_button
 	)
 	seal_controller.seal_completed.connect(_on_seal_completed)
-	
-	# Load mirror settings BEFORE setting up hydration controller
-	# so that remote repository URL is available
-	settings_file_path = OS.get_user_data_dir().path_join("ogs_launcher_settings.json")
-	_load_mirror_settings()
 	
 	# Set up hydration controller and wire signals
 	hydration_controller = LibraryHydrationController.new()
@@ -190,10 +205,6 @@ func _ready():
 	
 	# Wire seal button
 	btn_seal_for_delivery.pressed.connect(_on_seal_button_pressed)
-	
-	# Listen for environment status changes
-	projects_controller.environment_incomplete.connect(_on_environment_incomplete)
-	projects_controller.environment_ready.connect(_on_environment_ready)
 
 	# Wire settings UI controls for mirror configuration
 	mirror_root_path.text_changed.connect(_on_mirror_root_text_changed)
@@ -202,17 +213,6 @@ func _ready():
 	mirror_repo_path.text_changed.connect(_on_mirror_repo_text_changed)
 	mirror_repo_clear_button.pressed.connect(_on_mirror_repo_clear_pressed)
 	_update_mirror_status()
-	
-	# Set up tools controller for tools page
-	var repo_url = mirror_repository_url if not mirror_repository_url.is_empty() else DEFAULT_REMOTE_REPO_URL
-	tools_controller = ToolsController.new(get_tree(), repo_url)
-	tools_controller.tool_list_updated.connect(_on_tools_list_updated)
-	tools_controller.tool_list_refresh_failed.connect(_on_tools_refresh_failed)
-	tools_controller.tool_download_started.connect(_on_tool_download_started)
-	tools_controller.tool_download_complete.connect(_on_tool_download_complete)
-	tools_controller.tool_download_progress.connect(_on_tool_download_progress)
-	tools_controller.connectivity_checked.connect(_on_connectivity_checked)
-	tools_refresh_button.pressed.connect(_on_tools_refresh_pressed)
 	
 	# Initial tools refresh will happen when user navigates to tools page
 	layout_controller.page_changed.connect(_on_layout_page_changed)
@@ -318,6 +318,19 @@ func _on_seal_completed(_success: bool, _zip_path: String) -> void:
 	# SealController handles all UI updates
 	# This is just a notification point for future extensions
 	pass
+
+## Signal handler: user clicked a tool in Projects page that needs downloading.
+func _on_tool_view_requested(tool_id: String, tool_version: String) -> void:
+	"""Navigate to Tools page to download/view the requested tool."""
+	layout_controller.navigate_to("tools")
+	# Optionally: highlight or scroll to the specific tool in the Tools page
+	# This could be enhanced in the future to auto-scroll and highlight the tool
+	Logger.info("tool_view_requested", {
+		"component": "projects",
+		"tool_id": tool_id,
+		"version": tool_version
+	})
+
 ## Settings Methods
 
 ## Loads the mirror root setting from disk.
@@ -476,15 +489,28 @@ func _on_connectivity_checked(is_online: bool) -> void:
 
 ## Updates Tools status label to Online/Offline only.
 func _update_tools_connectivity_status(is_online: bool) -> void:
-	"""Applies online/offline status to the Tools status label."""
+	"""Updates connection status display and visibility of offline messaging.
+	
+	Changes status label text, color, and offline warning visibility based on
+	current connectivity state. Logs when status changes to aid in debugging
+	connectivity issues.
+	"""
 	if is_online:
 		tools_status_label.text = "Status: Online ✓"
 		tools_status_label.modulate = Color.GREEN
 		tools_offline_message.visible = false
+		Logger.debug("tools_connectivity_status_updated", {
+			"component": "tools",
+			"is_online": true
+		})
 	else:
 		tools_status_label.text = "Status: Offline ⚠️"
 		tools_status_label.modulate = Color(1, 0.6, 0.2, 1)
 		tools_offline_message.visible = true
+		Logger.info("tools_connectivity_status_updated", {
+			"component": "tools",
+			"is_online": false
+		})
 
 ## Signal handler: tools refresh button pressed.
 func _on_tools_refresh_pressed() -> void:
@@ -495,12 +521,19 @@ func _on_tools_refresh_pressed() -> void:
 ## Signal handler: tools list updated successfully.
 func _on_tools_list_updated() -> void:
 	"""Repopulates UI when tools data is refreshed."""
+	Logger.info("tools_list_refresh_completed", {
+		"component": "tools"
+	})
 	_update_tools_connectivity_status(tools_controller.is_online())
 	_populate_tools_ui()
 
 ## Signal handler: tools refresh failed.
 func _on_tools_refresh_failed(_error_message: String) -> void:
-	"""Shows error or offline message."""
+	"""Handles refresh failure and updates status display."""
+	Logger.warn("tools_list_refresh_failed", {
+		"component": "tools",
+		"error": _error_message
+	})
 	_update_tools_connectivity_status(tools_controller.is_online())
 	# Keep offline message synced with connectivity only
 
@@ -519,7 +552,12 @@ func _on_tool_download_complete(tool_id: String, version: String, success: bool)
 
 ## Signal handler: tool install started (after download).
 func _on_tool_download_started(tool_id: String, version: String) -> void:
-	"""Shows install phase after download completes."""
+	"""Handles transition to install phase after download completes.
+	
+	Shows progress container and updates progress bar to indeterminate state
+	while installation proceeds. This occurs after download completes but
+	before installation finishes.
+	"""
 	var key = "%s_%s" % [tool_id, version]
 	var card_data = tool_cards.get(key)
 	
@@ -536,6 +574,12 @@ func _on_tool_download_started(tool_id: String, version: String) -> void:
 		if progress_label != null:
 			progress_label.text = "Installing..."
 			progress_label.visible = true
+		
+		Logger.info("tool_install_phase_started", {
+			"component": "tools",
+			"tool_id": tool_id,
+			"version": version
+		})
 
 ## Signal handler: tool download progress updated.
 func _on_tool_download_progress(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int) -> void:
@@ -574,7 +618,10 @@ func _on_tool_download_progress(tool_id: String, version: String, bytes_download
 
 ## Populates the tools UI with categorized tools.
 func _populate_tools_ui() -> void:
-	"""Builds tool cards from controller data."""
+	"""Refreshes tool card UI from controller data.
+	Builds cards for installed and available tools, organized by category.
+	Clears existing cards, recategorizes tools, and updates button states.
+	"""
 	if tools_controller == null:
 		return
 	
@@ -583,6 +630,8 @@ func _populate_tools_ui() -> void:
 	_clear_tool_containers()
 	
 	var categorized_tools = tools_controller.get_categorized_tools()
+	var total_installed = 0
+	var total_available = 0
 	
 	# Populate each category
 	for category in categorized_tools.keys():
@@ -592,30 +641,51 @@ func _populate_tools_ui() -> void:
 		
 		for tool in tools:
 			if tool["installed"]:
+				total_installed += 1
 				_add_tool_card_to_category(category, tool, true)
 			else:
+				total_available += 1
 				_add_tool_card_to_category(category, tool, false)
 
 	_update_download_button_states()
+	
+	Logger.info("tools_ui_populated", {
+		"component": "tools",
+		"total_installed": total_installed,
+		"total_available": total_available,
+		"categories": categorized_tools.keys().size()
+	})
 
 ## Clears all tool card containers.
 func _clear_tool_containers() -> void:
-	"""Removes all children from tool containers."""
+	"""Removes all existing tool cards from UI containers.
+	Queues each container's children for deletion to reset tool display.
+	"""
+	var cleared_count = 0
 	for container in [
 		installed_engine_tools, installed_2d_tools, installed_3d_tools, installed_audio_tools,
 		download_engine_tools, download_2d_tools, download_3d_tools, download_audio_tools
 	]:
 		if container != null:
+			var children_count = container.get_children().size()
+			cleared_count += children_count
 			for child in container.get_children():
 				child.queue_free()
+	
+	if cleared_count > 0:
+		Logger.debug("tool_containers_cleared", {
+			"component": "tools",
+			"cleared_cards": cleared_count
+		})
 
 ## Adds a tool card to the appropriate category container.
 func _add_tool_card_to_category(category: String, tool: Dictionary, is_installed: bool) -> void:
 	"""Creates and adds a tool card to a category section.
+	
 	Parameters:
 	  category (String): "Engine", "2D", "3D", or "Audio"
-	  tool (Dictionary): Tool data from controller
-	  is_installed (bool): Whether to use installed or available section
+	  tool (Dictionary): Tool data from controller containing id, version, size_bytes
+	  is_installed (bool): True for installed section, False for available/download section
 	"""
 	var container: VBoxContainer = null
 	
@@ -639,15 +709,28 @@ func _add_tool_card_to_category(category: String, tool: Dictionary, is_installed
 	# Create tool card
 	var card = _create_tool_card(tool, is_installed)
 	container.add_child(card)
+	
+	Logger.debug("tool_card_added", {
+		"component": "tools",
+		"tool_id": tool.get("id", "unknown"),
+		"category": category,
+		"section": "installed" if is_installed else "available"
+	})
 
 ## Creates a tool card UI element.
 func _create_tool_card(tool: Dictionary, is_installed: bool) -> PanelContainer:
-	"""Builds a tool card with info and action button.
+	"""Builds a tool card panel with metadata, action button, and progress tracking.
+	
+	Constructs a PanelContainer containing tool name/version/size info on top,
+	with an action button (Download/Cancel/Installed) and optional progress bar.
+	Progress bars are only added for non-installed tools and tracked for updates.
+	
 	Parameters:
-	  tool (Dictionary): Tool data
-	  is_installed (bool): Whether tool is installed
+	  tool (Dictionary): Tool data with id, version, size_bytes, installed flag
+	  is_installed (bool): True for installed tools, False for available tools
+	  
 	Returns:
-	  PanelContainer: The tool card UI element
+	  PanelContainer: The tool card UI element with embedded button and progress tracking
 	"""
 	var card = PanelContainer.new()
 	card.custom_minimum_size = Vector2(0, 80)
@@ -729,6 +812,25 @@ func _create_tool_card(tool: Dictionary, is_installed: bool) -> PanelContainer:
 		var is_downloading = tools_controller.is_downloading(tool["id"], tool["version"])
 		if is_downloading:
 			progress_container.visible = true
+			Logger.debug("tool_card_created_with_download", {
+				"component": "tools",
+				"tool_id": tool["id"],
+				"version": tool["version"],
+				"size_mb": tool.get("size_bytes", 0) / (1024.0 * 1024.0)
+			})
+		else:
+			Logger.debug("tool_card_created", {
+				"component": "tools",
+				"tool_id": tool["id"],
+				"version": tool["version"],
+				"size_mb": tool.get("size_bytes", 0) / (1024.0 * 1024.0)
+			})
+	else:
+		Logger.debug("tool_card_created_installed", {
+			"component": "tools",
+			"tool_id": tool["id"],
+			"version": tool["version"]
+		})
 	
 	return card
 
@@ -781,11 +883,18 @@ func _on_cancel_tool_download(tool_id: String, version: String) -> void:
 
 ## Updates download button states based on active downloads.
 func _update_download_button_states() -> void:
-	"""Disables other download buttons while one is active."""
+	"""Manages button states during concurrent operations.
+	
+	Disables all non-active download buttons while a tool is downloading,
+	and updates button text/tooltips to reflect download/cancel states.
+	Ensures only one tool can download at a time.
+	"""
 	if tools_controller == null:
 		return
 	
 	var any_active = tools_controller.has_active_downloads()
+	var updated_count = 0
+	
 	for card_data in tool_cards.values():
 		var button = card_data.get("button")
 		if button == null:
@@ -799,7 +908,17 @@ func _update_download_button_states() -> void:
 			button.disabled = false
 			button.tooltip_text = ""
 			button.text = "Cancel"
+			updated_count += 1
 		else:
 			button.text = "Download"
 			button.disabled = any_active
 			button.tooltip_text = "Wait for the current download to finish." if any_active else ""
+			if button.disabled:
+				updated_count += 1
+	
+	if updated_count > 0:
+		Logger.debug("download_button_states_updated", {
+			"component": "tools",
+			"buttons_updated": updated_count,
+			"any_active_downloads": any_active
+		})

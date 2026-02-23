@@ -255,6 +255,13 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - Launch button enabled after valid project load
   - Launch with no selection → error message
 
+- **[tests/projects_page_indicators_tests.gd](tests/projects_page_indicators_tests.gd)** — Tests tool availability indicators in Projects page.
+  - Tool items populated with ID and version
+  - Tool availability tracking (_tool_availability dictionary)
+  - Visual indicators for missing vs available tools
+  - Click-through signal emission for tool navigation
+  - Signal integration with ToolsController for availability checking
+
 - **[tests/main_scene_tests.gd](tests/main_scene_tests.gd)** — Smoke tests for the main launcher scene.
   - main.tscn loads without errors
   - All page nodes exist (Projects, Engine, Tools, Settings)

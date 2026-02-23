@@ -33,6 +33,9 @@ signal environment_ready
 ## Allows UI to show hydration dialog.
 signal request_hydration(missing_tools: Array)
 
+## Emitted when user clicks a tool to view it in Tools page.
+signal tool_view_requested(tool_id: String, tool_version: String)
+
 var project_path_line_edit: LineEdit
 var btn_browse_project: Button
 var btn_load_project: Button
@@ -46,6 +49,9 @@ var project_dir_dialog: FileDialog
 var current_project_dir := ""
 var current_manifest: StackManifest = null
 var environment_validator: ProjectEnvironmentValidator
+var tools_controller: ToolsController
+var _tool_availability: Dictionary = {}  # Maps {tool_id: {version: {available: bool}}}
+var _library_manager: LibraryManager = null
 
 func setup(
 	path_line_edit: LineEdit,
@@ -56,7 +62,8 @@ func setup(
 	offline_label: Label,
 	tools_list_control: ItemList,
 	launch_button: Button,
-	dir_dialog: FileDialog
+	dir_dialog: FileDialog,
+	tools_ctrl: ToolsController = null
 ) -> void:
 	"""Wires the Projects page controls to project loading behaviors."""
 	project_path_line_edit = path_line_edit
@@ -68,6 +75,7 @@ func setup(
 	tools_list = tools_list_control
 	btn_launch_tool = launch_button
 	project_dir_dialog = dir_dialog
+	tools_controller = tools_ctrl
 
 	btn_browse_project.pressed.connect(_on_browse_project_pressed)
 	btn_load_project.pressed.connect(_on_load_project_pressed)
@@ -75,8 +83,10 @@ func setup(
 	btn_launch_tool.pressed.connect(_on_launch_tool_pressed)
 	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
+	tools_list.item_clicked.connect(_on_tool_item_clicked)
 	
 	environment_validator = ProjectEnvironmentValidator.new()
+	_library_manager = LibraryManager.new()
 	
 	_apply_offline_config(null)
 
@@ -160,14 +170,154 @@ func _load_config_if_present(config_path: String) -> OgsConfig:
 	return OgsConfig.load_from_file(config_path)
 
 func _populate_tools_list(tools: Array) -> void:
-	"""Populates the tools list UI from the manifest tool entries."""
+	"""Populates the tools list UI from the manifest tool entries.
+	
+	Adds visual indicators to show tool availability status:
+	- ⚠️ Yellow indicator: tool not installed but available in remote repository
+	- ❌ Red indicator: tool not installed and not available anywhere
+	- No indicator: tool is already installed in the library
+	
+	Updates the _tool_availability dictionary with status for each tool,
+	enabling click-through navigation to download missing tools.
+	
+	Parameters:
+	  tools (Array): Array of tool entries from stack.json
+	"""
 	tools_list.clear()
+	_tool_availability.clear()
+	
+	# Build availability map from ToolsController
+	var available_tools = _get_available_tools()
+	
+	var missing_count = 0
+	var available_count = 0
+	var installed_count = 0
+	
 	for tool_entry in tools:
 		var tool_id = String(tool_entry.get("id", "unknown"))
 		var tool_version = String(tool_entry.get("version", "?"))
 		var tool_path = String(tool_entry.get("path", ""))
-		var label = "%s v%s - %s" % [tool_id, tool_version, tool_path]
+		
+		# Check if tool is installed in library
+		var is_installed = _library_manager.tool_exists(tool_id, tool_version)
+		
+		# Build label with indicator
+		var label = "%s v%s" % [tool_id, tool_version]
+		var indicator = ""
+		var availability = {"available": false, "installed": is_installed}
+		
+		if not is_installed:
+			missing_count += 1
+			# Check if available in repository
+			if available_tools.has(tool_id) and available_tools[tool_id].has(tool_version):
+				indicator = " ⚠️"
+				availability["available"] = true
+				available_count += 1
+			else:
+				indicator = " ❌"
+				availability["available"] = false
+		else:
+			installed_count += 1
+		
+		_tool_availability["%s_%s" % [tool_id, tool_version]] = availability
+		
+		# Add tool path info if present
+		if not tool_path.is_empty():
+			label = "%s - %s%s" % [label, tool_path, indicator]
+		else:
+			label = label + indicator
+		
 		tools_list.add_item(label)
+	
+	Logger.info("project_tools_list_populated", {
+		"component": "projects",
+		"total_tools": tools.size(),
+		"installed": installed_count,
+		"missing_available": available_count,
+		"missing_unavailable": missing_count - available_count
+	})
+
+func _get_available_tools() -> Dictionary:
+	"""Returns a dictionary of available (not yet installed) tools from the remote repository.
+	
+	Builds a map of tools that exist in the remote ToolsController but are not
+	yet installed in the local library. This is used to determine which tools
+	can be downloaded vs which are completely unavailable.
+	
+	Returns:
+	  Dictionary: {tool_id: {version: {tool_data}}, ...}
+	              Empty dict if ToolsController is not available
+	"""
+	if tools_controller == null:
+		Logger.debug("get_available_tools_no_controller", {
+			"component": "projects",
+			"reason": "ToolsController not initialized"
+		})
+		return {}
+	
+	var categorized = tools_controller.get_categorized_tools()
+	var available = {}
+	var available_count = 0
+	
+	for category in categorized.keys():
+		for tool in categorized[category]:
+			if not tool.get("installed", false):
+				var tool_id = String(tool.get("id", ""))
+				var version = String(tool.get("version", ""))
+				if not tool_id.is_empty() and not version.is_empty():
+					if not available.has(tool_id):
+						available[tool_id] = {}
+					available[tool_id][version] = tool
+					available_count += 1
+	
+	Logger.debug("available_tools_scanned", {
+		"component": "projects",
+		"available_count": available_count,
+		"unique_tools": available.size()
+	})
+	
+	return available
+
+func _on_tool_item_clicked(index: int) -> void:
+	"""Handles click on a tool in the list to enable quick navigation.
+	
+	When user clicks a tool that is not yet installed:
+	  1. Logs the view request with tool context
+	  2. Emits tool_view_requested signal to main.gd
+	  3. UI navigates to Tools page for download
+	
+	If tool is already installed, no action is taken
+	(the launch button handles launching installed tools).
+	
+	Parameters:
+	  index (int): Index in the tools list ItemList
+	"""
+	if current_manifest == null or index < 0 or index >= current_manifest.tools.size():
+		Logger.debug("tool_item_clicked_invalid_index", {
+			"component": "projects",
+			"index": index,
+			"manifest_valid": current_manifest != null,
+			"tools_count": current_manifest.tools.size() if current_manifest != null else 0
+		})
+		return
+	
+	var tool_entry = current_manifest.tools[index]
+	var tool_id = String(tool_entry.get("id", "unknown"))
+	var tool_version = String(tool_entry.get("version", "?"))
+	var availability_key = "%s_%s" % [tool_id, tool_version]
+	
+	# Check if tool is not installed
+	if availability_key in _tool_availability:
+		var availability = _tool_availability[availability_key]
+		if not availability["installed"]:
+			Logger.info("tool_view_requested_from_projects", {
+				"component": "projects",
+				"tool_id": tool_id,
+				"version": tool_version,
+				"available_in_repo": availability["available"]
+			})
+			tool_view_requested.emit(tool_id, tool_version)
+	
 
 func _update_status(message: String) -> void:
 	"""Updates the projects status label."""

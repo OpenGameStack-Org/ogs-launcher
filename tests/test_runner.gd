@@ -68,6 +68,7 @@ func _process(_delta: float) -> bool:
 		"res://tests/ogs_config_tests.gd",
 		"res://tests/stack_generator_tests.gd",
 		"res://tests/projects_controller_scene_tests.gd",
+		"res://tests/projects_page_indicators_tests.gd",
 		"res://tests/main_scene_tests.gd",
 		"res://tests/tools_page_scene_tests.gd",
 		"res://tests/tool_launcher_tests.gd",

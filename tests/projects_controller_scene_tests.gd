@@ -55,6 +55,7 @@ func _build_controller() -> Dictionary:
 	var launch_button = Button.new()
 	var dialog = FileDialog.new()
 
+	# Setup without ToolsController (it's optional and defaults to null in setup)
 	controller.setup(
 		line_edit,
 		browse_button,
@@ -64,7 +65,8 @@ func _build_controller() -> Dictionary:
 		offline_label,
 		tools_list,
 		launch_button,
-		dialog
+		dialog,
+		null  # tools_controller is optional
 	)
 
 	return {
