@@ -109,7 +109,7 @@ func _test_populate_tools_list_with_availability(results: Dictionary) -> void:
 	_cleanup_nodes(ctx["nodes"])
 
 func _test_tool_view_requested_signal(results: Dictionary) -> void:
-	"""Verifies tool_view_requested signal is emitted when clicking a missing tool."""
+	"""Verifies tool_view_requested signal is emitted via ItemList click wiring."""
 	var ctx = _build_projects_controller()
 	var controller = ctx["controller"]
 	var tools_list = ctx["tools_list"]
@@ -138,12 +138,15 @@ func _test_tool_view_requested_signal(results: Dictionary) -> void:
 	
 	controller._populate_tools_list(tools)
 	
-	# Simulate clicking the first tool
-	controller._on_tool_item_clicked(0)
+	# Simulate clicking the first tool through ItemList signal wiring
+	tools_list.item_clicked.emit(0, Vector2.ZERO, 1)
 	
 	# Verify setup
 	_expect(tools_list.item_count == 2, "Should have added 2 tools", results)
 	_expect(controller._tool_availability.size() == 2, "Should track 2 tools in _tool_availability", results)
+	_expect(signal_state["emitted"] == true, "tool_view_requested should emit on item click", results)
+	_expect(signal_state["tool_id"] == "godot", "tool_view_requested should pass tool id", results)
+	_expect(signal_state["version"] == "4.3", "tool_view_requested should pass tool version", results)
 	
 	_cleanup_nodes(ctx["nodes"])
 

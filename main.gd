@@ -44,7 +44,6 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 @onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
 @onready var btn_launch_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/LaunchButton
 @onready var btn_seal_for_delivery = $AppLayout/Content/PageProjects/ToolControlsContainer/SealButton
-@onready var btn_repair_environment = $AppLayout/Content/PageProjects/RepairButton
 @onready var project_dir_dialog = $ProjectDirDialog
 
 # Onboarding dialog
@@ -55,21 +54,6 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 @onready var seal_status_label = $SealDialog/VBoxContainer/StatusLabel
 @onready var seal_output_label = $SealDialog/VBoxContainer/OutputLabel
 @onready var seal_open_folder_button = $SealDialog/VBoxContainer/OpenFolderButton
-
-# Hydration dialog nodes
-@onready var hydration_dialog = $HydrationDialog
-@onready var hydration_download_button = $HydrationDialog/ButtonContainer/DownloadButton
-@onready var hydration_close_button = $HydrationDialog/ButtonContainer/CloseButton
-@onready var hydration_tools_list = $HydrationDialog/VBoxContainer/ToolsList
-@onready var hydration_status_label = $HydrationDialog/VBoxContainer/StatusLabel
-@onready var hydration_progress_bar = $HydrationDialog/VBoxContainer/ProgressBar
-
-# Progress dialog nodes (modal for downloads)
-@onready var progress_dialog = $ProgressDialog
-@onready var progress_status_label = $ProgressDialog/VBoxContainer/StatusLabel
-@onready var progress_bar = $ProgressDialog/VBoxContainer/ProgressBar
-@onready var progress_cancel_button = $ProgressDialog/ButtonContainer/CancelButton
-@onready var progress_ok_button = $ProgressDialog/ButtonContainer/OKButton
 
 # Settings nodes
 @onready var mirror_root_path = $AppLayout/Content/PageSettings/MirrorRootContainer/MirrorRootPath
@@ -82,7 +66,6 @@ const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStac
 var network_ui_nodes: Array = []
 
 var projects_controller: ProjectsController
-var hydration_controller: LibraryHydrationController
 var layout_controller: LayoutController
 var seal_controller: SealController
 var tools_controller: ToolsController
@@ -91,6 +74,7 @@ var mirror_root_override: String = ""
 var mirror_repository_url: String = ""
 var settings_file_path: String = ""
 var tool_cards: Dictionary = {}  # {"tool_id_version": {panel, button, progress_bar}}
+var requested_tool_key: String = ""
 
 ## Resolves the base OGS data directory.
 func _resolve_ogs_root_path() -> String:
@@ -177,32 +161,6 @@ func _ready():
 	)
 	seal_controller.seal_completed.connect(_on_seal_completed)
 	
-	# Set up hydration controller and wire signals
-	hydration_controller = LibraryHydrationController.new()
-	hydration_controller.setup(
-		hydration_dialog,
-		hydration_tools_list,
-		hydration_status_label,
-		hydration_download_button,
-		hydration_close_button,
-		progress_dialog,
-		progress_status_label,
-		progress_bar,
-		progress_cancel_button,
-		progress_ok_button,
-		"",  # mirror_url
-		get_tree(),  # Pass scene tree reference for timers
-		mirror_root_override,
-		mirror_repository_url
-	)
-	
-	# Wire hydration signals
-	projects_controller.request_hydration.connect(_on_request_hydration)
-	hydration_controller.hydration_finished.connect(_on_hydration_finished)
-	
-	# Wire repair button
-	btn_repair_environment.pressed.connect(_on_repair_environment_pressed)
-	
 	# Wire seal button
 	btn_seal_for_delivery.pressed.connect(_on_seal_button_pressed)
 
@@ -219,6 +177,7 @@ func _ready():
 
 	_collect_network_ui_nodes()
 	_apply_offline_ui(false)
+	_on_environment_ready()
 	
 	# Start on the Projects page
 	layout_controller.navigate_to("projects")
@@ -263,46 +222,16 @@ func _apply_offline_ui(active: bool) -> void:
 			var button := node as BaseButton
 			button.disabled = active
 			button.tooltip_text = "Disabled in offline mode." if active else ""
-## Signal handler: when ProjectsController requests hydration.
-func _on_request_hydration(missing_tools: Array) -> void:
-	"""Shows the hydration dialog with list of missing tools."""
-	hydration_controller.start_hydration(missing_tools)
-	hydration_dialog.popup_centered()
-
-## Signal handler: when hydration completes.
-func _on_hydration_finished(success: bool, message: String) -> void:
-	"""Re-validates the project environment after hydration."""
-	projects_controller.on_hydration_complete(success, message)
-
-## Signal handler: repair button pressed.
-func _on_repair_environment_pressed() -> void:
-	"""User clicked the 'Repair Environment' button."""
-	projects_controller.request_repair_environment()
 
 ## Signal handler: environment is incomplete.
 func _on_environment_incomplete(_missing_tools: Array) -> void:
-	"""Shows the repair button and disables seal when tools are missing."""
-	btn_repair_environment.visible = true
-	var offline_active = OfflineEnforcer.is_offline()
-	btn_repair_environment.disabled = offline_active
-	if offline_active:
-		btn_repair_environment.tooltip_text = "Disabled in offline mode."
-		btn_repair_environment.remove_theme_color_override("font_color")
-	else:
-		# Color repair button orange to indicate action needed
-		btn_repair_environment.add_theme_color_override("font_color", Color.ORANGE)
-		btn_repair_environment.tooltip_text = ""
-	# Disable seal button when environment is incomplete
+	"""Disables seal when required tools are missing."""
 	btn_seal_for_delivery.disabled = true
-	btn_seal_for_delivery.tooltip_text = "Repair environment first to seal project."
+	btn_seal_for_delivery.tooltip_text = "Install missing tools from the Tools page before sealing."
 
 ## Signal handler: environment is complete.
 func _on_environment_ready() -> void:
-	"""Hides the repair button and re-enables seal when all tools are available."""
-	btn_repair_environment.visible = false
-	# Reset repair button color to default
-	btn_repair_environment.remove_theme_color_override("font_color")
-	# Re-enable seal button when environment is complete
+	"""Re-enables seal when all required tools are available."""
 	btn_seal_for_delivery.disabled = false
 	btn_seal_for_delivery.tooltip_text = ""
 
@@ -321,15 +250,36 @@ func _on_seal_completed(_success: bool, _zip_path: String) -> void:
 
 ## Signal handler: user clicked a tool in Projects page that needs downloading.
 func _on_tool_view_requested(tool_id: String, tool_version: String) -> void:
-	"""Navigate to Tools page to download/view the requested tool."""
+	"""Navigate to Tools page and focus requested tool in Download tab."""
+	requested_tool_key = "%s_%s" % [tool_id, tool_version]
 	layout_controller.navigate_to("tools")
-	# Optionally: highlight or scroll to the specific tool in the Tools page
-	# This could be enhanced in the future to auto-scroll and highlight the tool
+	if tools_tabs != null:
+		tools_tabs.current_tab = 1
+	_focus_requested_tool_card()
 	Logger.info("tool_view_requested", {
 		"component": "projects",
 		"tool_id": tool_id,
 		"version": tool_version
 	})
+
+## Focuses requested tool card on the Tools page when available.
+func _focus_requested_tool_card() -> void:
+	"""Attempts to focus the requested tool's action button in Download tab."""
+	if requested_tool_key.is_empty():
+		return
+
+	var card_data = tool_cards.get(requested_tool_key)
+	if card_data == null:
+		return
+
+	if tools_tabs != null:
+		tools_tabs.current_tab = 1
+
+	var button = card_data.get("button")
+	if button != null:
+		button.grab_focus()
+
+	requested_tool_key = ""
 
 ## Settings Methods
 
@@ -376,9 +326,6 @@ func _on_mirror_root_text_changed(new_text: String) -> void:
 	mirror_root_override = new_text
 	_save_mirror_settings()
 	_update_mirror_status()
-	# Update hydration controller with new mirror root
-	if hydration_controller != null:
-		hydration_controller.update_mirror_root(mirror_root_override)
 
 ## Called when browse button is pressed.
 func _on_mirror_root_browse_pressed() -> void:
@@ -392,8 +339,6 @@ func _on_mirror_root_browse_pressed() -> void:
 		mirror_root_path.text = path
 		_save_mirror_settings()
 		_update_mirror_status()
-		if hydration_controller != null:
-			hydration_controller.update_mirror_root(mirror_root_override)
 	)
 	add_child(dialog)
 	dialog.popup_centered_ratio(0.7)
@@ -405,8 +350,6 @@ func _on_mirror_root_reset_pressed() -> void:
 	mirror_root_path.text = ""
 	_save_mirror_settings()
 	_update_mirror_status()
-	if hydration_controller != null:
-		hydration_controller.update_mirror_root("")
 
 ## Called when mirror repository URL text changes.
 func _on_mirror_repo_text_changed(new_text: String) -> void:
@@ -414,8 +357,6 @@ func _on_mirror_repo_text_changed(new_text: String) -> void:
 	mirror_repository_url = new_text.strip_edges()
 	_save_mirror_settings()
 	_update_mirror_status()
-	if hydration_controller != null:
-		hydration_controller.update_remote_repository_url(mirror_repository_url)
 
 ## Called when mirror repository URL reset button is pressed.
 func _on_mirror_repo_clear_pressed() -> void:
@@ -424,8 +365,6 @@ func _on_mirror_repo_clear_pressed() -> void:
 	mirror_repo_path.text = mirror_repository_url
 	_save_mirror_settings()
 	_update_mirror_status()
-	if hydration_controller != null:
-		hydration_controller.update_remote_repository_url(mirror_repository_url)
 
 ## Updates the mirror status indicator.
 func _update_mirror_status() -> void:
@@ -526,6 +465,8 @@ func _on_tools_list_updated() -> void:
 	})
 	_update_tools_connectivity_status(tools_controller.is_online())
 	_populate_tools_ui()
+	if projects_controller != null:
+		projects_controller.refresh_project_tools_state()
 
 ## Signal handler: tools refresh failed.
 func _on_tools_refresh_failed(_error_message: String) -> void:
@@ -547,6 +488,8 @@ func _on_tool_download_complete(tool_id: String, version: String, success: bool)
 			"version": version
 		})
 		_populate_tools_ui()  # Refresh to move tool from Download to Installed
+		if projects_controller != null:
+			projects_controller.refresh_project_tools_state()
 	_update_tools_connectivity_status(tools_controller.is_online())
 	_update_download_button_states()
 
@@ -648,6 +591,7 @@ func _populate_tools_ui() -> void:
 				_add_tool_card_to_category(category, tool, false)
 
 	_update_download_button_states()
+	_focus_requested_tool_card()
 	
 	Logger.info("tools_ui_populated", {
 		"component": "tools",

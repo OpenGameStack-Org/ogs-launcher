@@ -6,15 +6,13 @@
 ## When a project is loaded:
 ##   1. Loads and validates stack.json
 ##   2. Checks if all required tools exist in the library
-##   3. Signals if tools are missing (for hydration/repair UI)
+##   3. Signals if tools are missing (for Tools-page guidance)
 ##   4. Enables launch only if environment is ready
 ##
 ## Environment Validation Flow:
-##   - environment_incomplete(missing_tools) → UI shows "Repair Environment" button
-##   - User clicks repair → request_hydration() signals ProjectsController
-##   - UI starts LibraryHydrationController with missing_tools
-##   - Hydration completes → UI calls on_hydration_complete()
-##   - ProjectsController re-validates project
+##   - environment_incomplete(missing_tools) → UI disables sealing and directs to Tools page
+##   - User clicks missing tool in list → tool_view_requested(tool_id, version)
+##   - UI navigates to Tools page for download/install
 
 extends RefCounted
 class_name ProjectsController
@@ -23,15 +21,11 @@ class_name ProjectsController
 signal offline_state_changed(active: bool, reason: String)
 
 ## Emitted when tools are missing from the library.
-## Missing tools can be hydrated via download/repair workflow.
+## UI can guide users to the Tools page for downloads.
 signal environment_incomplete(missing_tools: Array)
 
 ## Emitted when environment is complete and ready for launch.
 signal environment_ready
-
-## Emitted when user requests hydration/repair of environment.
-## Allows UI to show hydration dialog.
-signal request_hydration(missing_tools: Array)
 
 ## Emitted when user clicks a tool to view it in Tools page.
 signal tool_view_requested(tool_id: String, tool_version: String)
@@ -83,7 +77,9 @@ func setup(
 	btn_launch_tool.pressed.connect(_on_launch_tool_pressed)
 	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
-	tools_list.item_clicked.connect(_on_tool_item_clicked)
+	tools_list.item_clicked.connect(func(index: int, _at_position: Vector2, _mouse_button_index: int):
+		_on_tool_item_clicked(index)
+	)
 	
 	environment_validator = ProjectEnvironmentValidator.new()
 	_library_manager = LibraryManager.new()
@@ -188,9 +184,11 @@ func _populate_tools_list(tools: Array) -> void:
 	
 	# Build availability map from ToolsController
 	var available_tools = _get_available_tools()
+	var repository_known = tools_controller != null and tools_controller.has_repository_data()
 	
 	var missing_count = 0
 	var available_count = 0
+	var unknown_count = 0
 	var installed_count = 0
 	
 	for tool_entry in tools:
@@ -208,14 +206,19 @@ func _populate_tools_list(tools: Array) -> void:
 		
 		if not is_installed:
 			missing_count += 1
-			# Check if available in repository
-			if available_tools.has(tool_id) and available_tools[tool_id].has(tool_version):
+			# Check if available in repository (only when repository data is loaded)
+			if repository_known and available_tools.has(tool_id) and available_tools[tool_id].has(tool_version):
 				indicator = " ⚠️"
 				availability["available"] = true
 				available_count += 1
-			else:
+			elif repository_known:
 				indicator = " ❌"
 				availability["available"] = false
+			else:
+				# Repository availability unknown yet; do not show false unavailability.
+				indicator = " ⚠️"
+				availability["available"] = true
+				unknown_count += 1
 		else:
 			installed_count += 1
 		
@@ -234,7 +237,9 @@ func _populate_tools_list(tools: Array) -> void:
 		"total_tools": tools.size(),
 		"installed": installed_count,
 		"missing_available": available_count,
-		"missing_unavailable": missing_count - available_count
+		"missing_unavailable": missing_count - available_count - unknown_count,
+		"missing_unknown": unknown_count,
+		"repository_known": repository_known
 	})
 
 func _get_available_tools() -> Dictionary:
@@ -340,6 +345,33 @@ func _apply_offline_config(config: OgsConfig) -> void:
 	OfflineEnforcer.apply_config(config)
 	offline_state_changed.emit(OfflineEnforcer.is_offline(), OfflineEnforcer.get_reason())
 
+## Re-evaluates tools availability and environment for the currently loaded project.
+func refresh_project_tools_state() -> void:
+	"""Refreshes Projects page tool indicators and readiness state.
+
+	Use this after Tools page repository updates or completed downloads so
+	the Projects list indicators, status label, and seal readiness reflect
+	the current library and repository state without requiring manual reload.
+	"""
+	if current_project_dir.is_empty() or current_manifest == null:
+		return
+
+	var config_path = current_project_dir.path_join("ogs_config.json")
+	var config = _load_config_if_present(config_path)
+
+	_populate_tools_list(current_manifest.tools)
+	_apply_offline_config(config)
+	_update_offline_status(config)
+
+	var use_project_tools = config != null and config.force_offline
+	_validate_and_report_environment(current_project_dir, use_project_tools)
+
+	Logger.info("project_tools_state_refreshed", {
+		"component": "projects",
+		"project": current_project_dir,
+		"tool_count": current_manifest.tools.size()
+	})
+
 func _on_launch_tool_pressed() -> void:
 	"""Launches the currently selected tool from the tools list."""
 	if current_manifest == null:
@@ -380,7 +412,7 @@ func _validate_and_report_environment(project_dir: String, use_project_tools: bo
 	"""Checks if all required tools are available in the library.
 	
 	Note: Validation is non-blocking. Launch is allowed even with missing tools,
-	but a signal is emitted for UI to show "Repair Environment" button.
+	but a signal is emitted so UI can direct users to the Tools page.
 	"""
 	var validation = environment_validator.validate_project(project_dir, use_project_tools)
 	
@@ -410,9 +442,9 @@ func _validate_and_report_environment(project_dir: String, use_project_tools: bo
 		# Tools are missing - but still allow launch with warning
 		var tool_count = validation["missing_tools"].size()
 		if OfflineEnforcer.is_offline():
-			_update_status("Status: Manifest loaded (%d tool(s) missing - offline mode prevents repair)." % tool_count)
+			_update_status("Status: Manifest loaded (%d tool(s) missing - offline mode prevents downloads)." % tool_count)
 		else:
-			_update_status("Status: Manifest loaded (%d tool(s) missing - use Repair Environment to download)." % tool_count)
+			_update_status("Status: Manifest loaded (%d tool(s) missing - use Tools page to download)." % tool_count)
 		_enable_launch_button()
 		environment_incomplete.emit(validation["missing_tools"])
 		Logger.warn("environment_incomplete", {
@@ -420,59 +452,3 @@ func _validate_and_report_environment(project_dir: String, use_project_tools: bo
 			"project": project_dir,
 			"missing_count": tool_count
 		})
-
-## Returns the list of missing tools from the last validation.
-## Useful for hydration/repair UI to know what to download.
-## Returns:
-##   Array[Dictionary]: Tool entries that need to be downloaded
-func get_missing_tools() -> Array:
-	if current_manifest == null:
-		return []
-	
-	var validation = environment_validator.validate_project(current_project_dir)
-	return validation["missing_tools"]
-
-## Prepares a download list for the given missing tools.
-## Returns:
-##   Array[Dictionary]: [{tool_id, version}] suitable for ToolDownloader
-func get_download_list_for_missing() -> Array:
-	var missing = get_missing_tools()
-	return environment_validator.get_download_list(missing)
-
-## Requests hydration of the environment (called by "Repair Environment" button).
-## Emits request_hydration signal for the UI to show hydration dialog.
-func request_repair_environment() -> void:
-	"""Requests repair/hydration of the environment."""
-	var missing = get_missing_tools()
-	
-	if missing.is_empty():
-		_update_status("Status: Environment is already complete. All tools are available.")
-		return
-	
-	_update_status("Status: Requesting environment repair...")
-	Logger.info("repair_requested", {
-		"component": "projects",
-		"missing_count": missing.size()
-	})
-	
-	request_hydration.emit(missing)
-
-## Called after hydration completes to re-validate the project.
-## Parameters:
-##   success (bool): Whether hydration was successful
-##   message (String): Completion message from hydrator
-func on_hydration_complete(success: bool, message: String) -> void:
-	"""Re-validates project after hydration completes."""
-	Logger.info("hydration_callback", {
-		"component": "projects",
-		"success": success,
-		"message": message
-	})
-	
-	if not success:
-		_update_status("Status: Hydration failed. See logs for details. " + message)
-		return
-	
-	# Re-validate environment after successful hydration
-	_update_status("Status: Hydration complete. Re-validating environment...")
-	_validate_and_report_environment(current_project_dir)

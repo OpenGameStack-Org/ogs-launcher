@@ -109,11 +109,6 @@ text = "Launch Selected Tool"
 layout_mode = 2
 text = "Seal for Delivery"
 
-[node name="RepairButton" type="Button" parent="AppLayout/Content/PageProjects"]
-visible = false
-layout_mode = 2
-text = "Repair Environment"
-
 [node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
 visible = false
 layout_mode = 2
@@ -371,107 +366,6 @@ title = "Open a Directory"
 ok_button_text = "Select Current Folder"
 file_mode = 2
 access = 2
-
-[node name="HydrationDialog" type="Window" parent="."]
-title = "Repair Environment"
-initial_position = 1
-size = Vector2i(500, 450)
-visible = false
-exclusive = true
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HydrationDialog"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_bottom = -42.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Label" type="Label" parent="HydrationDialog/VBoxContainer"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "The following tools are missing from your library. Click below to download and install them:"
-autowrap_mode = 2
-text_overrun_behavior = 3
-
-[node name="ToolsList" type="ItemList" parent="HydrationDialog/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="StatusLabel" type="Label" parent="HydrationDialog/VBoxContainer"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-text = "Ready to download."
-autowrap_mode = 2
-text_overrun_behavior = 3
-
-[node name="ProgressBar" type="ProgressBar" parent="HydrationDialog/VBoxContainer"]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 1.0
-
-[node name="ButtonContainer" type="HBoxContainer" parent="HydrationDialog"]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -42.0
-grow_horizontal = 2
-
-[node name="DownloadButton" type="Button" parent="HydrationDialog/ButtonContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Download and Install"
-
-[node name="CloseButton" type="Button" parent="HydrationDialog/ButtonContainer"]
-layout_mode = 2
-text = "Close"
-
-[node name="ProgressDialog" type="Window" parent="."]
-title = "Downloading Tools"
-initial_position = 1
-size = Vector2i(500, 200)
-visible = false
-exclusive = true
-
-[node name="VBoxContainer" type="VBoxContainer" parent="ProgressDialog"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_bottom = -42.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="StatusLabel" type="Label" parent="ProgressDialog/VBoxContainer"]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-text = "Downloading tools..."
-autowrap_mode = 2
-text_overrun_behavior = 3
-
-[node name="ProgressBar" type="ProgressBar" parent="ProgressDialog/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-max_value = 1.0
-
-[node name="ButtonContainer" type="HBoxContainer" parent="ProgressDialog"]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -42.0
-grow_horizontal = 2
-alignment = 2
-
-[node name="CancelButton" type="Button" parent="ProgressDialog/ButtonContainer"]
-layout_mode = 2
-text = "Cancel"
-
-[node name="OKButton" type="Button" parent="ProgressDialog/ButtonContainer"]
-visible = false
-layout_mode = 2
-text = "OK"
 
 [node name="OnboardingWizardDialog" type="AcceptDialog" parent="."]
 title = "Welcome to Open Game Stack"

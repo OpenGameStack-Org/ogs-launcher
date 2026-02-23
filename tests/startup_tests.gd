@@ -82,7 +82,6 @@ func _test_all_required_nodes_exist(results: Dictionary) -> void:
 		"AppLayout/Content/PageSettings/MirrorRepoContainer/MirrorRepoClearButton",
 		"AppLayout/Content/PageSettings/MirrorStatusLabel",
 		"SealDialog",
-		"HydrationDialog",
 		"ProjectDirDialog"
 	]
 	
