@@ -39,10 +39,6 @@ layout_mode = 2
 layout_mode = 2
 text = "Projects"
 
-[node name="BtnEngine" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "Engine"
-
 [node name="BtnTools" type="Button" parent="AppLayout/Sidebar/VBoxContainer"]
 layout_mode = 2
 text = "Tools"
@@ -108,14 +104,6 @@ text = "Launch Selected Tool"
 [node name="SealButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer"]
 layout_mode = 2
 text = "Seal for Delivery"
-
-[node name="PageEngine" type="VBoxContainer" parent="AppLayout/Content"]
-visible = false
-layout_mode = 2
-
-[node name="Label" type="Label" parent="AppLayout/Content/PageEngine"]
-layout_mode = 2
-text = "Engine Manager"
 
 [node name="PageTools" type="VBoxContainer" parent="AppLayout/Content"]
 layout_mode = 2

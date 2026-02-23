@@ -108,11 +108,6 @@ func _test_controllers_initialize(results: Dictionary) -> void:
 		errors.append("ProjectsController instantiation failed")
 		success = false
 	
-	var hydration_controller = LibraryHydrationController.new()
-	if hydration_controller == null:
-		errors.append("LibraryHydrationController instantiation failed")
-		success = false
-	
 	var seal_controller = SealController.new()
 	if seal_controller == null:
 		errors.append("SealController instantiation failed")

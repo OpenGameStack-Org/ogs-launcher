@@ -6,8 +6,8 @@
 ## Usage:
 ##   var layout = LayoutController.new()
 ##   layout.setup(
-##       btn_projects, btn_engine, btn_tools, btn_settings,
-##       page_projects, page_engine, page_tools, page_settings
+##       btn_projects, btn_tools, btn_settings,
+##       page_projects, page_tools, page_settings
 ##   )
 
 extends RefCounted
@@ -22,36 +22,31 @@ var _current_page: String = ""
 
 ## Sets up the layout controller with sidebar buttons and content pages.
 ## Parameters:
-##   btn_projects, btn_engine, btn_tools, btn_settings: Sidebar buttons
-##   page_projects, page_engine, page_tools, page_settings: Content pages
+##   btn_projects, btn_tools, btn_settings: Sidebar buttons
+##   page_projects, page_tools, page_settings: Content pages
 func setup(
 	btn_projects: Button,
-	btn_engine: Button,
 	btn_tools: Button,
 	btn_settings: Button,
 	page_projects: Control,
-	page_engine: Control,
 	page_tools: Control,
 	page_settings: Control
 ) -> void:
 	"""Configures the layout with buttons and pages."""
 	_sidebar_buttons = {
 		"projects": btn_projects,
-		"engine": btn_engine,
 		"tools": btn_tools,
 		"settings": btn_settings
 	}
 	
 	_pages = {
 		"projects": page_projects,
-		"engine": page_engine,
 		"tools": page_tools,
 		"settings": page_settings
 	}
 	
 	# Connect button signals
 	btn_projects.pressed.connect(_on_page_button_pressed.bind("projects"))
-	btn_engine.pressed.connect(_on_page_button_pressed.bind("engine"))
 	btn_tools.pressed.connect(_on_page_button_pressed.bind("tools"))
 	btn_settings.pressed.connect(_on_page_button_pressed.bind("settings"))
 	
@@ -60,7 +55,7 @@ func setup(
 
 ## Navigates to a specific page by name.
 ## Parameters:
-##   page_name (String): One of "projects", "engine", "tools", "settings"
+##   page_name (String): One of "projects", "tools", "settings"
 func navigate_to(page_name: String) -> void:
 	"""Shows the specified page and hides others."""
 	if not _pages.has(page_name):

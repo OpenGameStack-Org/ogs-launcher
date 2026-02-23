@@ -2,17 +2,21 @@ extends Control
 
 const MirrorPathResolverScript = preload("res://scripts/mirror/mirror_path_resolver.gd")
 const DEFAULT_REMOTE_REPO_URL := "https://raw.githubusercontent.com/OpenGameStack-Org/ogs-frozen-stacks/main/repository.json"
+const LayoutControllerScript = preload("res://scripts/launcher/layout_controller.gd")
+const ProjectsControllerScript = preload("res://scripts/projects/projects_controller.gd")
+const SealControllerScript = preload("res://scripts/launcher/seal_controller.gd")
+const ToolsControllerScript = preload("res://scripts/tools/tools_controller.gd")
+const ProgressControllerScript = preload("res://scripts/tools/progress_controller.gd")
+const OnboardingWizardScript = preload("res://scripts/onboarding/onboarding_wizard.gd")
 
 
 # -- PRELOAD REFERENCES --
 # These allow us to talk to the nodes we created in the editor
 @onready var page_projects = $AppLayout/Content/PageProjects
-@onready var page_engine = $AppLayout/Content/PageEngine
 @onready var page_tools = $AppLayout/Content/PageTools
 @onready var page_settings = $AppLayout/Content/PageSettings
 
 @onready var btn_projects = $AppLayout/Sidebar/VBoxContainer/BtnProjects
-@onready var btn_engine = $AppLayout/Sidebar/VBoxContainer/BtnEngine
 @onready var btn_tools = $AppLayout/Sidebar/VBoxContainer/BtnTools
 @onready var btn_settings = $AppLayout/Sidebar/VBoxContainer/BtnSettings
 
@@ -69,6 +73,7 @@ var projects_controller: ProjectsController
 var layout_controller: LayoutController
 var seal_controller: SealController
 var tools_controller: ToolsController
+var progress_controller: ProgressController
 var onboarding_wizard: OnboardingWizard
 var mirror_root_override: String = ""
 var mirror_repository_url: String = ""
@@ -92,7 +97,7 @@ func _ready():
 	# Set up onboarding wizard for first-run experience
 	var ogs_root_path = _resolve_ogs_root_path()
 	var library_root_path = ogs_root_path.path_join("Library")
-	onboarding_wizard = OnboardingWizard.new()
+	onboarding_wizard = OnboardingWizardScript.new()
 	onboarding_wizard.setup(get_tree(), library_root_path, onboarding_dialog, ogs_root_path)
 	onboarding_wizard.wizard_completed.connect(_on_wizard_completed)
 	
@@ -103,14 +108,12 @@ func _ready():
 		onboarding_wizard.show_wizard()
 	
 	# Set up layout controller for page navigation
-	layout_controller = LayoutController.new()
+	layout_controller = LayoutControllerScript.new()
 	layout_controller.setup(
 		btn_projects,
-		btn_engine,
 		btn_tools,
 		btn_settings,
 		page_projects,
-		page_engine,
 		page_tools,
 		page_settings
 	)
@@ -123,7 +126,7 @@ func _ready():
 
 	# Set up tools controller FIRST (needed by ProjectsController)
 	var repo_url = mirror_repository_url if not mirror_repository_url.is_empty() else DEFAULT_REMOTE_REPO_URL
-	tools_controller = ToolsController.new(get_tree(), repo_url)
+	tools_controller = ToolsControllerScript.new(get_tree(), repo_url)
 	tools_controller.tool_list_updated.connect(_on_tools_list_updated)
 	tools_controller.tool_list_refresh_failed.connect(_on_tools_refresh_failed)
 	tools_controller.tool_download_started.connect(_on_tool_download_started)
@@ -131,9 +134,19 @@ func _ready():
 	tools_controller.tool_download_progress.connect(_on_tool_download_progress)
 	tools_controller.connectivity_checked.connect(_on_connectivity_checked)
 	tools_refresh_button.pressed.connect(_on_tools_refresh_pressed)
+	
+	# Set up progress controller for download tracking
+	progress_controller = ProgressControllerScript.new()
+	progress_controller.progress_completed.connect(_on_progress_completed)
+	progress_controller.progress_cancelled.connect(_on_progress_cancelled)
+	
+	# Set up progress controller for download tracking
+	progress_controller = ProgressControllerScript.new()
+	progress_controller.progress_completed.connect(_on_progress_completed)
+	progress_controller.progress_cancelled.connect(_on_progress_cancelled)
 
 	# Projects page controller (now ToolsController is available to pass)
-	projects_controller = ProjectsController.new()
+	projects_controller = ProjectsControllerScript.new()
 	projects_controller.setup(
 		project_path_line_edit,
 		btn_browse_project,
@@ -152,7 +165,7 @@ func _ready():
 	projects_controller.environment_ready.connect(_on_environment_ready)
 	
 	# Set up seal controller for seal dialog
-	seal_controller = SealController.new()
+	seal_controller = SealControllerScript.new()
 	seal_controller.setup(
 		seal_dialog,
 		seal_status_label,
@@ -480,84 +493,50 @@ func _on_tools_refresh_failed(_error_message: String) -> void:
 
 ## Signal handler: tool download completed.
 func _on_tool_download_complete(tool_id: String, version: String, success: bool) -> void:
-	"""Refreshes UI after tool download."""
+	"""Refreshes UI after tool download and completes progress tracking."""
 	if success:
 		Logger.info("tool_download_complete_ui", {
 			"component": "tools",
 			"tool_id": tool_id,
 			"version": version
 		})
+		# Complete progress tracking
+		if progress_controller != null:
+			progress_controller.complete_progress(tool_id, version)
+		
 		_populate_tools_ui()  # Refresh to move tool from Download to Installed
 		if projects_controller != null:
 			projects_controller.refresh_project_tools_state()
+	else:
+		# On failure, cancel progress tracking
+		if progress_controller != null:
+			progress_controller.cancel_progress(tool_id, version)
+	
 	_update_tools_connectivity_status(tools_controller.is_online())
 	_update_download_button_states()
 
 ## Signal handler: tool install started (after download).
 func _on_tool_download_started(tool_id: String, version: String) -> void:
-	"""Handles transition to install phase after download completes.
+	"""Transitions progress to install phase.
 	
-	Shows progress container and updates progress bar to indeterminate state
+	Delegates to ProgressController to show indeterminate progress
 	while installation proceeds. This occurs after download completes but
 	before installation finishes.
 	"""
-	var key = "%s_%s" % [tool_id, version]
-	var card_data = tool_cards.get(key)
-	
-	if card_data != null:
-		var tool_progress_bar = card_data.get("progress_bar")
-		var progress_label = card_data.get("progress_label")
-		var progress_container = card_data.get("progress_container")
+	if progress_controller != null:
+		progress_controller.set_install_phase(tool_id, version)
 		
-		if progress_container != null:
-			progress_container.visible = true
-		if tool_progress_bar != null:
-			tool_progress_bar.indeterminate = true
-			tool_progress_bar.value = 0
-		if progress_label != null:
-			progress_label.text = "Installing..."
-			progress_label.visible = true
-		
-		Logger.info("tool_install_phase_started", {
-			"component": "tools",
-			"tool_id": tool_id,
-			"version": version
-		})
+	Logger.info("tool_install_phase_started", {
+		"component": "tools",
+		"tool_id": tool_id,
+		"version": version
+	})
 
 ## Signal handler: tool download progress updated.
 func _on_tool_download_progress(tool_id: String, version: String, bytes_downloaded: int, total_bytes: int) -> void:
-	"""Updates progress bar for downloading tool."""
-	var key = "%s_%s" % [tool_id, version]
-	var card_data = tool_cards.get(key)
-	
-	if card_data != null and card_data.has("progress_bar"):
-		var tool_progress_bar = card_data["progress_bar"]
-		var progress_label = card_data.get("progress_label")
-		var progress_container = card_data.get("progress_container")
-		var phase = card_data.get("phase", "download")
-		
-		if progress_container != null:
-			progress_container.visible = true
-		if tool_progress_bar != null:
-			tool_progress_bar.visible = true
-			if phase == "download" and total_bytes > 0:
-				tool_progress_bar.indeterminate = false
-				tool_progress_bar.value = (bytes_downloaded * 100.0) / total_bytes
-				
-				if bytes_downloaded >= total_bytes:
-					card_data["phase"] = "install"
-					tool_progress_bar.indeterminate = true
-					tool_progress_bar.value = 0
-					if progress_label != null:
-						progress_label.text = "Installing..."
-						progress_label.visible = true
-					return
-		
-		if progress_label != null and phase == "download":
-			var downloaded_mb = bytes_downloaded / (1024.0 * 1024.0)
-			var total_mb = total_bytes / (1024.0 * 1024.0)
-			progress_label.text = "%.1f / %.1f MB" % [downloaded_mb, total_mb]
-			progress_label.visible = true
+	"""Delegates progress updates to ProgressController."""
+	if progress_controller != null:
+		progress_controller.update_progress(tool_id, version, bytes_downloaded, total_bytes)
 
 ## Populates the tools UI with categorized tools.
 func _populate_tools_ui() -> void:
@@ -752,6 +731,16 @@ func _create_tool_card(tool: Dictionary, is_installed: bool) -> PanelContainer:
 			"phase": "download"
 		}
 		
+		# Register progress tracking with ProgressController
+		if progress_controller != null:
+			progress_controller.track_inline_progress(
+				tool["id"],
+				tool["version"],
+				tool_progress_bar,
+				progress_label,
+				progress_container
+			)
+		
 		# Show progress if already downloading
 		var is_downloading = tools_controller.is_downloading(tool["id"], tool["version"])
 		if is_downloading:
@@ -822,8 +811,30 @@ func _on_cancel_tool_download(tool_id: String, version: String) -> void:
 		tools_controller.cancel_download(tool_id, version)
 		_update_tools_connectivity_status(tools_controller.is_online())
 		
+		# Cancel progress tracking
+		if progress_controller != null:
+			progress_controller.cancel_progress(tool_id, version)
+		
 		# Refresh UI to reset button state
 		_populate_tools_ui()
+
+## Signal handler: progress completed.
+func _on_progress_completed(tool_id: String, version: String) -> void:
+	"""Called when ProgressController marks operation as complete."""
+	Logger.debug("progress_completed", {
+		"component": "tools",
+		"tool_id": tool_id,
+		"version": version
+	})
+
+## Signal handler: progress cancelled.
+func _on_progress_cancelled(tool_id: String, version: String) -> void:
+	"""Called when ProgressController cancels operation."""
+	Logger.debug("progress_cancelled", {
+		"component": "tools",
+		"tool_id": tool_id,
+		"version": version
+	})
 
 ## Updates download button states based on active downloads.
 func _update_download_button_states() -> void:

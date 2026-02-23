@@ -39,12 +39,10 @@ func _test_main_scene_loads(results: Dictionary) -> void:
 
 	var instance = scene.instantiate()
 	var page_projects = instance.get_node_or_null("AppLayout/Content/PageProjects")
-	var page_engine = instance.get_node_or_null("AppLayout/Content/PageEngine")
 	var page_tools = instance.get_node_or_null("AppLayout/Content/PageTools")
 	var page_settings = instance.get_node_or_null("AppLayout/Content/PageSettings")
 
 	_expect(page_projects != null, "Projects page should exist", results)
-	_expect(page_engine != null, "Engine page should exist", results)
 	_expect(page_tools != null, "Tools page should exist", results)
 	_expect(page_settings != null, "Settings page should exist", results)
 

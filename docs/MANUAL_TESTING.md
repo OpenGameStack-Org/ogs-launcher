@@ -133,32 +133,35 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 ### Editor Test 2: Projects Page — Load sample_project (Development)
 
-**Objective:** Verify that loading a development project shows missing tools and available repair workflow.
+**Objective:** Verify that loading a development project shows missing tools with visual indicators and click-through navigation.
 
 **Steps:**
 1. Close onboarding wizard (if still visible)
 2. On Projects page, click "Browse" button
 3. Navigate to `samples/sample_project/` and click "Select This Folder"
 4. Click "Load" button
-5. Observe tools list, button states, and status labels
+5. Observe tools list, visual indicators, button states, and status labels
 
 **Expected Results:**
 - ✅ Tools list populates with two entries: "godot v4.3" and "blender v4.5.7"
-- ✅ "Repair Environment" button appears and is **enabled/orange** (ready for use)
+- ✅ Missing tools show **⚠️ yellow warning triangle** indicator (available but not installed)
+- ✅ Hovering over missing tool shows tooltip: "Tool not installed. Click to download."
 - ✅ "Seal for Delivery" button appears but is **disabled** (with reason: missing tools)
-- ✅ Status label shows: "Manifest loaded. 1 tool(s) missing — use Repair Environment to download."
+- ✅ Status label shows: "Manifest loaded. 2 tool(s) missing — visit Tools page to download."
 - ✅ "Offline" label shows: "Offline Mode: Disabled" (since force_offline=false in config)
 - ✅ No errors in Output console
 
 **Pass Criteria:**
 - Project loads and manifests unmarshal correctly
-- Button states reflect environment readiness (repair enabled, seal disabled)
+- Visual indicators correctly show missing tool status
+- Seal button disabled due to missing tools
 - Offline status correctly reflects config state
 
 **If test fails:**
 - Verify sample_project/stack.json is valid JSON
 - Check if sample_project/ogs_config.json exists; if not, confirm defaults apply
 - Look for path resolution errors in console
+- Verify ToolsController has loaded repository.json successfully
 
 ---
 
@@ -170,25 +173,27 @@ dir "$env:LOCALAPPDATA\OGS\"
 1. On Projects page, click "Browse" button
 2. Navigate to `samples/sample_project_sealed/` and click "Select This Folder"
 3. Click "Load" button
-4. Observe offline status and button states
+4. Observe offline status, tool indicators, and button states
 
 **Expected Results:**
 - ✅ Tools list populates with "godot v4.3" and "blender v4.5.7"
-- ✅ "Repair Environment" button appears and is **disabled** (offline mode prevents downloads)
+- ✅ Missing tools show **❌ red X** indicator (unavailable due to offline mode)
+- ✅ Hovering over missing tool shows tooltip: "Tool not available in offline mode."
 - ✅ "Seal for Delivery" button remains **disabled** (tools missing from library)
-- ✅ Status label shows: "Manifest loaded. 2 tool(s) missing — offline mode prevents repair."
+- ✅ Status label shows: "Manifest loaded. 2 tool(s) missing — offline mode prevents downloads."
 - ✅ "Offline" label shows: **"Offline Mode: Forced (force_offline=true)"** in distinctive color (red text)
 - ✅ No online-only features in UI (if any implemented)
 
 **Pass Criteria:**
 - Sealed project config properly read and enforced
 - Offline status clearly indicates force_offline state
-- Repair button correctly disabled due to offline + missing tools state
+- Tool indicators correctly show unavailable state (red X) in offline mode
 
 **If test fails:**
 - Check sample_project_sealed/ogs_config.json has force_offline=true
 - Verify OfflineEnforcer.apply_config() is called during project load
 - Confirm offline status label is wired to display force_offline state
+- Verify tool indicators check offline state before showing availability
 
 ---
 
@@ -266,7 +271,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 **Expected Results:**
 - ✅ Seal button is **disabled** when environment is incomplete (tools missing from library)
-- ✅ Seal button tooltip says: **"Repair environment first to seal project."**
+- ✅ Seal button tooltip says: **"Download required tools from Tools page first."**
 - ✅ Loading different projects updates button state dynamically
 - ✅ Seal button would become **enabled** (green) if all tools were somehow present in library (not testable without actual library)
 
@@ -282,9 +287,9 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 ---
 
-### Editor Test 7: Repair Environment — Real Repair Workflow
+### Editor Test 7: Per-Tool Download Workflow — Real Tool Installation
 
-**Objective:** Perform a real repair by downloading/extracting tools and verify the process completes successfully.
+**Objective:** Perform a real tool download by using the Tools page and verify the process completes successfully.
 
 **Prerequisites (IMPORTANT — Check Before Starting):**
 1. Verify tool archives are available via **EITHER**:
@@ -299,35 +304,37 @@ dir "$env:LOCALAPPDATA\OGS\"
 2. If neither is available, SKIP to Test 9 (offline enforcement); Test 7 requires actual tool archives
 
 **Steps:**
-1. Load sample_project (development state with missing tools)
-2. Click "Repair Environment" button
-3. Observe the repair dialog that opens
-4. Verify status message:
-   - "Ready to install 2 tool(s) from local mirror." (if local archives exist)
-   - "Ready to download 2 tool(s) from remote mirror." (if remote configured)
-5. Click "Download and Install" button
-6. Watch progress as tools are extracted/downloaded to `%LOCALAPPDATA%\OGS\Library\`
-7. Wait for dialog to complete (may take 30+ seconds depending on archive sizes)
+1. Navigate to **Tools** page (click "Tools" button in sidebar)
+2. Click **"Download"** tab to view available tools
+3. Observe connectivity status indicator (should show "Online ✓" if network available)
+4. Locate "godot v4.3" in the tools list (under "Engine" category)
+5. Click the **"Download"** button next to godot v4.3
+6. Watch progress bar as tool downloads/installs to `%LOCALAPPDATA%\OGS\Library\`
+7. Wait for completion (may take 30+ seconds depending on archive size)
 8. Observe final status when complete
-9. Close repair dialog by clicking OK or X
+9. Switch to **"Installed"** tab and verify godot v4.3 now appears there
+10. Return to **Projects** page and reload sample_project
+11. Verify godot v4.3 no longer shows ⚠️ warning indicator
 
 **Expected Results:**
-- ✅ Repair dialog appears without errors
-- ✅ Dialog title: "Repair Environment"
-- ✅ Tools list shows: "godot v4.3" and "blender v4.5.7"
-- ✅ Status message correctly identifies mirror availability
-- ✅ Repair progresses without crashes (status updates during process)
-- ✅ Tools are extracted to `%LOCALAPPDATA%\OGS\Library\` correctly:
-  - `%LOCALAPPDATA%\OGS\Library\godot\4.3\` contains tool files
-  - `%LOCALAPPDATA%\OGS\Library\blender\4.5.7\` contains tool files
-- ✅ Repair completes and dialog closes
-- ✅ No unhandled exceptions in console output
+- ✅ Tools page loads without errors
+- ✅ Download tab shows available tools with "Download" buttons
+- ✅ Connectivity status shows "Online ✓" (if network available)
+- ✅ Clicking "Download" button starts the download
+- ✅ Progress bar appears showing download percentage
+- ✅ All other download buttons become disabled during active download
+- ✅ "Cancel" button appears (optional: click it and verify download stops)
+- ✅ Download progresses without crashes (status updates during process)
+- ✅ Tool is extracted to `%LOCALAPPDATA%\OGS\Library\godot\4.3\` correctly
+- ✅ Download completes and button changes to show "Installed" or disappears from Download tab
+- ✅ Installed tab now lists godot v4.3
+- ✅ Projects page updates to reflect tool availability (indicator removed)
 
 **Pass Criteria:**
-- Repair workflow executes without crashes
-- Tools are properly extracted/installed to library
+- Download workflow executes without crashes
+- Tool is properly downloaded/installed to library
 - Progress is visible during operation
-- Process completes successfully
+- Projects page automatically syncs with library state
 
 **If test fails:**
 - Check that tool archives exist in expected location
@@ -335,23 +342,23 @@ dir "$env:LOCALAPPDATA\OGS\"
 - Check console for extraction/download errors
 - Verify write permissions to `%LOCALAPPDATA%\OGS\Library\`
 - If using remote, confirm network is accessible
-- Check hydration_status_label output for specific error messages
+- Check download status label output for specific error messages
+- Verify ToolsController is wired to trigger Projects page refresh
 
 ---
 
 ### Editor Test 8: Seal Button Enabled & Real Seal Operation
 
-**Objective:** Verify seal button enables after successful repair and perform a real seal operation.
+**Objective:** Verify seal button enables after successful tool downloads and perform a real seal operation.
 
 **Prerequisites:**
-- Editor Test 7 completed successfully (tools now present in library)
+- Editor Test 7 completed successfully (godot v4.3 now present in library)
 - sample_project still loaded from Test 7
 
 **Steps:**
-1. Reload sample_project to refresh environment state (click Browse, navigate to sample_project, click Load)
-2. Observe that the "Seal for Delivery" button is now **enabled** (green, no longer grayed out)
-3. Verify seal button tooltip is cleared (should not say "Repair environment first")
-4. Click "Seal for Delivery" button
+1. On Projects page, verify the "Seal for Delivery" button is now **enabled** (green, no longer grayed out)
+2. Verify seal button tooltip is cleared (should not say "Download required tools...")
+3. Click "Seal for Delivery" button
 5. Observe seal dialog that opens
 6. Monitor seal progress through stages:
    - "Validating project..."
@@ -432,7 +439,7 @@ After completing Editor Tests 1-8, fill in this table:
 | 4: Mirror Config UI | ✅/⚠️/❌ | | |
 | 5: Remote Repo Config | ✅/⚠️/❌ | | |
 | 6: Seal Button States | ✅/⚠️/❌ | | |
-| 7: Real Repair Workflow | ✅/⚠️/❌ | | |
+| 7: Per-Tool Download Workflow | ✅/⚠️/❌ | | |
 | 8: Seal Button & Real Seal | ✅/⚠️/❌ | | |
 | 9: Offline Tool Launch | ✅/⚠️/❌ | | |
 
@@ -513,7 +520,7 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 **Expected Results:**
 - ✅ Project loads without errors
 - ✅ Tools list shows "godot v4.3" and "blender v4.5.7"
-- ✅ "Repair Environment" button is enabled and visible
+- ✅ Missing tools show **⚠️ yellow warning triangle** indicators
 - ✅ "Seal for Delivery" button is disabled
 - ✅ Status reflects missing tools: "Manifest loaded. 2 tool(s) missing..."
 - ✅ Offline status shows: "Offline Mode: Disabled"
@@ -561,15 +568,15 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 
 ---
 
-### Installed Test 4: Repair Environment (No Local Mirror) — Offline Hydration
+### Installed Test 4: Per-Tool Download — Real Tool Installation (Installed Binary)
 
-**Objective:** Verify repair workflow when no local mirror is configured but tools exist in library.
+**Objective:** Verify per-tool download workflow in exported binary when tool archives are available.
 
 **Prerequisite:**
 - Obtain tool archives (from official OGS mirror or create test archives)
-- Place them in %LOCALAPPDATA%/OGS/Library/ in the correct directory structure:
+- **Option A (Local Mirror):** Place them in %LOCALAPPDATA%/OGS/Mirror/ in the correct directory structure:
   ```
-  %LOCALAPPDATA%/OGS/Library/
+  %LOCALAPPDATA%/OGS/Mirror/
   ├── godot/
   │   └── 4.3/
   │       └── godot_4.3.zip
@@ -577,38 +584,43 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
       └── 4.5.7/
           └── blender_4.5.7.zip
   ```
-- Ensure repository.json exists at default mirror location with matching tool entries
+- **Option B (Remote Repository):** Configure remote repository URL in Settings pointing to valid repository.json
+- Ensure repository.json exists with matching tool entries
 
 **Steps:**
-1. Load sample_project
-2. Click "Repair Environment" button
-3. Observe repair dialog
-4. If local mirror is configured, skip to Test 5. If not, proceed:
-5. Status should show: "Ready to install 2 tool(s) from local mirror." (even with default location)
-6. Click "Download and Install" button
-7. Watch progress as tools extract to library
-8. Allow process to complete
-9. When done, close repair dialog
+1. Load sample_project on Projects page (should show tools with ⚠️ indicators)
+2. Navigate to **Tools** page (click "Tools" button in sidebar)
+3. Click **"Download"** tab
+4. Observe available tools list (should show godot v4.3 and blender v4.5.7)
+5. Click **"Download"** button next to godot v4.3
+6. Watch progress bar as tool downloads/installs to %LOCALAPPDATA%/OGS/Library/
+7. Allow process to complete
+8. Switch to **"Installed"** tab and verify godot v4.3 appears there
+9. Return to **Projects** page
+10. Reload sample_project and verify godot v4.3 no longer shows ⚠️ indicator
 
 **Expected Results:**
-- ✅ Repair dialog opens and shows missing tools list
-- ✅ Status identifies available migration path (local mirror or remote)
-- ✅ "Download and Install" button is enabled
-- ✅ Installation progress is displayed (status updates)
-- ✅ Tools are extracted to %LOCALAPPDATA%/OGS/Library/ correctly
-- ✅ After completion, "Seal for Delivery" button becomes **enabled**
-- ✅ No unhandled exceptions or crashes during hydration
+- ✅ Tools page loads and shows available tools in Download tab
+- ✅ "Download" button is visible and enabled for each available tool
+- ✅ Clicking "Download" starts the installation process
+- ✅ Progress bar displays download/install percentage
+- ✅ Other download buttons are disabled during active download
+- ✅ Tool is extracted to %LOCALAPPDATA%/OGS/Library/godot/4.3/ correctly
+- ✅ After completion, tool appears in "Installed" tab
+- ✅ Projects page automatically updates to reflect tool availability
+- ✅ No unhandled exceptions or crashes during download
 
 **Pass Criteria:**
-- Repair workflow completes without intervention
-- Tools are properly extracted and verified
-- Project becomes "seal-ready" after repair
+- Download workflow completes without intervention
+- Tool is properly extracted and verified
+- Projects page reflects updated library state
 
 **If test fails:**
-- Check that tool archives exist in expected library location
+- Check that tool archives exist in expected mirror location
 - Verify SHA-256 hashes in repository.json match actual archive files
 - Confirm extraction/unzip logic works in installed context
 - Check permissions for writing to %LOCALAPPDATA%
+- Verify ToolsController.tool_list_updated signal triggers Projects refresh
 
 ---
 
@@ -677,7 +689,7 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 **Expected Results:**
 - ✅ Sealed project loads successfully
 - ✅ Tools list shows embedded tools (godot, blender)
-- ✅ "Repair Environment" button is **disabled** (offline mode active, tools present)
+- ✅ Tool indicators show no warnings (⚠️ or ❌) since tools are present locally
 - ✅ "Seal for Delivery" button is **disabled** (already sealed, no reason to reseal)
 - ✅ Offline status shows: **"Offline Mode: Forced (force_offline=true)"** (from sealed config)
 - ✅ Tools are shown as "available in library" (found in local ./tools/ directory)
@@ -708,7 +720,7 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 2. With sealed project loaded and force_offline=true:
    - Click "Launch" to attempt launching a tool (should be prevented)
    - Try to click any online-only button (if exists)
-   - Observe repair/hydration dialog (should not allow downloads)
+   - Navigate to Tools page and verify download buttons are disabled
 3. Check network monitor for any external connections initiated by launcher
 
 **Expected Results:**
@@ -736,7 +748,7 @@ After completing Installed Tests 1-7, fill in this table:
 | 1: Export & First Launch | ✅/⚠️/❌ | | |
 | 2: Load sample_project | ✅/⚠️/❌ | | |
 | 3: Settings Persistence | ✅/⚠️/❌ | | |
-| 4: Repair (Local Mirror) | ✅/⚠️/❌ | | |
+| 4: Per-Tool Download | ✅/⚠️/❌ | | |
 | 5: Seal for Delivery | ✅/⚠️/❌ | | |
 | 6: Sealed Archive Portability | ✅/⚠️/❌ | | |
 | 7: Network Isolation | ✅/⚠️/❌ | Optional | |
@@ -785,7 +797,7 @@ Example:
 Observations:
 - Project loaded successfully
 - Tools list shows godot and blender correctly
-- Repair button orange and enabled as expected
+- Missing tools show ⚠️ yellow warning indicators
 - Seal button disabled with correct tooltip
 
 Blockers: None

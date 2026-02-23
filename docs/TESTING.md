@@ -234,13 +234,6 @@ Unit tests validate pure logic without instantiating UI nodes. These run quickly
   - Duplicate download suppression
   - Repository data availability flag
 
-- **[tests/library_hydration_controller_tests.gd](tests/library_hydration_controller_tests.gd)** — Validates mirror integration into repair workflow.
-  - Mirror availability detection (repository.json presence check)
-  - Button state management (disable when mirror missing, enable when ready)
-  - Error handling and status messaging
-  - Dynamic mirror root updates via `update_mirror_root()` method
-  - UI label updates for mirror configuration status
-
 ### Scene Tests (Integration with UI)
 
 Scene tests instantiate UI nodes and verify controller behaviors. These are similar to Unity's "Play Mode tests" but run headlessly in Godot.
