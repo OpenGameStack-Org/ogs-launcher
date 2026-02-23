@@ -24,11 +24,13 @@ theme_override_font_sizes/font_size = 14
 text = "First-Run Setup"
 
 [node name="Welcome" type="Label" parent="VBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "Welcome! This wizard will help you set up the default frozen stack with essential tools."
 autowrap_mode = 2
 
 [node name="DefaultStackInfo" type="Label" parent="VBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "Default Stack:
 • Godot v4.3 (Game Engine)
@@ -43,6 +45,7 @@ layout_mode = 2
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 modulate = Color(0.6, 0.6, 0.6, 1)
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "Ready to initialize."
 autowrap_mode = 2

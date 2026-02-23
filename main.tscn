@@ -149,6 +149,7 @@ metadata/_tab_index = 0
 [node name="InstalledContent" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="EngineSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Installed/InstalledContent"]
@@ -203,6 +204,7 @@ metadata/_tab_index = 1
 [node name="DownloadContent" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="EngineSection" type="VBoxContainer" parent="AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent"]
@@ -370,6 +372,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Welcome" type="Label" parent="OnboardingWizardDialog/VBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 text = "First-run setup: initialize the default frozen stack (Godot 4.3 + Blender 4.2 LTS) in your central library."
 autowrap_mode = 2
