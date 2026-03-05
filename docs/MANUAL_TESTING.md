@@ -131,15 +131,15 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 ---
 
-### Editor Test 2: Projects Page — Load sample_project (Development)
+### Editor Test 2: Projects Page — Add sample_project (Development)
 
-**Objective:** Verify that loading a development project shows missing tools with visual indicators and click-through navigation.
+**Objective:** Verify that adding a development project to the Project Library shows missing tools with visual indicators and click-through navigation.
 
 **Steps:**
 1. Close onboarding wizard (if still visible)
-2. On Projects page, click "Browse" button
-3. Navigate to `samples/sample_project/` and click "Select This Folder"
-4. Click "Load" button
+2. On Projects page, click **"Add Project"**
+3. In folder picker, navigate to `samples/sample_project/`
+4. Click **"Add Project"** in the picker
 5. Observe tools list, visual indicators, button states, and status labels
 
 **Expected Results:**
@@ -152,7 +152,7 @@ dir "$env:LOCALAPPDATA\OGS\"
 - ✅ No errors in Output console
 
 **Pass Criteria:**
-- Project loads and manifests unmarshal correctly
+- Project is added to Project Library and selected automatically
 - Visual indicators correctly show missing tool status
 - Seal button disabled due to missing tools
 - Offline status correctly reflects config state
@@ -165,14 +165,14 @@ dir "$env:LOCALAPPDATA\OGS\"
 
 ---
 
-### Editor Test 3: Projects Page — Load sample_project_sealed (Sealed/Air-Gapped)
+### Editor Test 3: Projects Page — Add sample_project_sealed (Sealed/Air-Gapped)
 
 **Objective:** Verify that sealed projects display offline enforcement and expected UI state even with missing tools.
 
 **Steps:**
-1. On Projects page, click "Browse" button
-2. Navigate to `samples/sample_project_sealed/` and click "Select This Folder"
-3. Click "Load" button
+1. On Projects page, click **"Add Project"**
+2. In folder picker, navigate to `samples/sample_project_sealed/`
+3. Click **"Add Project"** in the picker
 4. Observe offline status, tool indicators, and button states
 
 **Expected Results:**
@@ -188,6 +188,33 @@ dir "$env:LOCALAPPDATA\OGS\"
 - Sealed project config properly read and enforced
 - Offline status clearly indicates force_offline state
 - Tool indicators correctly show unavailable state (red X) in offline mode
+
+---
+
+### Editor Test 3.1: Projects Page — Add Tool / Remove Tool Flow
+
+**Objective:** Verify tool-management controls update `stack.json` reliably using the Add Tool list dialog.
+
+**Steps:**
+1. Select a project in Project Library (for example `samples/sample_project`)
+2. Click **"Add Tool"**
+3. Confirm dialog opens with a selectable list of tool/version entries (not a dropdown)
+4. Select one tool and click **"Add Tool"**
+5. Verify tools list refreshes immediately and includes the new entry
+6. Repeat Add Tool for one more entry
+7. Select one tool in project tools list, then click **"Remove Tool"**
+8. Verify tools list refreshes immediately and removed entry is gone
+
+**Expected Results:**
+- ✅ Add Tool dialog opens consistently across repeated opens
+- ✅ Add Tool uses a list-style selector and supports single selection
+- ✅ Added tools persist to the project manifest and remain after app restart
+- ✅ Remove Tool updates the project manifest and UI immediately
+- ✅ Status label reflects success/failure states clearly
+
+**Pass Criteria:**
+- Add Tool and Remove Tool workflows are stable across multiple operations
+- Project tools list and `stack.json` stay in sync after each action
 
 **If test fails:**
 - Check sample_project_sealed/ogs_config.json has force_offline=true
@@ -505,16 +532,15 @@ If onboarding wizard does NOT appear, fresh state was not achieved. Repeat the c
 
 ---
 
-### Installed Test 2: Load sample_project (Development Mode)
+### Installed Test 2: Add sample_project (Development Mode)
 
-**Objective:** Verify the same project loading behavior as Editor Test 2, but in installed context.
+**Objective:** Verify the same project-add behavior as Editor Test 2, but in installed context.
 
 **Steps:**
 1. Close onboarding wizard
-2. Click "Browse" button
+2. Click **"Add Project"**
 3. Navigate to `samples/sample_project` (adjust path if samples are in a different location)
-4. Click "Select This Folder"
-5. Click "Load" button
+4. Click **"Add Project"** in the folder picker
 6. Observe state
 
 **Expected Results:**

@@ -133,7 +133,7 @@ The MVP is not complete until this full sequence works end to end:
 ---
 
 ### Phase 2.5: UX Refinement - Per-Tool Download Workflow
-**Status:** 🔄 In Progress (Tools Page: Complete Feb 22, 2026 | Projects Page: Feb 23-29, 2026)
+**Status:** ✅ Complete (Tools + Projects UX complete Mar 4, 2026)
 *Focus: Replace batch "Repair Environment" with granular per-tool discovery and download.*
 
 #### 📋 Short-Term Tasks (Current Sprint)
@@ -174,6 +174,16 @@ Granular, actionable items for the Tools/Projects page redesign:
 *   [x] Remove "Repair Environment" button from Projects page — 100% Complete ✅ (hidden by default)
 *   [x] Remove LibraryHydrationController integration from Projects page — Partial ✅ (wiring still in place for backward compat)
 *   [x] Add tests for tool availability indicators — 3 scene tests + 9 total tests passing ✅
+*   [x] Unity-Hub-style Project Library workflow — 100% Complete ✅
+    *   [x] Persistent project registry (`user://ogs_projects_index.json`)
+    *   [x] Add Project requires both `stack.json` and `ogs_config.json`
+    *   [x] Remove Project with confirmation dialog
+    *   [x] New Project scaffolding under `%LOCALAPPDATA%/OGS/Projects`
+*   [x] Project Tool Management controls — 100% Complete ✅
+    *   [x] Two-row action layout (Add/Remove/Launch tool + Remove/Seal project)
+    *   [x] Add Tool dialog refactored from dropdown to list selection
+    *   [x] Add Tool candidate fallback sources (catalog + library + tracked projects)
+    *   [x] Remove Tool writes `stack.json` and refreshes UI immediately
 
 **Progress Dialog Modularity:**
 *   [x] Refactor progress dialog to support:
@@ -248,7 +258,10 @@ Granular, actionable items for the Tools/Projects page redesign:
     *   Connectivity status (Online/Offline)
     *   Per-tool download buttons with Cancel support
     *   Progress bar showing download % and install phase
-*   **Test Suite:** 304 tests passing (~3.8 sec execution), comprehensive coverage across all components
+*   **Projects Page UX Expansion (Phase 2.5):** Complete Mar 4, 2026
+    *   Project Library persistence, Add/Remove/New Project workflows, and tool-management controls
+    *   Add Tool dialog switched to list UI with offline-safe candidate fallback logic
+*   **Test Suite:** 327 tests passing (~3-5 sec execution), comprehensive coverage across all components
     *   ToolsController unit tests: download tracking, duplicate suppression, repository validation
     *   Tools page scene tests: node existence, status updates, button state management
     *   ProgressController unit tests: inline tracking, phase transitions, signal emission
@@ -278,34 +291,29 @@ Granular, actionable items for the Tools/Projects page redesign:
 - Comprehensive test coverage (246 unit + scene tests before Tools page work)
 - Full offline-only (air-gap safe) architecture
 
-**Projects Page Updates (Phase 2.5) Completed Feb 23, 2026:**
+**Projects Page Updates (Phase 2.5) Completed Mar 4, 2026:**
 - Visual indicators: ⚠️ yellow for available tools, ❌ red for unavailable tools
 - Click-through navigation from Projects tool list to Tools page with tool focus
 - Removed "Repair Environment" button and legacy repair UI
 - Automatic Projects/Tools state synchronization (downloads trigger refresh)
 - Tool indicators check repository availability before showing status
-- 9 comprehensive tests for indicators, navigation, and state sync
+- Project Library flow: Add Project, New Project scaffold, Remove Project with confirmation
+- Tool-management controls: Add Tool list dialog, Remove Tool, Launch Selected Tool
+- Add Tool candidate sourcing supports offline/local fallback (catalog + library + tracked projects)
+- 327 comprehensive tests passing with zero failures
 
 **Testing & Documentation Cleanup (Phase 2.5) Completed Feb 23, 2026:**
 - Removed obsolete LibraryHydrationController class and tests
 - Updated MANUAL_TESTING.md with per-tool download workflow (replaced batch repair)
 - Updated TESTING.md documentation to remove obsolete references
 - Added migration notes to The_Plan.md documenting deprecated features
-- Test suite reduced from 266 to 259 after removing obsolete tests
-uite increased to 304 tests passing with zero failures
+- Test suite evolved from 259 to 327 passing tests as Projects/Tools coverage expanded
 
 **Path Field Made Optional (Feb 22, 2026):**
 - stack.json `path` field is now optional (library-based resolution by default)
 - ToolLauncher resolves executables from central library when path omitted
 - Backward compatible: existing manifests with paths still work
 - Migration notes added to MANIFEST_SCHEMA.md
-
-**Next: Projects Page Updates (Phase 2.5 Continuation - Feb 23-29, 2026):**
-- Add visual indicators (⚠️/❌) to Projects page tool list for missing/unavailable tools
-- Click-through navigation from tool to Tools page with tool highlight
-- Remove "Repair Environment" button from Projects page
-- Remove batch repair workflow (LibraryHydrationController integration)
-- Update ProjectsController to use ToolsController for tool status
 
 **Next: Mid-Term Enhancements (Phase 3 - March-May 2026)**
 - Multi-select downloads and download queue management

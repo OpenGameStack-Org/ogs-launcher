@@ -63,7 +63,8 @@ The heart of the stack is the **OGS Launcher**, a custom application (built in G
     ```
 2.  **Open in Godot:** Import the `project.godot` file into the Godot Editor.
 3.  **Run:** Press F5 to start the OGS Launcher.
-4.  **Create a Stack:** Click "New Project" to generate a `stack.json` and download the default toolset.
+4.  **Create or Add a Project:** Use **New Project** to scaffold an OGS project under `%LOCALAPPDATA%/OGS/Projects`, or **Add Project** to register an existing project that already has `stack.json` and `ogs_config.json`.
+5.  **Manage Project Tools:** Use **Add Tool** / **Remove Tool** on the Projects page to update the project `stack.json`, then use the Tools page to download missing tool versions.
 
 ---
 

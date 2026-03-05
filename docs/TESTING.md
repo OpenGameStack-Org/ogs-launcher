@@ -246,6 +246,9 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - New Project creates scaffold under OGS/Projects and auto-adds to library
   - Persisted project index reloads on next setup
   - Remove Project updates list and persisted index immediately
+  - Add Tool and Remove Tool update project `stack.json` and refresh the tools list
+  - Add Tool dialog uses list-based selection and preserves action button state
+  - Add Tool candidates include fallback local sources when remote catalog data is unavailable
   - Launch button disabled initially
   - Launch button enabled after valid project selection
   - Launch with no selection → error message
@@ -261,6 +264,7 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
   - main.tscn loads without errors
   - All page nodes exist (Projects, Engine, Tools, Settings)
   - Add Project / New Project buttons and Projects list exist
+  - Tool action rows include Add Tool, Remove Tool, Launch Selected Tool, Remove Project, and Seal for Delivery
 
 - **[tests/tools_page_scene_tests.gd](tests/tools_page_scene_tests.gd)** — Scene tests for Tools page UI.
   - Tools/Download tab nodes exist
