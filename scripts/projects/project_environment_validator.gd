@@ -56,8 +56,10 @@ func validate_project(project_dir: String, use_project_tools: bool = false) -> D
 	
 	var manifest = StackManifest.load_from_file(stack_path)
 	if not manifest.is_valid():
-		result["errors"].append_array(manifest.errors)
-		return result
+		# Allow newly-created projects with empty tools list.
+		if not _is_manifest_acceptable_for_project(manifest):
+			result["errors"].append_array(manifest.errors)
+			return result
 	
 	# Check each tool
 	var missing = []
@@ -123,6 +125,16 @@ func validate_project(project_dir: String, use_project_tools: bool = false) -> D
 		})
 	
 	return result
+
+## Determines whether manifest errors are acceptable for project readiness checks.
+## Parameters:
+##   manifest (StackManifest): Parsed manifest to evaluate
+## Returns:
+##   bool: True if manifest is valid or has only tools_empty warning
+func _is_manifest_acceptable_for_project(manifest: StackManifest) -> bool:
+	if manifest.is_valid():
+		return true
+	return manifest.errors.size() == 1 and manifest.errors[0] == "tools_empty"
 
 ## Returns list of tools needed from the library.
 ## Useful for hydration UI to know what to download.

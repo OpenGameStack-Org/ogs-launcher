@@ -39,16 +39,23 @@ const OnboardingWizardScript = preload("res://scripts/onboarding/onboarding_wiza
 @onready var download_3d_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/"3DSection"/"3DTools"
 @onready var download_audio_tools = $AppLayout/Content/PageTools/ToolsTabs/Download/DownloadContent/AudioSection/AudioTools
 
-@onready var project_path_line_edit = $AppLayout/Content/PageProjects/ProjectsControls/ProjectPathLineEdit
-@onready var btn_browse_project = $AppLayout/Content/PageProjects/ProjectsControls/BrowseButton
-@onready var btn_load_project = $AppLayout/Content/PageProjects/ProjectsControls/LoadButton
-@onready var btn_new_project = $AppLayout/Content/PageProjects/ProjectsControls/NewButton
+@onready var btn_add_project = $AppLayout/Content/PageProjects/ProjectsControls/AddButton
+@onready var btn_new_project = $AppLayout/Content/PageProjects/ProjectsControls/NewProjectButton
+@onready var projects_list = $AppLayout/Content/PageProjects/ProjectsList
 @onready var lbl_project_status = $AppLayout/Content/PageProjects/ProjectsStatusLabel
 @onready var lbl_offline_status = $AppLayout/Content/PageProjects/OfflineStatusLabel
 @onready var tools_list = $AppLayout/Content/PageProjects/ToolsList
-@onready var btn_launch_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/LaunchButton
-@onready var btn_seal_for_delivery = $AppLayout/Content/PageProjects/ToolControlsContainer/SealButton
+@onready var btn_add_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow/AddToolButton
+@onready var btn_remove_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow/RemoveToolButton
+@onready var btn_launch_tool = $AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow/LaunchButton
+@onready var btn_remove_project = $AppLayout/Content/PageProjects/ToolControlsContainer/ProjectActionRow/RemoveButton
+@onready var btn_seal_for_delivery = $AppLayout/Content/PageProjects/ToolControlsContainer/ProjectActionRow/SealButton
 @onready var project_dir_dialog = $ProjectDirDialog
+@onready var remove_project_dialog = $RemoveProjectDialog
+@onready var new_project_dialog = $NewProjectDialog
+@onready var new_project_name_line_edit = $NewProjectDialog/VBoxContainer/ProjectNameLineEdit
+@onready var add_tool_dialog = $AddToolDialog
+@onready var add_tool_option_list = $AddToolDialog/VBoxContainer/ToolOptionList
 
 # Onboarding dialog
 @onready var onboarding_dialog = $OnboardingWizardDialog
@@ -69,7 +76,7 @@ const OnboardingWizardScript = preload("res://scripts/onboarding/onboarding_wiza
 
 var network_ui_nodes: Array = []
 
-var projects_controller: ProjectsController
+var projects_controller
 var layout_controller: LayoutController
 var seal_controller: SealController
 var tools_controller: ToolsController
@@ -139,24 +146,26 @@ func _ready():
 	progress_controller = ProgressControllerScript.new()
 	progress_controller.progress_completed.connect(_on_progress_completed)
 	progress_controller.progress_cancelled.connect(_on_progress_cancelled)
-	
-	# Set up progress controller for download tracking
-	progress_controller = ProgressControllerScript.new()
-	progress_controller.progress_completed.connect(_on_progress_completed)
-	progress_controller.progress_cancelled.connect(_on_progress_cancelled)
 
 	# Projects page controller (now ToolsController is available to pass)
 	projects_controller = ProjectsControllerScript.new()
 	projects_controller.setup(
-		project_path_line_edit,
-		btn_browse_project,
-		btn_load_project,
+		btn_add_project,
 		btn_new_project,
+		projects_list,
 		lbl_project_status,
 		lbl_offline_status,
 		tools_list,
+		btn_add_tool,
+		btn_remove_tool,
+		btn_remove_project,
 		btn_launch_tool,
 		project_dir_dialog,
+		remove_project_dialog,
+		new_project_dialog,
+		new_project_name_line_edit,
+		add_tool_dialog,
+		add_tool_option_list,
 		tools_controller
 	)
 	projects_controller.offline_state_changed.connect(_on_offline_state_changed)

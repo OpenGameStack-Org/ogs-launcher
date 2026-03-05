@@ -241,11 +241,13 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
 **Current scene test suites:**
 
 - **[tests/projects_controller_scene_tests.gd](tests/projects_controller_scene_tests.gd)** — Validates Projects page controller logic.
-  - Empty path → status prompts selection
-  - Missing `stack.json` → error message + cleared tools list
-  - Valid sample project → tools list populated + offline label updated
+  - Add Project requires both `stack.json` and `ogs_config.json`
+  - Valid sample project adds to persistent Projects list and auto-selects
+  - New Project creates scaffold under OGS/Projects and auto-adds to library
+  - Persisted project index reloads on next setup
+  - Remove Project updates list and persisted index immediately
   - Launch button disabled initially
-  - Launch button enabled after valid project load
+  - Launch button enabled after valid project selection
   - Launch with no selection → error message
 
 - **[tests/projects_page_indicators_tests.gd](tests/projects_page_indicators_tests.gd)** — Tests tool availability indicators in Projects page.
@@ -258,7 +260,7 @@ Scene tests instantiate UI nodes and verify controller behaviors. These are simi
 - **[tests/main_scene_tests.gd](tests/main_scene_tests.gd)** — Smoke tests for the main launcher scene.
   - main.tscn loads without errors
   - All page nodes exist (Projects, Engine, Tools, Settings)
-  - New Project button exists
+  - Add Project / New Project buttons and Projects list exist
 
 - **[tests/tools_page_scene_tests.gd](tests/tools_page_scene_tests.gd)** — Scene tests for Tools page UI.
   - Tools/Download tab nodes exist

@@ -46,8 +46,23 @@ func _test_main_scene_loads(results: Dictionary) -> void:
 	_expect(page_tools != null, "Tools page should exist", results)
 	_expect(page_settings != null, "Settings page should exist", results)
 
-	var new_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ProjectsControls/NewButton")
+	var add_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ProjectsControls/AddButton")
+	_expect(add_button != null, "Add button should exist", results)
+
+	var new_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ProjectsControls/NewProjectButton")
 	_expect(new_button != null, "New Project button should exist", results)
+
+	var projects_list = instance.get_node_or_null("AppLayout/Content/PageProjects/ProjectsList")
+	_expect(projects_list != null, "Projects list should exist", results)
+
+	var add_tool_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow/AddToolButton")
+	_expect(add_tool_button != null, "Add Tool button should exist", results)
+
+	var remove_tool_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow/RemoveToolButton")
+	_expect(remove_tool_button != null, "Remove Tool button should exist", results)
+
+	var remove_button = instance.get_node_or_null("AppLayout/Content/PageProjects/ToolControlsContainer/ProjectActionRow/RemoveButton")
+	_expect(remove_button != null, "Remove Project button should exist", results)
 
 	instance.free()
 

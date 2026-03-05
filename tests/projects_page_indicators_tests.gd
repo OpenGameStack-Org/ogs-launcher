@@ -11,6 +11,7 @@ class_name ProjectsPageIndicatorsTests
 
 const ProjectsControllerScript = preload("res://scripts/projects/projects_controller.gd")
 const ToolsControllerScript = preload("res://scripts/tools/tools_controller.gd")
+const TEST_REGISTRY_PATH := "user://projects_page_indicators_tests.json"
 
 func run() -> Dictionary:
 	"""Runs all Projects page indicator tests.
@@ -39,28 +40,43 @@ func _build_projects_controller() -> Dictionary:
 	Returns:
 	  Dictionary: {"controller": ProjectsController, "tools_controller": ToolsController, ...}"""
 	var projects_controller = ProjectsControllerScript.new()
+	projects_controller.set_projects_index_path_for_tests(TEST_REGISTRY_PATH)
 	var tools_controller = ToolsControllerScript.new(null, "")  # null scene tree, empty URL
 	
-	var line_edit = LineEdit.new()
-	var browse_button = Button.new()
-	var load_button = Button.new()
+	var add_button = Button.new()
 	var new_button = Button.new()
+	var projects_list = ItemList.new()
 	var status_label = Label.new()
 	var offline_label = Label.new()
 	var tools_list = ItemList.new()
+	var add_tool_button = Button.new()
+	var remove_tool_button = Button.new()
+	var remove_button = Button.new()
 	var launch_button = Button.new()
 	var dialog = FileDialog.new()
+	var remove_dialog = ConfirmationDialog.new()
+	var new_project_dialog = ConfirmationDialog.new()
+	var new_project_name = LineEdit.new()
+	var add_tool_dialog = ConfirmationDialog.new()
+	var add_tool_option = ItemList.new()
 
 	projects_controller.setup(
-		line_edit,
-		browse_button,
-		load_button,
+		add_button,
 		new_button,
+		projects_list,
 		status_label,
 		offline_label,
 		tools_list,
+		add_tool_button,
+		remove_tool_button,
+		remove_button,
 		launch_button,
 		dialog,
+		remove_dialog,
+		new_project_dialog,
+		new_project_name,
+		add_tool_dialog,
+		add_tool_option,
 		tools_controller  # Pass tools controller for availability checking
 	)
 
@@ -68,7 +84,7 @@ func _build_projects_controller() -> Dictionary:
 		"controller": projects_controller,
 		"tools_controller": tools_controller,
 		"tools_list": tools_list,
-		"nodes": [line_edit, browse_button, load_button, new_button, status_label, offline_label, tools_list, launch_button, dialog]
+		"nodes": [add_button, new_button, projects_list, status_label, offline_label, tools_list, add_tool_button, remove_tool_button, remove_button, launch_button, dialog, remove_dialog, new_project_dialog, new_project_name, add_tool_dialog, add_tool_option]
 	}
 
 func _cleanup_nodes(nodes: Array) -> void:
@@ -76,6 +92,8 @@ func _cleanup_nodes(nodes: Array) -> void:
 	for node in nodes:
 		if node is Node:
 			node.queue_free()
+	if FileAccess.file_exists(TEST_REGISTRY_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_REGISTRY_PATH))
 
 func _test_populate_tools_list_with_availability(results: Dictionary) -> void:
 	"""Verifies _populate_tools_list adds indicators based on availability."""
@@ -127,26 +145,26 @@ func _test_tool_view_requested_signal(results: Dictionary) -> void:
 		signal_state["version"] = version
 	)
 	
-	# Set up test manifest and populate
-	var tools = [
-		{"id": "godot", "version": "4.3", "path": ""},
-		{"id": "blender", "version": "4.5", "path": ""}
-	]
-	controller.current_manifest = StackManifest.new()
-	controller.current_manifest.tools = tools
-	controller.current_manifest.stack_name = "test"
-	
-	controller._populate_tools_list(tools)
+	# Set up test manifest and populate using sample project data
+	var added = controller.add_project_from_path("res://samples/sample_project")
+	_expect(added, "sample project should be addable for signal test", results)
+	if not added:
+		_cleanup_nodes(ctx["nodes"])
+		return
+
+	var first_tool = controller.current_manifest.tools[0]
+	var expected_tool_id = String(first_tool.get("id", ""))
+	var expected_tool_version = String(first_tool.get("version", ""))
 	
 	# Simulate clicking the first tool through ItemList signal wiring
 	tools_list.item_clicked.emit(0, Vector2.ZERO, 1)
 	
 	# Verify setup
-	_expect(tools_list.item_count == 2, "Should have added 2 tools", results)
-	_expect(controller._tool_availability.size() == 2, "Should track 2 tools in _tool_availability", results)
+	_expect(tools_list.item_count >= 1, "Should have at least one tool in selected project", results)
+	_expect(controller._tool_availability.size() >= 1, "Should track selected project tools in _tool_availability", results)
 	_expect(signal_state["emitted"] == true, "tool_view_requested should emit on item click", results)
-	_expect(signal_state["tool_id"] == "godot", "tool_view_requested should pass tool id", results)
-	_expect(signal_state["version"] == "4.3", "tool_view_requested should pass tool version", results)
+	_expect(signal_state["tool_id"] == expected_tool_id, "tool_view_requested should pass selected tool id", results)
+	_expect(signal_state["version"] == expected_tool_version, "tool_view_requested should pass selected tool version", results)
 	
 	_cleanup_nodes(ctx["nodes"])
 

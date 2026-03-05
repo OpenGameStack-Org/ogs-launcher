@@ -1,15 +1,14 @@
 {
-  "schema_version": 1,
-  "stack_name": "Sample OGS Project",
-  "tools": [
-    {
-      "id": "godot",
-      "version": "4.3"
-    },
-    {
-      "id": "blender",
-      "version": "4.5.7"
-    }
-  ]
+	"schema_version": 1,
+	"stack_name": "Sample OGS Project",
+	"tools": [
+		{
+			"id": "godot",
+			"version": "4.3"
+		},
+		{
+			"id": "blender",
+			"version": "4.5.7"
+		}
+	]
 }
-

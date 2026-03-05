@@ -63,22 +63,21 @@ text = "Projects"
 [node name="ProjectsControls" type="HBoxContainer" parent="AppLayout/Content/PageProjects"]
 layout_mode = 2
 
-[node name="ProjectPathLineEdit" type="LineEdit" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+[node name="AddButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
 layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "Select a project folder containing stack.json"
+text = "Add Project"
 
-[node name="BrowseButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
-layout_mode = 2
-text = "Browse"
-
-[node name="LoadButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
-layout_mode = 2
-text = "Load"
-
-[node name="NewButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
+[node name="NewProjectButton" type="Button" parent="AppLayout/Content/PageProjects/ProjectsControls"]
 layout_mode = 2
 text = "New Project"
+
+[node name="ProjectsListLabel" type="Label" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Project Library"
+
+[node name="ProjectsList" type="ItemList" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="ProjectsStatusLabel" type="Label" parent="AppLayout/Content/PageProjects"]
 layout_mode = 2
@@ -88,20 +87,46 @@ text = "Status: Waiting for project selection."
 layout_mode = 2
 text = "Offline: Unknown"
 
+[node name="ToolsListLabel" type="Label" parent="AppLayout/Content/PageProjects"]
+layout_mode = 2
+text = "Tools for Selected Project"
+
 [node name="ToolsList" type="ItemList" parent="AppLayout/Content/PageProjects"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ToolControlsContainer" type="HBoxContainer" parent="AppLayout/Content/PageProjects"]
+[node name="ToolControlsContainer" type="VBoxContainer" parent="AppLayout/Content/PageProjects"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
-[node name="LaunchButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer"]
+[node name="ToolActionRow" type="HBoxContainer" parent="AppLayout/Content/PageProjects/ToolControlsContainer"]
+layout_mode = 2
+
+[node name="AddToolButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow"]
+layout_mode = 2
+disabled = true
+text = "Add Tool"
+
+[node name="RemoveToolButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow"]
+layout_mode = 2
+disabled = true
+text = "Remove Tool"
+
+[node name="LaunchButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer/ToolActionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Launch Selected Tool"
 
-[node name="SealButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer"]
+[node name="ProjectActionRow" type="HBoxContainer" parent="AppLayout/Content/PageProjects/ToolControlsContainer"]
+layout_mode = 2
+
+[node name="RemoveButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer/ProjectActionRow"]
+layout_mode = 2
+disabled = true
+text = "Remove Project"
+
+[node name="SealButton" type="Button" parent="AppLayout/Content/PageProjects/ToolControlsContainer/ProjectActionRow"]
 layout_mode = 2
 text = "Seal for Delivery"
 
@@ -356,6 +381,59 @@ title = "Open a Directory"
 ok_button_text = "Select Current Folder"
 file_mode = 2
 access = 2
+
+[node name="RemoveProjectDialog" type="ConfirmationDialog" parent="."]
+title = "Remove Project"
+ok_button_text = "Remove"
+dialog_text = "Remove selected project from the Project Library?"
+
+[node name="NewProjectDialog" type="ConfirmationDialog" parent="."]
+title = "Create New Project"
+ok_button_text = "Create"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="NewProjectDialog"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InstructionsLabel" type="Label" parent="NewProjectDialog/VBoxContainer"]
+layout_mode = 2
+text = "Enter project name. A folder will be created under OGS/Projects."
+autowrap_mode = 2
+
+[node name="ProjectNameLineEdit" type="LineEdit" parent="NewProjectDialog/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Project name"
+
+[node name="AddToolDialog" type="ConfirmationDialog" parent="."]
+title = "Add Tool to Project"
+ok_button_text = "Add Tool"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AddToolDialog"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InstructionsLabel" type="Label" parent="AddToolDialog/VBoxContainer"]
+layout_mode = 2
+text = "Select a tool/version to add to this project."
+autowrap_mode = 2
+
+[node name="ToolOptionList" type="ItemList" parent="AddToolDialog/VBoxContainer"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
 
 [node name="OnboardingWizardDialog" type="AcceptDialog" parent="."]
 title = "Welcome to Open Game Stack"

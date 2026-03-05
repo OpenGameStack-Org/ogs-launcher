@@ -1,18 +1,14 @@
-## ProjectsController: Projects page coordinator for loading manifests and configs.
+## ProjectsController: Unity-Hub-style project library coordinator.
 ##
-## Handles project selection, stack.json validation, ogs_config.json loading,
-## offline status updates, tool availability checking, and tool launch requests.
+## Manages a persistent list of OGS projects, supports Add Project selection
+## through FileDialog, and loads the selected project's stack/config for tool
+## indicators, launch flow, and environment validation.
 ##
-## When a project is loaded:
-##   1. Loads and validates stack.json
-##   2. Checks if all required tools exist in the library
-##   3. Signals if tools are missing (for Tools-page guidance)
-##   4. Enables launch only if environment is ready
-##
-## Environment Validation Flow:
-##   - environment_incomplete(missing_tools) → UI disables sealing and directs to Tools page
-##   - User clicks missing tool in list → tool_view_requested(tool_id, version)
-##   - UI navigates to Tools page for download/install
+## Project Library Lifecycle:
+##   1. Load persisted project index from disk on startup
+##   2. Add project only when stack.json + ogs_config.json exist
+##   3. Select a project from the library list to activate it
+##   4. Render tool availability indicators and launch/seal readiness
 
 extends RefCounted
 class_name ProjectsController
@@ -30,15 +26,26 @@ signal environment_ready
 ## Emitted when user clicks a tool to view it in Tools page.
 signal tool_view_requested(tool_id: String, tool_version: String)
 
-var project_path_line_edit: LineEdit
-var btn_browse_project: Button
-var btn_load_project: Button
+const DEFAULT_PROJECTS_INDEX_PATH := "user://ogs_projects_index.json"
+const PICKER_ACTION_ADD_PROJECT := "add_project"
+
+var btn_add_project: Button
 var btn_new_project: Button
+var projects_list: ItemList
 var lbl_project_status: Label
 var lbl_offline_status: Label
 var tools_list: ItemList
+var btn_add_tool: Button
+var btn_remove_tool: Button
+var btn_remove_project: Button
 var btn_launch_tool: Button
 var project_dir_dialog: FileDialog
+var remove_project_dialog: ConfirmationDialog
+var new_project_dialog: ConfirmationDialog
+var new_project_name_line_edit: LineEdit
+var add_tool_dialog: ConfirmationDialog
+var add_tool_option_list: ItemList
+var project_picker_add_button: Button
 
 var current_project_dir := ""
 var current_manifest: StackManifest = null
@@ -46,118 +53,1001 @@ var environment_validator: ProjectEnvironmentValidator
 var tools_controller: ToolsController
 var _tool_availability: Dictionary = {}  # Maps {tool_id: {version: {available: bool}}}
 var _library_manager: LibraryManager = null
+var _tracked_projects: Array = []
+var _selected_project_index: int = -1
+var _selected_tool_index: int = -1
+var _projects_index_path := DEFAULT_PROJECTS_INDEX_PATH
+var _projects_root_override := ""
+var _picker_state_monitoring := false
+var _add_tool_candidates: Array = []
 
 func setup(
-	path_line_edit: LineEdit,
-	browse_button: Button,
-	load_button: Button,
+	add_button: Button,
 	new_button: Button,
+	projects_list_control: ItemList,
 	status_label: Label,
 	offline_label: Label,
 	tools_list_control: ItemList,
+	add_tool_button: Button,
+	remove_tool_button: Button,
+	remove_button: Button,
 	launch_button: Button,
 	dir_dialog: FileDialog,
+	remove_dialog: ConfirmationDialog,
+	new_dialog: ConfirmationDialog,
+	new_name_line_edit: LineEdit,
+	tool_dialog: ConfirmationDialog,
+	tool_option_list: ItemList,
 	tools_ctrl: ToolsController = null
 ) -> void:
-	"""Wires the Projects page controls to project loading behaviors."""
-	project_path_line_edit = path_line_edit
-	btn_browse_project = browse_button
-	btn_load_project = load_button
+	"""Wires Projects page controls for persistent project-library behaviors.
+
+	Parameters:
+	  add_button (Button): Opens folder picker for adding an OGS project
+	  new_button (Button): Opens new project dialog for creating project scaffolds
+	  projects_list_control (ItemList): Persistent list of tracked projects
+	  status_label (Label): Primary status output for project operations
+	  offline_label (Label): Displays active offline mode state
+	  tools_list_control (ItemList): Tool list for selected project
+	  add_tool_button (Button): Adds selected catalog tool to project stack
+	  remove_tool_button (Button): Removes selected tool from project stack
+	  remove_button (Button): Removes selected project from persistent library
+	  launch_button (Button): Launches selected tool from selected project
+	  dir_dialog (FileDialog): Folder picker used by Add Project workflow
+	  remove_dialog (ConfirmationDialog): Confirmation dialog for project removal
+	  new_dialog (ConfirmationDialog): Dialog for entering new project name
+	  new_name_line_edit (LineEdit): Text entry for new project display/folder name
+	  tool_dialog (ConfirmationDialog): Dialog for selecting tool to add
+	  tool_option_list (ItemList): List of available catalog tools
+	  tools_ctrl (ToolsController): Optional tools catalog controller for indicators
+	"""
+	btn_add_project = add_button
 	btn_new_project = new_button
+	projects_list = projects_list_control
 	lbl_project_status = status_label
 	lbl_offline_status = offline_label
 	tools_list = tools_list_control
+	btn_add_tool = add_tool_button
+	btn_remove_tool = remove_tool_button
+	btn_remove_project = remove_button
 	btn_launch_tool = launch_button
 	project_dir_dialog = dir_dialog
+	remove_project_dialog = remove_dialog
+	new_project_dialog = new_dialog
+	new_project_name_line_edit = new_name_line_edit
+	add_tool_dialog = tool_dialog
+	add_tool_option_list = tool_option_list
 	tools_controller = tools_ctrl
 
-	btn_browse_project.pressed.connect(_on_browse_project_pressed)
-	btn_load_project.pressed.connect(_on_load_project_pressed)
+	btn_add_project.pressed.connect(_on_add_project_pressed)
 	btn_new_project.pressed.connect(_on_new_project_pressed)
+	btn_add_tool.pressed.connect(_on_add_tool_pressed)
+	btn_remove_tool.pressed.connect(_on_remove_tool_pressed)
+	projects_list.item_selected.connect(_on_project_selected)
+	btn_remove_project.pressed.connect(_on_remove_project_pressed)
 	btn_launch_tool.pressed.connect(_on_launch_tool_pressed)
-	project_path_line_edit.text_submitted.connect(_on_project_path_submitted)
+	remove_project_dialog.confirmed.connect(_on_remove_project_confirmed)
+	new_project_dialog.confirmed.connect(_on_new_project_confirmed)
+	add_tool_dialog.confirmed.connect(_on_add_tool_confirmed)
+	add_tool_option_list.item_selected.connect(_on_add_tool_item_selected)
+	add_tool_option_list.item_activated.connect(_on_add_tool_item_activated)
+	new_project_name_line_edit.text_changed.connect(_on_new_project_name_changed)
+	new_project_name_line_edit.text_submitted.connect(func(_text: String):
+		_on_new_project_confirmed()
+	)
 	project_dir_dialog.dir_selected.connect(_on_project_dir_selected)
+	project_dir_dialog.custom_action.connect(_on_project_dialog_custom_action)
+	if project_dir_dialog.has_signal("selected_files_changed"):
+		project_dir_dialog.connect("selected_files_changed", Callable(self, "_on_project_picker_selection_changed"))
+	if project_dir_dialog.has_signal("visibility_changed"):
+		project_dir_dialog.connect("visibility_changed", Callable(self, "_on_project_picker_visibility_changed"))
+
+	project_picker_add_button = project_dir_dialog.add_button("Add Project", false, PICKER_ACTION_ADD_PROJECT)
+	project_picker_add_button.disabled = true
+	var dialog_open_button = project_dir_dialog.get_ok_button()
+	if dialog_open_button != null:
+		dialog_open_button.visible = false
+		dialog_open_button.disabled = true
+		dialog_open_button.focus_mode = Control.FOCUS_NONE
+	var create_button = new_project_dialog.get_ok_button()
+	if create_button != null:
+		create_button.disabled = true
+	project_dir_dialog.ok_button_text = "Open"
 	tools_list.item_clicked.connect(func(index: int, _at_position: Vector2, _mouse_button_index: int):
 		_on_tool_item_clicked(index)
 	)
+	tools_list.item_selected.connect(_on_tool_item_selected)
+	tools_list.item_activated.connect(_on_tool_item_activated)
 	
 	environment_validator = ProjectEnvironmentValidator.new()
 	_library_manager = LibraryManager.new()
 	
 	_apply_offline_config(null)
+	_update_offline_status(null)
 
-	# Initially disable launch button until a project is loaded
+	# Initially disable launch button until a project is selected
 	btn_launch_tool.disabled = true
+	btn_add_tool.disabled = true
+	btn_remove_tool.disabled = true
+	_disable_remove_button()
 
-func _on_browse_project_pressed() -> void:
-	"""Opens the folder picker for selecting a project root."""
-	project_dir_dialog.popup_centered_ratio(0.65)
+	_load_project_registry()
+	_refresh_projects_list()
+	if not _tracked_projects.is_empty():
+		_select_project(0)
+	else:
+		_disable_remove_button()
+		_update_status("Status: No projects added yet. Click Add to register an OGS project.")
 
 func _on_new_project_pressed() -> void:
-	"""Provides a placeholder response until the new project wizard is implemented."""
-	_update_status("Status: New Project wizard coming soon.")
+	"""Shows New Project dialog for creating an empty OGS project scaffold."""
+	new_project_name_line_edit.text = ""
+	_on_new_project_name_changed("")
+	new_project_dialog.popup_centered_ratio(0.4)
+	new_project_name_line_edit.grab_focus()
+
+func _on_new_project_name_changed(new_text: String) -> void:
+	"""Enables create button only when sanitized project name is non-empty.
+
+	Parameters:
+	  new_text (String): User-entered project name text
+	"""
+	var create_button = new_project_dialog.get_ok_button()
+	if create_button == null:
+		return
+	var sanitized = _sanitize_project_name(new_text)
+	create_button.disabled = sanitized.is_empty()
+
+func _on_new_project_confirmed() -> void:
+	"""Creates a new project scaffold from dialog-entered project name."""
+	_create_new_project_from_name(new_project_name_line_edit.text)
+
+func _create_new_project_from_name(project_name: String) -> bool:
+	"""Creates a new project folder plus stack/config scaffold and auto-adds it.
+
+	Parameters:
+	  project_name (String): Raw project name entered by user
+
+	Returns:
+	  bool: True when project scaffold is created and added to library
+	"""
+	var sanitized_name = _sanitize_project_name(project_name)
+	if sanitized_name.is_empty():
+		_update_status("Status: Enter a valid project name.")
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "invalid_name"
+		})
+		return false
+
+	var projects_root = _resolve_ogs_projects_root_path()
+	if projects_root.is_empty():
+		_update_status("Status: Unable to resolve OGS Projects directory.")
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "projects_root_unresolved"
+		})
+		return false
+
+	var make_root_result = DirAccess.make_dir_recursive_absolute(projects_root)
+	if make_root_result != OK and not DirAccess.dir_exists_absolute(projects_root):
+		_update_status("Status: Failed to create OGS Projects folder.")
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "projects_root_create_failed"
+		})
+		return false
+
+	var new_project_dir = projects_root.path_join(sanitized_name)
+	if DirAccess.dir_exists_absolute(new_project_dir):
+		_update_status("Status: Project '%s' already exists in OGS/Projects." % sanitized_name)
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "project_folder_exists",
+			"stack_name": sanitized_name
+		})
+		return false
+
+	var make_project_result = DirAccess.make_dir_recursive_absolute(new_project_dir)
+	if make_project_result != OK:
+		_update_status("Status: Failed to create project folder.")
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "project_folder_create_failed"
+		})
+		return false
+
+	var stack_payload = {
+		"schema_version": StackManifest.CURRENT_SCHEMA_VERSION,
+		"stack_name": sanitized_name,
+		"tools": []
+	}
+	var config_payload = OgsConfig.new().to_dict()
+
+	var stack_path = new_project_dir.path_join("stack.json")
+	var config_path = new_project_dir.path_join("ogs_config.json")
+	if not _save_json_file(stack_path, stack_payload) or not _save_json_file(config_path, config_payload):
+		_update_status("Status: Failed writing new project files.")
+		Logger.warn("project_create_failed", {
+			"component": "projects",
+			"reason": "scaffold_write_failed",
+			"stack_name": sanitized_name
+		})
+		return false
+
+	var add_ok = add_project_from_path(new_project_dir)
+	if not add_ok:
+		_update_status("Status: Project created, but failed to add to Project Library.")
+		Logger.warn("project_create_add_failed", {
+			"component": "projects",
+			"stack_name": sanitized_name
+		})
+		return false
+
+	new_project_dialog.hide()
+	_update_status("Status: Created project '%s' in OGS/Projects." % sanitized_name)
+	Logger.info("project_created", {
+		"component": "projects",
+		"stack_name": sanitized_name,
+		"tools_count": 0
+	})
+	return true
+
+func _save_json_file(file_path: String, payload: Dictionary) -> bool:
+	"""Writes JSON dictionary to disk with pretty formatting.
+
+	Parameters:
+	  file_path (String): Destination absolute file path
+	  payload (Dictionary): JSON-compatible object payload
+
+	Returns:
+	  bool: True on successful write, false otherwise
+	"""
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(payload, "\t"))
+	file.close()
+	return true
+
+func _resolve_ogs_projects_root_path() -> String:
+	"""Resolves platform-appropriate OGS/Projects directory root.
+
+	Returns:
+	  String: Absolute path to OGS Projects folder
+	"""
+	if not _projects_root_override.is_empty():
+		return _projects_root_override
+	var local_app_data = OS.get_environment("LOCALAPPDATA")
+	if not local_app_data.is_empty():
+		return local_app_data.path_join("OGS").path_join("Projects")
+	return OS.get_user_data_dir().path_join("OGS").path_join("Projects")
+
+func _sanitize_project_name(raw_name: String) -> String:
+	"""Normalizes project name for safe folder naming (spaces -> underscores).
+
+	Parameters:
+	  raw_name (String): User-entered project name
+
+	Returns:
+	  String: Sanitized folder-friendly project name
+	"""
+	var trimmed = raw_name.strip_edges().replace(" ", "_")
+	if trimmed.is_empty():
+		return ""
+
+	var sanitized = ""
+	for character in trimmed:
+		var code = character.unicode_at(0)
+		var is_digit = code >= 48 and code <= 57
+		var is_upper = code >= 65 and code <= 90
+		var is_lower = code >= 97 and code <= 122
+		var is_safe_symbol = character == "_" or character == "-"
+		sanitized += character if (is_digit or is_upper or is_lower or is_safe_symbol) else "_"
+
+	while sanitized.find("__") != -1:
+		sanitized = sanitized.replace("__", "_")
+	return sanitized.strip_edges().trim_prefix("_").trim_suffix("_")
+
+func _on_add_tool_pressed() -> void:
+	"""Opens catalog picker for adding a new tool entry to current project stack."""
+	if current_manifest == null or current_project_dir.is_empty():
+		_update_status("Status: Select a project before adding tools.")
+		return
+
+	_populate_add_tool_options()
+	if _add_tool_candidates.is_empty():
+		_update_status("Status: No additional tools available to add.")
+		return
+
+	add_tool_dialog.popup_centered_ratio(0.4)
+
+func _populate_add_tool_options() -> void:
+	"""Builds add-tool list from catalog and offline-safe local sources."""
+	_add_tool_candidates.clear()
+	add_tool_option_list.clear()
+
+	var existing_keys: Dictionary = {}
+	if current_manifest != null:
+		for entry in current_manifest.tools:
+			var key = "%s_%s" % [String(entry.get("id", "")), String(entry.get("version", ""))]
+			existing_keys[key] = true
+
+	var seen_keys: Dictionary = {}
+	for tool in _collect_add_tool_catalog_entries():
+		var tool_id = String(tool.get("id", "")).strip_edges()
+		var version = String(tool.get("version", "")).strip_edges()
+		if tool_id.is_empty() or version.is_empty():
+			continue
+		var key = "%s_%s" % [tool_id, version]
+		if existing_keys.has(key) or seen_keys.has(key):
+			continue
+		seen_keys[key] = true
+		_add_tool_candidates.append({
+			"id": tool_id,
+			"version": version
+		})
+
+	_add_tool_candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_key = "%s_%s" % [String(a.get("id", "")), String(a.get("version", ""))]
+		var b_key = "%s_%s" % [String(b.get("id", "")), String(b.get("version", ""))]
+		return a_key < b_key
+	)
+
+	for candidate in _add_tool_candidates:
+		var label = "%s v%s" % [String(candidate.get("id", "")), String(candidate.get("version", ""))]
+		add_tool_option_list.add_item(label)
+
+	if add_tool_option_list.item_count > 0:
+		add_tool_option_list.select(0)
+
+	var add_button = add_tool_dialog.get_ok_button()
+	if add_button != null:
+		add_button.disabled = _add_tool_candidates.is_empty()
+
+func _collect_add_tool_catalog_entries() -> Array:
+	"""Collects tool/version entries from remote catalog and local fallback sources.
+
+	Returns:
+	  Array: List of dictionaries containing id/version keys
+	"""
+	var entries: Array = []
+
+	entries.append_array(_collect_add_tool_entries_from_tools_controller())
+	entries.append_array(_collect_add_tool_entries_from_library())
+	entries.append_array(_collect_add_tool_entries_from_tracked_projects())
+
+	return entries
+
+func _collect_add_tool_entries_from_tools_controller() -> Array:
+	"""Collects id/version entries from ToolsController categorized catalog.
+
+	Returns:
+	  Array: Tool dictionaries from known repository data
+	"""
+	if tools_controller == null:
+		return []
+
+	var entries: Array = []
+	var categorized = tools_controller.get_categorized_tools()
+	for category in categorized.keys():
+		for tool in categorized[category]:
+			entries.append({
+				"id": String(tool.get("id", "")).strip_edges(),
+				"version": String(tool.get("version", "")).strip_edges()
+			})
+	return entries
+
+func _collect_add_tool_entries_from_library() -> Array:
+	"""Collects installed library tool versions as offline Add Tool candidates.
+
+	Returns:
+	  Array: Tool dictionaries discovered in local library
+	"""
+	if _library_manager == null:
+		return []
+
+	var entries: Array = []
+	for tool_id in _library_manager.get_available_tools():
+		for version in _library_manager.get_available_versions(String(tool_id)):
+			entries.append({
+				"id": String(tool_id).strip_edges(),
+				"version": String(version).strip_edges()
+			})
+	return entries
+
+func _collect_add_tool_entries_from_tracked_projects() -> Array:
+	"""Collects tool/version pairs from tracked project entries as local fallback.
+
+	Returns:
+	  Array: Tool dictionaries found in project registry snapshots
+	"""
+	var entries: Array = []
+	for project_entry in _tracked_projects:
+		var project_tools = project_entry.get("tools", [])
+		if not (project_tools is Array):
+			continue
+		for tool in project_tools:
+			if not (tool is Dictionary):
+				continue
+			entries.append({
+				"id": String(tool.get("id", "")).strip_edges(),
+				"version": String(tool.get("version", "")).strip_edges()
+			})
+	return entries
+
+func _on_add_tool_item_selected(index: int) -> void:
+	"""Enables Add Tool confirm action when a list item is selected.
+
+	Parameters:
+	  index (int): Selected add-tool candidate index
+	"""
+	var add_button = add_tool_dialog.get_ok_button()
+	if add_button != null:
+		add_button.disabled = (index < 0 or index >= _add_tool_candidates.size())
+
+func _on_add_tool_item_activated(index: int) -> void:
+	"""Adds tool immediately on double-click activation from Add Tool list.
+
+	Parameters:
+	  index (int): Activated add-tool candidate index
+	"""
+	if index < 0 or index >= _add_tool_candidates.size():
+		return
+	add_tool_option_list.select(index)
+	_on_add_tool_confirmed()
+
+func _on_add_tool_confirmed() -> void:
+	"""Adds selected catalog tool entry to current project's stack manifest."""
+	var selected_items = add_tool_option_list.get_selected_items()
+	if selected_items.is_empty():
+		_update_status("Status: Select a tool to add.")
+		return
+	var selected = int(selected_items[0])
+	if selected < 0 or selected >= _add_tool_candidates.size():
+		_update_status("Status: Select a tool to add.")
+		return
+
+	var candidate: Dictionary = _add_tool_candidates[selected]
+	add_tool_to_current_project(String(candidate.get("id", "")), String(candidate.get("version", "")))
+
+func add_tool_to_current_project(tool_id: String, version: String) -> bool:
+	"""Adds a tool/version entry to current project's stack.json and refreshes UI.
+
+	Parameters:
+	  tool_id (String): Tool identifier from repository catalog
+	  version (String): Tool version string
+
+	Returns:
+	  bool: True if tool was added and saved successfully
+	"""
+	if current_manifest == null or current_project_dir.is_empty():
+		_update_status("Status: Select a project before adding tools.")
+		return false
+	if tool_id.is_empty() or version.is_empty():
+		_update_status("Status: Invalid tool selection.")
+		return false
+
+	for entry in current_manifest.tools:
+		if String(entry.get("id", "")) == tool_id and String(entry.get("version", "")) == version:
+			_update_status("Status: %s v%s is already in this project." % [tool_id, version])
+			return false
+
+	current_manifest.tools.append({
+		"id": tool_id,
+		"version": version
+	})
+	if not _save_current_stack_manifest():
+		return false
+
+	if _selected_project_index >= 0:
+		_select_project(_selected_project_index)
+	_update_status("Status: Added %s v%s to project stack." % [tool_id, version])
+	Logger.info("project_tool_added", {
+		"component": "projects",
+		"tool_id": tool_id,
+		"version": version
+	})
+	return true
+
+func _on_remove_tool_pressed() -> void:
+	"""Removes currently selected tool entry from project stack manifest."""
+	remove_tool_at_index(_selected_tool_index)
+
+func remove_tool_at_index(index: int) -> bool:
+	"""Removes tool entry at index from current stack.json and refreshes UI.
+
+	Parameters:
+	  index (int): Tool index in current manifest tools list
+
+	Returns:
+	  bool: True if removal saved successfully
+	"""
+	if current_manifest == null or current_project_dir.is_empty():
+		_update_status("Status: Select a project before removing tools.")
+		return false
+	if index < 0 or index >= current_manifest.tools.size():
+		_update_status("Status: Select a tool before removing it.")
+		return false
+
+	var removed_entry = current_manifest.tools[index]
+	var removed_id = String(removed_entry.get("id", "unknown"))
+	var removed_version = String(removed_entry.get("version", "?"))
+	current_manifest.tools.remove_at(index)
+	_selected_tool_index = -1
+
+	if not _save_current_stack_manifest():
+		return false
+
+	if _selected_project_index >= 0:
+		_select_project(_selected_project_index)
+	_update_status("Status: Removed %s v%s from project stack." % [removed_id, removed_version])
+	Logger.info("project_tool_removed", {
+		"component": "projects",
+		"tool_id": removed_id,
+		"version": removed_version
+	})
+	return true
+
+func _save_current_stack_manifest() -> bool:
+	"""Persists current stack manifest to stack.json on disk.
+
+	Returns:
+	  bool: True if manifest write succeeded
+	"""
+	if current_project_dir.is_empty() or current_manifest == null:
+		return false
+	var stack_path = current_project_dir.path_join("stack.json")
+	var payload = current_manifest.to_dict()
+	if not _save_json_file(stack_path, payload):
+		_update_status("Status: Failed to update stack.json.")
+		Logger.warn("project_stack_save_failed", {
+			"component": "projects"
+		})
+		return false
+	return true
+
+func _on_remove_project_pressed() -> void:
+	"""Shows confirmation dialog before removing selected project from library."""
+	if _selected_project_index < 0 or _selected_project_index >= _tracked_projects.size():
+		_update_status("Status: Select a project before removing.")
+		_disable_remove_button()
+		return
+
+	var entry: Dictionary = _tracked_projects[_selected_project_index]
+	var stack_name = String(entry.get("stack_name", "Unnamed Stack"))
+	remove_project_dialog.dialog_text = "Remove '%s' from the Project Library?\nThis does not delete project files from disk." % stack_name
+	remove_project_dialog.popup_centered_ratio(0.4)
+
+func _on_remove_project_confirmed() -> void:
+	"""Removes selected project after user confirms removal intent."""
+	_remove_project_at_index(_selected_project_index)
+
+func _remove_project_at_index(index: int) -> void:
+	"""Removes a tracked project entry and persists updated project registry.
+
+	Parameters:
+	  index (int): Index in tracked projects to remove
+	"""
+	if index < 0 or index >= _tracked_projects.size():
+		return
+
+	var removed_entry: Dictionary = _tracked_projects[index]
+	var removed_name = String(removed_entry.get("stack_name", "Unnamed Stack"))
+	_tracked_projects.remove_at(index)
+	_save_project_registry()
+	_refresh_projects_list()
+
+	if _tracked_projects.is_empty():
+		_disable_launch_button()
+		_disable_remove_button()
+		_apply_offline_config(null)
+		_update_offline_status(null)
+		_update_status("Status: Removed '%s'. Project Library is now empty." % removed_name)
+		Logger.info("project_removed", {
+			"component": "projects",
+			"stack_name": removed_name,
+			"remaining_projects": 0
+		})
+		return
+
+	var next_index = min(index, _tracked_projects.size() - 1)
+	_select_project(next_index)
+	_update_status("Status: Removed '%s' from Project Library." % removed_name)
+	Logger.info("project_removed", {
+		"component": "projects",
+		"stack_name": removed_name,
+		"remaining_projects": _tracked_projects.size()
+	})
+
+func set_projects_index_path_for_tests(path: String) -> void:
+	"""Overrides project index storage path for isolated tests.
+
+	Parameters:
+	  path (String): user:// path where project index JSON will be stored
+	"""
+	if not path.is_empty():
+		_projects_index_path = path
+
+func set_projects_root_path_for_tests(path: String) -> void:
+	"""Overrides new project scaffold root path for isolated tests.
+
+	Parameters:
+	  path (String): Absolute or user:// path used for creating new project folders
+	"""
+	_projects_root_override = path
+
+func _on_add_project_pressed() -> void:
+	"""Opens folder picker and primes Add Project button state."""
+	project_dir_dialog.popup_centered_ratio(0.65)
+	_update_add_project_button_state(_get_picker_selected_dir())
+	_start_project_picker_state_monitoring()
 
 func _on_project_dir_selected(dir_path: String) -> void:
-	"""Updates the project path field after a directory is selected."""
-	project_path_line_edit.text = dir_path
-	current_project_dir = dir_path
-	_update_status("Status: Project folder selected. Click Load to inspect.")
+	"""Refreshes picker Add Project enablement when folder context changes."""
+	_update_add_project_button_state(dir_path)
 
-func _on_project_path_submitted(path_text: String) -> void:
-	"""Loads the project when the user submits a path in the text field."""
-	current_project_dir = path_text.strip_edges()
-	_load_project_from_path(current_project_dir)
+func _on_project_picker_selection_changed() -> void:
+	"""Updates Add Project button after folder-picker selection changes."""
+	_update_add_project_button_state(_get_picker_selected_dir())
 
-func _on_load_project_pressed() -> void:
-	"""Loads the project using the current path input."""
-	current_project_dir = project_path_line_edit.text.strip_edges()
-	_load_project_from_path(current_project_dir)
+func _on_project_picker_visibility_changed() -> void:
+	"""Re-evaluates picker action buttons whenever dialog visibility toggles."""
+	if project_dir_dialog.visible:
+		_update_add_project_button_state(_get_picker_selected_dir())
+		_start_project_picker_state_monitoring()
 
-func _load_project_from_path(project_dir: String) -> void:
-	"""Loads and validates stack.json and ogs_config.json from a project folder."""
-	if project_dir.is_empty():
-		_update_status("Status: Please select a project folder.")
-		Logger.warn("project_load_failed", {"component": "projects", "reason": "empty_path"})
-		_apply_offline_config(null)
-		_disable_launch_button()
+func _start_project_picker_state_monitoring() -> void:
+	"""Starts lightweight polling while picker is visible to keep button state accurate.
+
+	Godot FileDialog does not emit a reliable signal for every directory navigation
+	event in open-dir mode. Polling current_dir while visible ensures Add Project
+	reflects the active folder immediately.
+	"""
+	if _picker_state_monitoring:
+		return
+	_picker_state_monitoring = true
+	_monitor_project_picker_state()
+
+func _monitor_project_picker_state() -> void:
+	"""Polls FileDialog current folder while visible and refreshes Add Project state."""
+	while project_dir_dialog != null and project_dir_dialog.visible:
+		_update_add_project_button_state(_get_picker_selected_dir())
+		var tree = project_dir_dialog.get_tree()
+		if tree == null:
+			break
+		await tree.create_timer(0.12).timeout
+	_picker_state_monitoring = false
+
+func _on_project_dialog_custom_action(action: String) -> void:
+	"""Handles custom FileDialog actions, including Add Project registration.
+
+	Parameters:
+	  action (String): Custom action key emitted by FileDialog
+	"""
+	if action != PICKER_ACTION_ADD_PROJECT:
 		return
 
+	var selected_dir = _get_picker_selected_dir()
+	if not _is_addable_project_dir(selected_dir):
+		_update_status("Status: Add Project requires stack.json and ogs_config.json in the selected folder.")
+		Logger.warn("project_add_rejected", {
+			"component": "projects",
+			"reason": "missing_required_files"
+		})
+		_update_add_project_button_state(selected_dir)
+		return
+
+	add_project_from_path(selected_dir)
+	project_dir_dialog.hide()
+
+func add_project_from_path(project_dir: String) -> bool:
+	"""Adds a project directory to the persistent project library.
+
+	Parameters:
+	  project_dir (String): Candidate project root directory
+
+	Returns:
+	  bool: True if project was added (or selected if duplicate), false otherwise
+	"""
+	var normalized_dir = project_dir.strip_edges()
+	if normalized_dir.is_empty():
+		_update_status("Status: Select a project folder before adding.")
+		Logger.warn("project_add_failed", {"component": "projects", "reason": "empty_path"})
+		return false
+
+	if not _is_addable_project_dir(normalized_dir):
+		_update_status("Status: Missing required files (stack.json and ogs_config.json).")
+		Logger.warn("project_add_failed", {
+			"component": "projects",
+			"reason": "missing_required_files"
+		})
+		return false
+
+	var existing_index = _find_project_index_by_path(normalized_dir)
+	if existing_index != -1:
+		_select_project(existing_index)
+		_update_status("Status: Project is already in the list. Selected existing entry.")
+		Logger.info("project_add_duplicate_selected", {
+			"component": "projects",
+			"project": normalized_dir
+		})
+		return true
+
+	var manifest = _load_manifest_from_project(normalized_dir)
+	if manifest == null:
+		return false
+
+	var project_entry = {
+		"path": normalized_dir,
+		"stack_name": manifest.stack_name,
+		"tools": manifest.tools,
+		"added_at": Time.get_unix_time_from_system()
+	}
+	_tracked_projects.append(project_entry)
+	_save_project_registry()
+	_refresh_projects_list()
+	_select_project(_tracked_projects.size() - 1)
+
+	Logger.info("project_added_to_library", {
+		"component": "projects",
+		"stack_name": manifest.stack_name,
+		"tool_count": manifest.tools.size()
+	})
+	return true
+
+func _is_addable_project_dir(project_dir: String) -> bool:
+	"""Checks whether folder is addable by required OGS project files.
+
+	Parameters:
+	  project_dir (String): Directory to validate
+
+	Returns:
+	  bool: True when both stack.json and ogs_config.json exist
+	"""
+	if project_dir.is_empty():
+		return false
 	var stack_path = project_dir.path_join("stack.json")
 	var config_path = project_dir.path_join("ogs_config.json")
+	return FileAccess.file_exists(stack_path) and FileAccess.file_exists(config_path)
 
-	if not FileAccess.file_exists(stack_path):
-		_update_status("Status: stack.json not found in the selected folder.")
-		_update_offline_status(null)
-		Logger.warn("project_load_failed", {"component": "projects", "reason": "missing_stack"})
-		_apply_offline_config(null)
-		tools_list.clear()
-		_disable_launch_button()
+func _get_picker_selected_dir() -> String:
+	"""Returns current directory context from FileDialog picker safely."""
+	if project_dir_dialog == null:
+		return ""
+	return String(project_dir_dialog.current_dir)
+
+func _update_add_project_button_state(project_dir: String) -> void:
+	"""Enables/disables picker Add Project action based on required files.
+
+	Parameters:
+	  project_dir (String): Folder currently selected in picker
+	"""
+	if project_picker_add_button == null:
 		return
+	project_picker_add_button.disabled = not _is_addable_project_dir(project_dir)
 
+func _find_project_index_by_path(project_dir: String) -> int:
+	"""Returns tracked project index by normalized path, or -1 if missing."""
+	for index in range(_tracked_projects.size()):
+		var entry = _tracked_projects[index]
+		if String(entry.get("path", "")) == project_dir:
+			return index
+	return -1
+
+func _load_manifest_from_project(project_dir: String) -> StackManifest:
+	"""Loads and validates stack manifest for a candidate project directory.
+
+	Parameters:
+	  project_dir (String): Project root containing stack.json
+
+	Returns:
+	  StackManifest: Valid manifest or null on parse/validation failure
+	"""
+	var stack_path = project_dir.path_join("stack.json")
 	var manifest = StackManifest.load_from_file(stack_path)
 	if not manifest.is_valid():
-		_update_status("Status: stack.json is invalid. Errors: %s" % ", ".join(manifest.errors))
-		_update_offline_status(null)
-		Logger.warn("project_load_failed", {"component": "projects", "reason": "invalid_manifest"})
-		_apply_offline_config(null)
-		tools_list.clear()
-		_disable_launch_button()
+		if not _is_manifest_acceptable_for_project_library(manifest):
+			_update_status("Status: Cannot add project. stack.json invalid: %s" % ", ".join(manifest.errors))
+			Logger.warn("project_add_failed", {
+				"component": "projects",
+				"reason": "invalid_manifest",
+				"errors": manifest.errors
+			})
+			return null
+	if String(manifest.stack_name).strip_edges().is_empty():
+		_update_status("Status: Cannot add project. stack.json missing stack_name.")
+		Logger.warn("project_add_failed", {
+			"component": "projects",
+			"reason": "missing_stack_name"
+		})
+		return null
+	return manifest
+
+func _is_manifest_acceptable_for_project_library(manifest: StackManifest) -> bool:
+	"""Determines whether manifest is acceptable for Projects Library add/select flows.
+
+	Allows one controlled exception: `tools_empty` is accepted so newly-created
+	projects can start with no tools and be managed later from the Projects page.
+
+	Parameters:
+	  manifest (StackManifest): Parsed manifest to evaluate
+
+	Returns:
+	  bool: True if manifest is valid or has only tools_empty warning
+	"""
+	if manifest.is_valid():
+		return true
+	return manifest.errors.size() == 1 and manifest.errors[0] == "tools_empty"
+
+func _refresh_projects_list() -> void:
+	"""Rebuilds Projects list UI from persisted tracked project entries."""
+	projects_list.clear()
+	for index in range(_tracked_projects.size()):
+		var entry: Dictionary = _tracked_projects[index]
+		var display_name = String(entry.get("stack_name", "Unnamed Stack"))
+		var tools: Array = entry.get("tools", [])
+		var summary = _summarize_tools(tools)
+		var label = "%s — %s" % [display_name, summary]
+		projects_list.add_item(label)
+		projects_list.set_item_tooltip(index, String(entry.get("path", "")))
+
+func _summarize_tools(tools: Array) -> String:
+	"""Builds compact tool summary text for project list entries.
+
+	Parameters:
+	  tools (Array): Manifest tool dictionaries
+
+	Returns:
+	  String: Compact summary with up to two tools and total count
+	"""
+	if tools.is_empty():
+		return "No tools"
+
+	var labels: Array[String] = []
+	for tool in tools:
+		if labels.size() >= 2:
+			break
+		var tool_id = String(tool.get("id", "unknown"))
+		var tool_version = String(tool.get("version", "?"))
+		labels.append("%s %s" % [tool_id, tool_version])
+
+	if tools.size() > 2:
+		return "%s (+%d more)" % [", ".join(labels), tools.size() - 2]
+	return ", ".join(labels)
+
+func _on_project_selected(index: int) -> void:
+	"""Activates selected project entry and loads runtime state.
+
+	Parameters:
+	  index (int): Selected index in projects list
+	"""
+	_select_project(index)
+
+func _select_project(index: int) -> void:
+	"""Selects a project from tracked entries and loads its manifest/config.
+
+	Parameters:
+	  index (int): Index in tracked projects list
+	"""
+	if index < 0 or index >= _tracked_projects.size():
 		return
 
-	_update_status("Status: Manifest loaded for '%s'." % manifest.stack_name)
-	_populate_tools_list(manifest.tools)
-	Logger.info("project_loaded", {"component": "projects", "stack_name": manifest.stack_name})
-	
-	# Store the manifest for launching tools
+	_selected_project_index = index
+	_selected_tool_index = -1
+	projects_list.select(index)
+	_enable_remove_button()
+	_update_tool_action_buttons()
+
+	var entry: Dictionary = _tracked_projects[index]
+	var project_dir = String(entry.get("path", ""))
+	if project_dir.is_empty():
+		_update_status("Status: Selected project entry is invalid.")
+		_disable_launch_for_selected_project()
+		return
+
+	if not _is_addable_project_dir(project_dir):
+		_update_status("Status: Selected project is missing stack.json or ogs_config.json.")
+		_apply_offline_config(null)
+		_update_offline_status(null)
+		_disable_launch_for_selected_project()
+		Logger.warn("project_select_failed", {
+			"component": "projects",
+			"reason": "missing_required_files"
+		})
+		return
+
+	var manifest = _load_manifest_from_project(project_dir)
+	if manifest == null:
+		_apply_offline_config(null)
+		_update_offline_status(null)
+		_disable_launch_for_selected_project()
+		return
+
+	# Keep persisted entry aligned with latest manifest metadata.
+	entry["stack_name"] = manifest.stack_name
+	entry["tools"] = manifest.tools
+	_tracked_projects[index] = entry
+	_save_project_registry()
+	_refresh_projects_list()
+	projects_list.select(index)
+
+	current_project_dir = project_dir
 	current_manifest = manifest
-	
+	_populate_tools_list(manifest.tools)
+
+	var config_path = project_dir.path_join("ogs_config.json")
 	var config = _load_config_if_present(config_path)
 	_apply_offline_config(config)
 	_update_offline_status(config)
 
-	# Validate environment (library for linked projects, project tools for forced offline)
 	var use_project_tools = config != null and config.force_offline
 	_validate_and_report_environment(project_dir, use_project_tools)
+
+	Logger.info("project_selected", {
+		"component": "projects",
+		"stack_name": manifest.stack_name,
+		"tool_count": manifest.tools.size()
+	})
+
+func _load_project_registry() -> void:
+	"""Loads persisted project entries from disk with validation and pruning."""
+	_tracked_projects.clear()
+	if not FileAccess.file_exists(_projects_index_path):
+		Logger.debug("project_registry_missing", {
+			"component": "projects"
+		})
+		return
+
+	var file = FileAccess.open(_projects_index_path, FileAccess.READ)
+	if file == null:
+		Logger.warn("project_registry_read_failed", {
+			"component": "projects"
+		})
+		return
+
+	var text = file.get_as_text()
+	file.close()
+	var parsed = JSON.parse_string(text)
+	if parsed == null or typeof(parsed) != TYPE_DICTIONARY:
+		Logger.warn("project_registry_parse_failed", {
+			"component": "projects",
+			"reason": "invalid_json"
+		})
+		return
+
+	var entries: Array = parsed.get("projects", [])
+	for raw_entry in entries:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			continue
+		var project_dir = String(raw_entry.get("path", ""))
+		if _is_addable_project_dir(project_dir):
+			_tracked_projects.append(raw_entry)
+
+	Logger.info("project_registry_loaded", {
+		"component": "projects",
+		"count": _tracked_projects.size()
+	})
+
+func _save_project_registry() -> void:
+	"""Persists tracked projects list to disk for session continuity."""
+	var payload = {
+		"version": 1,
+		"projects": _tracked_projects,
+		"updated_at": Time.get_unix_time_from_system()
+	}
+	var file = FileAccess.open(_projects_index_path, FileAccess.WRITE)
+	if file == null:
+		Logger.warn("project_registry_write_failed", {
+			"component": "projects"
+		})
+		return
+	file.store_string(JSON.stringify(payload))
+	file.close()
+	Logger.debug("project_registry_saved", {
+		"component": "projects",
+		"count": _tracked_projects.size()
+	})
 
 func _load_config_if_present(config_path: String) -> OgsConfig:
 	"""Loads ogs_config.json if present; returns a default config otherwise."""
@@ -181,6 +1071,8 @@ func _populate_tools_list(tools: Array) -> void:
 	"""
 	tools_list.clear()
 	_tool_availability.clear()
+	_selected_tool_index = -1
+	_update_tool_action_buttons()
 	
 	# Build availability map from ToolsController
 	var available_tools = _get_available_tools()
@@ -297,6 +1189,11 @@ func _on_tool_item_clicked(index: int) -> void:
 	Parameters:
 	  index (int): Index in the tools list ItemList
 	"""
+	_selected_tool_index = index
+	_update_tool_action_buttons()
+	if tools_list != null and index >= 0 and index < tools_list.item_count:
+		tools_list.select(index)
+
 	if current_manifest == null or index < 0 or index >= current_manifest.tools.size():
 		Logger.debug("tool_item_clicked_invalid_index", {
 			"component": "projects",
@@ -322,6 +1219,26 @@ func _on_tool_item_clicked(index: int) -> void:
 				"available_in_repo": availability["available"]
 			})
 			tool_view_requested.emit(tool_id, tool_version)
+
+func _on_tool_item_selected(index: int) -> void:
+	"""Tracks selected tool index for reliable launch button behavior.
+
+	Parameters:
+	  index (int): Selected index in tools list
+	"""
+	_selected_tool_index = index
+	_update_tool_action_buttons()
+
+func _on_tool_item_activated(index: int) -> void:
+	"""Launches tool on double-click in tools list.
+
+	Parameters:
+	  index (int): Activated (double-clicked) tool index
+	"""
+	_selected_tool_index = index
+	if tools_list != null and index >= 0 and index < tools_list.item_count:
+		tools_list.select(index)
+	_on_launch_tool_pressed()
 	
 
 func _update_status(message: String) -> void:
@@ -355,16 +1272,8 @@ func refresh_project_tools_state() -> void:
 	"""
 	if current_project_dir.is_empty() or current_manifest == null:
 		return
-
-	var config_path = current_project_dir.path_join("ogs_config.json")
-	var config = _load_config_if_present(config_path)
-
-	_populate_tools_list(current_manifest.tools)
-	_apply_offline_config(config)
-	_update_offline_status(config)
-
-	var use_project_tools = config != null and config.force_offline
-	_validate_and_report_environment(current_project_dir, use_project_tools)
+	if _selected_project_index >= 0:
+		_select_project(_selected_project_index)
 
 	Logger.info("project_tools_state_refreshed", {
 		"component": "projects",
@@ -379,11 +1288,16 @@ func _on_launch_tool_pressed() -> void:
 		return
 	
 	var selected_indices = tools_list.get_selected_items()
-	if selected_indices.is_empty():
+	var selected_index = -1
+	if not selected_indices.is_empty():
+		selected_index = selected_indices[0]
+	elif _selected_tool_index >= 0:
+		selected_index = _selected_tool_index
+
+	if selected_index < 0:
 		_update_status("Status: No tool selected. Select a tool from the list first.")
 		return
-	
-	var selected_index = selected_indices[0]
+
 	if selected_index >= current_manifest.tools.size():
 		_update_status("Status: Invalid tool selection.")
 		return
@@ -401,12 +1315,51 @@ func _enable_launch_button() -> void:
 	"""Enables the launch button when a valid project is loaded."""
 	if btn_launch_tool:
 		btn_launch_tool.disabled = false
+	_update_tool_action_buttons()
 
 func _disable_launch_button() -> void:
 	"""Disables the launch button when no valid project is loaded."""
 	if btn_launch_tool:
 		btn_launch_tool.disabled = true
+	current_project_dir = ""
 	current_manifest = null
+	_selected_project_index = -1
+	_selected_tool_index = -1
+	tools_list.clear()
+	btn_add_tool.disabled = true
+	btn_remove_tool.disabled = true
+	_disable_remove_button()
+
+func _disable_launch_for_selected_project() -> void:
+	"""Disables launch state while preserving selected project for safe removal."""
+	if btn_launch_tool:
+		btn_launch_tool.disabled = true
+	current_project_dir = ""
+	current_manifest = null
+	_selected_tool_index = -1
+	tools_list.clear()
+	btn_add_tool.disabled = true
+	btn_remove_tool.disabled = true
+	_enable_remove_button()
+
+func _update_tool_action_buttons() -> void:
+	"""Updates Add/Remove Tool button enabled states for current selection context."""
+	var has_project = current_manifest != null and not current_project_dir.is_empty()
+	if btn_add_tool != null:
+		btn_add_tool.disabled = not has_project
+	if btn_remove_tool != null:
+		var can_remove = has_project and _selected_tool_index >= 0 and _selected_tool_index < current_manifest.tools.size()
+		btn_remove_tool.disabled = not can_remove
+
+func _enable_remove_button() -> void:
+	"""Enables Remove Project button when a project is currently selected."""
+	if btn_remove_project != null:
+		btn_remove_project.disabled = false
+
+func _disable_remove_button() -> void:
+	"""Disables Remove Project button when no removable project is selected."""
+	if btn_remove_project != null:
+		btn_remove_project.disabled = true
 ## Validates the project environment and signals if tools are missing.
 func _validate_and_report_environment(project_dir: String, use_project_tools: bool = false) -> void:
 	"""Checks if all required tools are available in the library.
