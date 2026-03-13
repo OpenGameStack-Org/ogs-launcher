@@ -6,6 +6,9 @@
 .import/
 export_presets.cfg
 
+# Build artifacts
+artifacts/
+
 # VS Code workspace files
 *.code-workspace
 .vscode/
