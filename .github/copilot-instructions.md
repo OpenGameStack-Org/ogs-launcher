@@ -13,7 +13,7 @@
 
 * **Primary Engine:** **Godot 4.3 (Stable)**. Strictly use Godot 4.3 GDScript syntax (e.g., use `instantiate()` instead of `instance()`, and new `@export` annotations).
 * **Godot Executable (Windows):** `C:\Program Files\Godot_v4.3-stable_win64\Godot_v4.3-stable_win64.exe`
-* **Frozen Stack Tools:** Target compatibility for Blender 4.2 LTS, Krita 5.2, and Audacity 3.7.
+* **Frozen Stack Tools:** Target compatibility for Blender 4.5.7, Krita 5.2.15, and Audacity 3.7.7.
 * **Implementation Language:** Primarily GDScript for the launcher; Bash/PowerShell for tool management scripts.
 
 ### **3. Coding Standards for Copilot**
