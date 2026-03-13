@@ -20,6 +20,9 @@ var _output_label: Label
 var _open_folder_button: Button
 
 var _last_sealed_zip: String = ""
+var _seal_in_progress: bool = false
+var _seal_thread: Thread
+var _seal_started_at_msec: int = 0
 
 ## Sets up the seal controller with dialog and display components.
 ## Parameters:
@@ -50,15 +53,47 @@ func seal_for_delivery(project_path: String) -> void:
 	if project_path.is_empty():
 		_show_error("No project loaded.", "Please load a project first.")
 		return
+
+	if _seal_in_progress:
+		_show_error("Seal already running.", "Please wait for the current seal operation to complete.")
+		return
 	
 	# Show progress dialog
 	_show_progress()
-	
-	# Perform seal operation
-	var sealer = ProjectSealer.new()
-	var result = sealer.seal_project(project_path)
-	
-	# Display result
+	_run_seal_async(project_path)
+
+## Runs seal operation in a background thread and updates UI while waiting.
+func _run_seal_async(project_path: String) -> void:
+	"""Executes sealing asynchronously to keep the UI responsive."""
+	_seal_in_progress = true
+	_seal_started_at_msec = Time.get_ticks_msec()
+	_seal_thread = Thread.new()
+
+	# Yield one frame so the progress dialog renders before heavy work starts.
+	await _seal_dialog.get_tree().process_frame
+
+	var start_err = _seal_thread.start(Callable(self, "_threaded_seal_operation").bind(project_path))
+	if start_err != OK:
+		_seal_in_progress = false
+		_show_error("Seal operation failed.", "Unable to start background packaging thread.")
+		Logger.error("seal_thread_start_failed", {
+			"component": "sealer",
+			"error": error_string(start_err)
+		})
+		seal_completed.emit(false, "")
+		return
+
+	while _seal_thread != null and _seal_thread.is_alive():
+		_update_progress_status()
+		await _seal_dialog.get_tree().create_timer(0.25).timeout
+
+	var result = _seal_thread.wait_to_finish() if _seal_thread != null else {
+		"success": false,
+		"errors": ["Background thread result missing."]
+	}
+	_seal_thread = null
+	_seal_in_progress = false
+
 	if result.success:
 		_show_success(result)
 		_last_sealed_zip = result.sealed_zip
@@ -66,6 +101,20 @@ func seal_for_delivery(project_path: String) -> void:
 	else:
 		_show_error("Seal operation failed.", result.errors)
 		seal_completed.emit(false, "")
+
+## Worker thread entry point for project sealing.
+func _threaded_seal_operation(project_path: String) -> Dictionary:
+	"""Performs the full seal workflow off the main thread."""
+	var sealer = ProjectSealer.new()
+	return sealer.seal_project(project_path)
+
+## Updates in-progress status text while background seal runs.
+func _update_progress_status() -> void:
+	"""Shows elapsed time and stage hints during long-running packaging."""
+	var elapsed_seconds = int((Time.get_ticks_msec() - _seal_started_at_msec) / 1000.0)
+	var phase = "Validating and copying tools" if elapsed_seconds < 10 else "Packaging archive"
+	_status_label.text = "Sealing project... (%ds)" % elapsed_seconds
+	_output_label.text = "Stage: %s\n\nThis step can take several minutes for large toolchains.\nPlease keep this window open." % phase
 
 ## Displays success state with result details.
 func _show_success(result: Dictionary) -> void:
@@ -116,7 +165,7 @@ func _show_error(title: String, errors: Variant) -> void:
 func _show_progress() -> void:
 	"""Shows the progress dialog."""
 	_status_label.text = "Sealing project..."
-	_output_label.text = "Creating offline-ready artifact..."
+	_output_label.text = "Stage: Preparing\n\nCreating offline-ready artifact..."
 	_open_folder_button.visible = false
 	_seal_dialog.popup_centered()
 
@@ -126,8 +175,16 @@ func _on_open_folder_pressed() -> void:
 	if _last_sealed_zip.is_empty():
 		Logger.warn("open_folder_no_path", {"component": "sealer"})
 		return
-	
-	var folder_path = _last_sealed_zip.get_basename().get_basename()
+
+	var folder_path = _last_sealed_zip.get_base_dir()
+	if folder_path.is_empty() or not DirAccess.dir_exists_absolute(folder_path):
+		Logger.warn("open_folder_invalid_path", {
+			"component": "sealer",
+			"zip_path": _last_sealed_zip,
+			"folder_path": folder_path
+		})
+		return
+
 	OS.shell_open(folder_path)
 	
 	Logger.info("open_folder_pressed", {
