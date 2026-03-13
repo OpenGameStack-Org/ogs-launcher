@@ -69,6 +69,26 @@ Expected files include:
 
 1. Run package script with a new version string.
 2. Smoke test launch from staging folder.
-3. Upload ZIP to GitHub Release in `OpenGameStack-Org/ogs-launcher`.
-4. Mark release as pre-release (alpha).
-5. Use release URL as public download link when ready.
+3. Create the GitHub Release and upload the ZIP using the GitHub CLI (`gh`):
+
+```powershell
+gh release create v<version> `
+  "artifacts\alpha\OGS-Launcher-alpha-win64-<version>.zip" `
+  --repo OpenGameStack-Org/ogs-launcher `
+  --title "OGS Launcher v<version>" `
+  --notes "Release notes here..." `
+  --prerelease
+```
+
+If `gh` is not installed: `winget install --id GitHub.cli`
+Authenticate before first use: `gh auth login`
+
+4. Update website download links to point to the new release tag URL:
+   - `https://github.com/OpenGameStack-Org/ogs-launcher/releases/tag/v<version>`
+   - Note: Pre-releases are **not** returned by `/releases/latest` — always use the explicit tag URL.
+
+## Published Releases
+
+| Version | Date | Status |
+|---------|------|--------|
+| v0.1.0-alpha | 2026-03-13 | Pre-release ✅ |

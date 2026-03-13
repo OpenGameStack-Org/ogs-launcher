@@ -267,6 +267,8 @@ Granular, actionable items for the Tools/Projects page redesign:
     *   ProgressController unit tests: inline tracking, phase transitions, signal emission
 *   **Refactoring:** Controller pattern established (Projects, Layout, Seal, Tools, Progress)
 *   **Manual Testing:** Split into two tiers: Editor-mode (9 tests) and Installed-Build (7 tests). See [MANUAL_TESTING.md](MANUAL_TESTING.md).
+*   **Seal UX Hardening (Mar 13, 2026):** Seal for Delivery async refactor + Open Sealed Folder fix
+*   **Alpha Distribution (Mar 13, 2026):** GitHub Release v0.1.0-alpha published, website live with download links
 
 ## Summary: Phase 1.5 + Phase 2 + Phase 2.5 Complete
 
@@ -314,6 +316,20 @@ Granular, actionable items for the Tools/Projects page redesign:
 - ToolLauncher resolves executables from central library when path omitted
 - Backward compatible: existing manifests with paths still work
 - Migration notes added to MANIFEST_SCHEMA.md
+
+**Seal UX Hardening (Mar 13, 2026):**
+- `SealController.seal_for_delivery()` refactored from synchronous (main-thread blocking) to async `Thread`-based execution
+- Live elapsed-time + phase hint status updates every 0.25s while seal runs (no more "Window Not Responding")
+- `_on_open_folder_pressed()` path fix: was using `get_basename().get_basename()` which double-stripped extensions; now uses `get_base_dir()` with `DirAccess.dir_exists_absolute()` guard
+- Guard against duplicate concurrent seal attempts (`_seal_in_progress` flag)
+
+**Alpha Distribution (Mar 13, 2026):**
+- Alpha packaging pipeline created (`scripts/release/build_alpha_package.ps1`): runs tests, exports via Godot CLI, produces ZIP
+- Packaging script uses `Start-Process` with redirected stdout/stderr to avoid PowerShell `NativeCommandError` on Godot's expected test stderr
+- `artifacts/` added to `.gitignore`
+- GitHub CLI (`gh`) used to publish: `gh release create v0.1.0-alpha ... --prerelease`
+- **v0.1.0-alpha released**: https://github.com/OpenGameStack-Org/ogs-launcher/releases/tag/v0.1.0-alpha
+- Website (`OpenGameStack-Org.github.io`) updated with alpha download section and direct tag URL links
 
 **Next: Mid-Term Enhancements (Phase 3 - March-May 2026)**
 - Multi-select downloads and download queue management

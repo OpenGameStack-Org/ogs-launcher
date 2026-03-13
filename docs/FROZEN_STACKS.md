@@ -44,4 +44,4 @@ The following tools are currently available in the OGS Tool Catalog:
 - [MIRROR_SCHEMA.md](MIRROR_SCHEMA.md) — Schema documentation for `repository.json`
 - [Design_Doc.md](Design_Doc.md#terminology--architecture) — Full architecture explanation
 
-Last updated: February 22, 2026
+Last updated: March 13, 2026

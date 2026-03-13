@@ -1,8 +1,9 @@
 # Open Game Stack (OGS)
 
-![Status](https://img.shields.io/badge/Status-Prototype-orange)
+![Status](https://img.shields.io/badge/Status-Alpha-orange)
 ![Engine](https://img.shields.io/badge/Godot-4.3-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+[![Download Alpha](https://img.shields.io/badge/Download-v0.1.0--alpha-brightgreen)](https://github.com/OpenGameStack-Org/ogs-launcher/releases/tag/v0.1.0-alpha)
 
 > **The "Studio-in-a-Box" for Sovereign Game Development.**
 
@@ -47,9 +48,21 @@ The heart of the stack is the **OGS Launcher**, a custom application (built in G
 ---
 
 ## 📂 Documentation
-* **[Technical Design Document](docs/DESIGN_DOC.md):** Deep dive into the "Frozen Stack" architecture, directory structure, and `stack.json` schema.
+* **[Technical Design Document](docs/Design_Doc.md):** Deep dive into the "Frozen Stack" architecture, directory structure, and `stack.json` schema.
 * **[Alpha Packaging Guide](docs/ALPHA_PACKAGING.md):** Build a Windows alpha ZIP package for distribution.
+* **[Testing Guide](docs/TESTING.md):** How to run the automated test suite and what each test covers.
+* **[Manual Testing Guide](docs/MANUAL_TESTING.md):** Step-by-step user-facing test scenarios for both editor and installed-build modes.
 * **[Sample Projects](samples/README.txt):** Quick launcher test inputs for both development/linked mode and sealed-style mode.
+
+## ⬇️ Download
+
+A pre-built Windows binary is available for testing:
+
+**[Download OGS Launcher v0.1.0-alpha (Windows x64)](https://github.com/OpenGameStack-Org/ogs-launcher/releases/tag/v0.1.0-alpha)**
+
+Extract the ZIP, keep `OGS-Launcher.exe` and `OGS-Launcher.pck` together, and run. No installation required.
+
+---
 
 ## 🏁 Getting Started
 
@@ -60,7 +73,7 @@ The heart of the stack is the **OGS Launcher**, a custom application (built in G
 ### Quick Start
 1.  **Clone the Repo:**
     ```bash
-    git clone [https://github.com/open-game-stack/open-game-stack.git](https://github.com/open-game-stack/open-game-stack.git)
+    git clone https://github.com/OpenGameStack-Org/ogs-launcher.git
     ```
 2.  **Open in Godot:** Import the `project.godot` file into the Godot Editor.
 3.  **Run:** Press F5 to start the OGS Launcher.
